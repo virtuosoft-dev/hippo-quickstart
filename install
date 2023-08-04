@@ -1,0 +1,4 @@
+#!/bin/bash
+
+# Notify installation has finished
+/usr/local/hestia/bin/v-add-user-notification admin Quickstart "<span>&#127937;</span> Quickstart plugin has finished installing."
