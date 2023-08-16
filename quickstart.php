@@ -26,6 +26,7 @@
             if ( !str_contains( $content, '<!-- Begin toolbar -->') ) return $args;
             if ( !str_contains( $content, '<li class="main-menu-item">' ) ) return $args;
             global $hcpp;
+            $hcpp->log("Quickstart: Adding Quickstart tab");
             $before = $hcpp->getLeftMost( $content, '<li class="main-menu-item">') . '<li class="main-menu-item">';
             $after = $hcpp->delLeftMost( $content, '<li class="main-menu-item">');
             $qs_tab = '<!-- Quickstart tab -->
