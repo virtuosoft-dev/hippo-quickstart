@@ -17,16 +17,15 @@
         public function __construct() {
             global $hcpp;
             $hcpp->quickstart = $this;
-            $hcpp->add_action( 'hcpp_render_page', [ $this, 'hcpp_render_page' ] );
+            $hcpp->add_action( 'hcpp_render_panel', [ $this, 'hcpp_render_panel' ] );
         }
 
         // Render the Quickstart tab
-        public function hcpp_render_page( $args ) {
+        public function hcpp_render_panel( $args ) {
             $content = $args['content'];
-            if ( !str_contains( $content, '<!-- Begin toolbar -->') ) return $args;
             if ( !str_contains( $content, '<!-- Web tab -->' ) ) return $args;
+            
             global $hcpp;
-            $hcpp->log("Quickstart: Adding Quickstart tab");
             $before = $hcpp->getLeftMost( $content, '<!-- Web tab -->');
             $after = '<!-- Web tab -->' . $hcpp->delLeftMost( $content, '<!-- Web tab -->');
             $qs_tab = '<!-- Quickstart tab -->
