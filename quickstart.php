@@ -24,11 +24,11 @@
         public function hcpp_render_page( $args ) {
             $content = $args['content'];
             if ( !str_contains( $content, '<!-- Begin toolbar -->') ) return $args;
-            if ( !str_contains( $content, '<li class="main-menu-item">' ) ) return $args;
+            if ( !str_contains( $content, '<!-- Web tab -->' ) ) return $args;
             global $hcpp;
             $hcpp->log("Quickstart: Adding Quickstart tab");
-            $before = $hcpp->getLeftMost( $content, '<li class="main-menu-item">') . '<li class="main-menu-item">';
-            $after = $hcpp->delLeftMost( $content, '<li class="main-menu-item">');
+            $before = $hcpp->getLeftMost( $content, '<!-- Web tab -->');
+            $after = '<!-- Web tab -->' . $hcpp->delLeftMost( $content, '<!-- Web tab -->');
             $qs_tab = '<!-- Quickstart tab -->
             <li class="main-menu-item">
                 <a class="main-menu-item-link active" href="/list/web/?quickstart=true" title="Easy-to-use guide">
