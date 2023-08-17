@@ -51,7 +51,7 @@
                                 <input type="radio" id="qs_edit" name="qs_action" value="QS_EDIT">
                                 <label for="qs_edit">Remove or copy a website.</label><br>
                                 <input type="radio" id="qs_ie" name="qs_action" value="QS_IE">
-                                <label for="qs_ie">Import or export or website.</label>
+                                <label for="qs_ie">Import or export a website.</label>
                             </div>
                         </div>';
             $args['content'] = $content . $footer;
