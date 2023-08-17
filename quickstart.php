@@ -17,7 +17,21 @@
         public function __construct() {
             global $hcpp;
             $hcpp->quickstart = $this;
+            $hcpp->add_action( 'hcpp_render_body', [ $this, 'hcpp_render_body' ] );
             $hcpp->add_action( 'hcpp_render_panel', [ $this, 'hcpp_render_panel' ] );
+        }
+
+        // Render the Quickstart body
+        public function hcpp_render_body( $args ) {
+            if ( !$_GET['quickstart'] == 'true' ) return $args;
+            $content = $args['content'];
+            global $hcpp;
+            $content = '<footer ' . $hcpp->delLeftMost( $content, '<footer ');
+            $content = '<div class="container">
+                Here is our Quickstart guide.
+            </div>';
+            $args['content'] = $content;
+            return $args;
         }
 
         // Render the Quickstart tab
@@ -54,14 +68,5 @@
     new Quickstart();
 }
 
-// TODO: QUICKSTART Wizard
-        // <!-- Quickstart tab -->
-        // <li class="main-menu-item">
-        //     <a class="main-menu-item-link active" href="/list/web/?quickstart=true" title="Easy-to-use guide">
-        //         <p class="main-menu-item-label">QUICKSTART<i class="fas fa-flag-checkered"></i></p>
-        //         <ul class="main-menu-stats">
-        //             <li> easy-to-use </li>
-        //             <li> guide </li>
-        //         </ul>
-        //     </a>
-        // </li>
+
+                
