@@ -42,9 +42,10 @@
                             </div>
                         </div>
                         <div class="body-reset container" style="min-height: 300px;">
-                            <div>
+                            <div style="font-size:larger;">
                                 <h1>CodeGarden makes it easy to create websites.</h1>
                                 <legend>Choose an option &amp; click the "Continue" button:</legend>
+                                <br>
                                 <p>
                                 <input name="qsOption" type="radio" id="qs_create" checked="checked"/>
                                 <label for="qs_create">Create a new website.</label>
