@@ -24,6 +24,7 @@
         public function hcpp_render_panel( $args ) {
             $content = $args['content'];
             if ( !str_contains( $content, '<!-- Web tab -->' ) ) return $args;
+            if ( str_contains( $content, 'class="top-bar-menu-link" href="/edit/user/?user=admin&' ) ) return $args;
             
             global $hcpp;
             $before = $hcpp->getLeftMost( $content, '<!-- Web tab -->');
