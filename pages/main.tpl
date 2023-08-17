@@ -64,7 +64,7 @@
                 return (usePound?"#":"") + (g | (b << 8) | (r << 16)).toString(16);
             }
             let bgColor = window.getComputedStyle(document.body).getPropertyValue('--color-background');
-            let radial =  "radial-gradient(circle," + LightenDarkenColor(bgColor,40) + " 0%," + bColor + " 100%)," + bgColor;
+            let radial =  "radial-gradient(circle," + LightenDarkenColor(bgColor,40) + " 0%," + bgColor + " 100%)," + bgColor;
             $('.body-reset').css('background', radial);
         });
     })(jQuery);
