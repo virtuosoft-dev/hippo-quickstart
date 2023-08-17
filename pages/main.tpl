@@ -45,11 +45,27 @@
     // Match background gradient to theme
     (function($){
         $(function() {
-            var qcolor = window.getComputedStyle(document.body);
-            var color_background = qcolor.getPropertyValue('--color-background');
-            var top_bar_background = qcolor.getPropertyValue('--top-bar-background');
-            var top_bar_border_bottom = qcolor.getPropertyValue('--top-bar-border-bottom');
-            $('.body-reset').css('background', "radial-gradient(circle,#" + top_bar_background + " 0%,#" + color_background + " 100%),#" + top_bar_border_bottom);
+            function LightenDarkenColor(col, amt) {
+                let usePound = false;
+                if ( col[0] == "#" ) {
+                    col = col.slice(1);
+                    usePound = true;
+                }
+                let num = parseInt(col,16);
+                let r = (num >> 16) + amt;
+                if ( r > 255 ) r = 255;
+                else if  (r < 0) r = 0;
+                let b = ((num >> 8) & 0x00FF) + amt;
+                if ( b > 255 ) b = 255;
+                else if  (b < 0) b = 0;
+                let g = (num & 0x0000FF) + amt
+                if ( g > 255 ) g = 255;
+                else if  ( g < 0 ) g = 0;
+                return (usePound?"#":"") + (g | (b << 8) | (r << 16)).toString(16);
+            }
+            let bgColor = window.getComputedStyle(document.body).getPropertyValue('--color-background');
+            let radial =  "radial-gradient(circle," + LightenDarkenColor(bgColor,40) + " 0%," + bColor + " 100%)," + bgColor;
+            $('.body-reset').css('background', radial);
         });
     })(jQuery);
 </script>
