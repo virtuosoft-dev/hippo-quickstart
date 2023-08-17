@@ -41,3 +41,15 @@
         </p>
     </div>
 </div>
+<script>
+    // Match background gradient to theme
+    (function($){
+        $(function() {
+            var qcolor = window.getComputedStyle(document.body);
+            var color_background = qcolor.getPropertyValue('--color-background');
+            var top_bar_background = qcolor.getPropertyValue('--top-bar-background');
+            var top_bar_border_bottom = qcolor.getPropertyValue('--top-bar-border-bottom');
+            $('.body-reset').css('background', "radial-gradient(circle,#" + top_bar_background + " 0%,#" + color_background + " 100%),#" + top_bar_border_bottom);
+        });
+    })(jQuery);
+</script>
