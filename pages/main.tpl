@@ -69,8 +69,8 @@
                 else if  ( g < 0 ) g = 0;
                 return (usePound?"#":"") + (g | (b << 8) | (r << 16)).toString(16);
             }
-            let bgColor = window.getComputedStyle(document.body).getPropertyValue('--color-background');
-            let radial =  "radial-gradient(circle," + LightenDarkenColor(bgColor, 40) + " 0%," + bgColor + " 100%)," + bgColor;
+            let bgColor = window.getComputedStyle(document.body).getPropertyValue('--chart-grid-color');
+            let radial =  "radial-gradient(circle," + LightenDarkenColor(bgColor, 20) + " 0%," + LightenDarkenColor(bgColor, -20) + " 100%)," + LightenDarkenColor(bgColor, -20);
             $('.body-reset').css('background', radial);
         });
     })(jQuery);
