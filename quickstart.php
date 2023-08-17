@@ -27,7 +27,7 @@
             $content = $args['content'];
             global $hcpp;
             $content = '<footer ' . $hcpp->delLeftMost( $content, '<footer ');
-            $content = '<div class="container">
+            $content = '<div class="body-reset container" style="min-height: 300px;">
                 Here is our Quickstart guide.
             </div>' . $content;
             $args['content'] = $content;
