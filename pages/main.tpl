@@ -46,6 +46,12 @@
     (function($){
         $(function() {
             function LightenDarkenColor(col, amt) {
+                if (col.length == 4) {
+                    col = newColor.split("").map((item)=>{
+                    if(item == "#"){return item}
+                        return item + item;
+                    }).join("")
+                }
                 let usePound = false;
                 if ( col[0] == "#" ) {
                     col = col.slice(1);
@@ -64,7 +70,7 @@
                 return (usePound?"#":"") + (g | (b << 8) | (r << 16)).toString(16);
             }
             let bgColor = window.getComputedStyle(document.body).getPropertyValue('--color-background');
-            let radial =  "radial-gradient(circle," + LightenDarkenColor(bgColor,40) + " 0%," + bgColor + " 100%)," + bgColor;
+            let radial =  "radial-gradient(circle," + LightenDarkenColor(bgColor, 40) + " 0%," + bgColor + " 100%)," + bgColor;
             $('.body-reset').css('background', radial);
         });
     })(jQuery);
