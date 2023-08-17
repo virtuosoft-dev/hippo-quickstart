@@ -44,14 +44,19 @@
                         <div class="body-reset container" style="min-height: 300px;">
                             <div>
                                 <h1>CodeGarden makes it easy to create websites.</h1>
-                                <p>Choose an option &amp; click the "Continue" button:</p>
-                                <br>
-                                <input type="radio" id="qs_create" name="qs_action" value="QS_CREATE">
-                                <label for="qs_create">Create a new website.</label><br>
-                                <input type="radio" id="qs_edit" name="qs_action" value="QS_EDIT">
-                                <label for="qs_edit">Remove or copy a website.</label><br>
-                                <input type="radio" id="qs_ie" name="qs_action" value="QS_IE">
-                                <label for="qs_ie">Import or export a website.</label>
+                                <legend>Choose an option &amp; click the "Continue" button:</legend>
+                                <p>
+                                <input name="qsOption" type="radio" id="qs_create" checked="checked"/>
+                                <label for="qs_create">Create a new website.</label>
+                                </p>
+                                <p>
+                                <input name="qsOption" type="radio" id="qs_edit" />
+                                <label for="qs_edit">Remove or copy a website.</label>
+                                </p>
+                                <p>
+                                <input name="qsOption" type="radio" id="qs_io" />
+                                <label for="qs_io">Import or export a website.</label>
+                                </p>
                             </div>
                         </div>';
             $args['content'] = $content . $footer;
