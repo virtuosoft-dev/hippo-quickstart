@@ -2,7 +2,7 @@
     .qs_main legend {
         margin-bottom: 20px;
     }
-    .container {
+    main .container {
         min-height: 300px;;
     }
     .quickstart {
