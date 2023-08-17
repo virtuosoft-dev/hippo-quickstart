@@ -70,7 +70,7 @@
                 return (usePound?"#":"") + (g | (b << 8) | (r << 16)).toString(16);
             }
             let bgColor = window.getComputedStyle(document.body).getPropertyValue('--chart-grid-color');
-            let radial =  "radial-gradient(circle," + LightenDarkenColor(bgColor, 15) + " 0%," + LightenDarkenColor(bgColor, -35) + " 100%)," + LightenDarkenColor(bgColor, -35);
+            let radial =  "radial-gradient(circle," + LightenDarkenColor(bgColor, 18) + " 0%," + LightenDarkenColor(bgColor, -35) + " 100%)," + LightenDarkenColor(bgColor, -35);
             $('.body-reset').css('background', radial);
         });
     })(jQuery);
