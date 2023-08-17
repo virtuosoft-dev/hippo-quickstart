@@ -47,7 +47,7 @@
         $(function() {
             function LightenDarkenColor(col, amt) {
                 if (col.length == 4) {
-                    col = newColor.split("").map((item)=>{
+                    col = col.split("").map((item)=>{
                     if(item == "#"){return item}
                         return item + item;
                     }).join("")
