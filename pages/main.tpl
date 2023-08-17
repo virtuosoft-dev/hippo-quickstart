@@ -8,6 +8,13 @@
     .quickstart {
         font-size: larger;
     }
+    .quickstart input[type="radio"] {
+        transform: scale(1.3);
+        margin: 5px;
+    }
+    .quickstart label {
+        vertical-align: text-top;
+    }
 </style>
 <div class="toolbar">
     <div class="toolbar-inner">
