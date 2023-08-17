@@ -28,9 +28,13 @@
             global $hcpp;
             $before = $hcpp->getLeftMost( $content, '<!-- Web tab -->');
             $after = '<!-- Web tab -->' . $hcpp->delLeftMost( $content, '<!-- Web tab -->');
+            $active = $_GET['quickstart'] ? ' active' : '';
+            if ( $active != '' ) {
+                $after = str_replace( 'class="main-menu-item-link active"', 'class="main-menu-item-link"', $after);
+            }
             $qs_tab = '<!-- Quickstart tab -->
             <li class="main-menu-item">
-                <a class="main-menu-item-link active" href="/list/web/?quickstart=true" title="Easy-to-use guide">
+                <a class="main-menu-item-link' . $active . '" href="/list/web/?quickstart=true" title="Easy-to-use guide">
                     <p class="main-menu-item-label">QUICKSTART<i class="fas fa-flag-checkered"></i></p>
                     <ul class="main-menu-stats">
                         <li> easy-to-use </li>
