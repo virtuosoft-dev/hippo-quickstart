@@ -26,11 +26,28 @@
             if ( !$_GET['quickstart'] == 'true' ) return $args;
             $content = $args['content'];
             global $hcpp;
-            $content = '<footer ' . $hcpp->delLeftMost( $content, '<footer ');
-            $content = '<div class="body-reset container" style="min-height: 300px;">
-                Here is our Quickstart guide.
-            </div>' . $content;
-            $args['content'] = $content;
+            $footer = '<footer ' . $hcpp->delLeftMost( $content, '<footer ');
+            $content = '<div class="toolbar">
+                            <div class="toolbar-inner">
+                                <div class="toolbar-buttons">
+                                    <a class="button button-secondary button-back js-button-back" href="/list/web/" style="display: none;">
+                                        <i class="fas fa-arrow-left icon-blue"></i>Back			
+                                    </a>
+                                </div>
+                                <div class="toolbar-buttons">
+                                    <a href="#" class="button">
+                                        <i class="fas fa-arrow-right icon-blue"></i>Continue
+                                    </a>         
+                                </div>
+                            </div>
+                        </div>
+                        <div class="body-reset container" style="min-height: 300px;">
+                            <div>
+                                <p>CodeGarden makes it easy to create websites.</p>
+                                <p>Choose an option &amp; click the "Continue" button:</p>
+                            </div>
+                        </div>';
+            $args['content'] = $content . $footer;
             return $args;
         }
 
