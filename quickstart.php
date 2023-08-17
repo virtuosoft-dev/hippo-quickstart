@@ -43,6 +43,9 @@
                     </ul>
                 </a>
             </li>';
+
+            // Default to quickstart if logo is clicked
+            $before = str_replace( '<a href="/" class="top-bar-logo"', '<a href="/?quickstart=true" class="top-bar-logo"', $before);
             $content = $before . $qs_tab . $after;
             $args['content'] = $content;
             return $args;
