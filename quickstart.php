@@ -23,43 +23,14 @@
 
         // Render the Quickstart body
         public function hcpp_render_body( $args ) {
-            if ( !$_GET['quickstart'] == 'true' ) return $args;
+            if ( !isset( $_GET['quickstart'] ) ) return $args;
             $content = $args['content'];
             global $hcpp;
             $footer = '<footer ' . $hcpp->delLeftMost( $content, '<footer ');
-            $content = '<div class="toolbar">
-                            <div class="toolbar-inner">
-                                <div class="toolbar-buttons">
-                                    <a class="button button-secondary button-back js-button-back" href="/list/web/" style="display: none;">
-                                        <i class="fas fa-arrow-left icon-blue"></i>Back			
-                                    </a>
-                                </div>
-                                <div class="toolbar-buttons">
-                                    <a href="#" class="button">
-                                        <i class="fas fa-arrow-right icon-blue"></i>Continue
-                                    </a>         
-                                </div>
-                            </div>
-                        </div>
-                        <div class="body-reset container" style="min-height: 300px;">
-                            <div style="font-size:larger;">
-                                <h1>CodeGarden makes it easy to create websites.</h1>
-                                <legend>Choose an option &amp; click the "Continue" button:</legend>
-                                <br>
-                                <p>
-                                <input name="qsOption" type="radio" id="qs_create" checked="checked"/>
-                                <label for="qs_create">Create a new website.</label>
-                                </p>
-                                <p>
-                                <input name="qsOption" type="radio" id="qs_edit" />
-                                <label for="qs_edit">Remove or copy a website.</label>
-                                </p>
-                                <p>
-                                <input name="qsOption" type="radio" id="qs_io" />
-                                <label for="qs_io">Import or export a website.</label>
-                                </p>
-                            </div>
-                        </div>';
+            switch ( $_GET['quickstart'] ) {
+                default:
+                    $content = file_get_contents( __DIR__ . '/pages/main.tpl' );
+            }
             $args['content'] = $content . $footer;
             return $args;
         }
@@ -79,7 +50,7 @@
             }
             $qs_tab = '<!-- Quickstart tab -->
             <li class="main-menu-item">
-                <a class="main-menu-item-link' . $active . '" href="/list/web/?quickstart=true" title="Easy-to-use guide">
+                <a class="main-menu-item-link' . $active . '" href="/list/web/?quickstart=main" title="Easy-to-use guide">
                     <p class="main-menu-item-label">QUICKSTART<i class="fas fa-flag-checkered"></i></p>
                     <ul class="main-menu-stats">
                         <li> easy-to-use guide</li>
@@ -88,7 +59,7 @@
             </li>';
 
             // Default to quickstart if logo is clicked
-            $before = str_replace( '<a href="/" class="top-bar-logo"', '<a href="/list/web/?quickstart=true" class="top-bar-logo"', $before);
+            $before = str_replace( '<a href="/" class="top-bar-logo"', '<a href="/list/web/?quickstart=main" class="top-bar-logo"', $before);
             $content = $before . $qs_tab . $after;
             $args['content'] = $content;
             return $args;
