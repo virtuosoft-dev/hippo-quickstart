@@ -85,7 +85,6 @@
             }, 1000);
             $('.top-bar').fadeOut();
             $('.main-menu-item').on('click', (e) => {
-                if (mmAniDone) return;
                 e.preventDefault();
                 var mmClicked = $(this);
                 $('.top-bar').fadeIn();
