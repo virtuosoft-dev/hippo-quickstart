@@ -58,7 +58,7 @@
             // Fading top-bar
             var fadeTopBarTo = false;
             function fadeTopBar() {
-                if (fadeTopBarTo) {
+                if (fadeTopBarTo != false) {
                     clearTimeout(fadeTopBarTo);
                 }
                 fadeTopBarTo = setTimeout(() => {
