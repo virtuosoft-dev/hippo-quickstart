@@ -92,6 +92,7 @@
                     'padding-top': '40px'
                 }, 1000, function() {
                     let url = window.location.protocol + '//' + window.location.host + $(mmClicked).children('a').attr('href');
+                    console.log(url);
                     window.location = url;
                 });
             });
