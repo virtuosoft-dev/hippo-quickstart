@@ -84,11 +84,20 @@
                 'padding-top': '12px'
             }, 1000);
             $('.top-bar').fadeOut();
-            $('.main-menu-item').on('click', () => {
+            var mmAniDone = true;
+            var mmClicked = null;
+            $('.main-menu-item').on('click', (e) => {
+                if (!mmAniDone) return;
+                e.preventDefault();
+                mmClicked = $(this);
+                mmAniDone = false;
                 $('.top-bar').fadeIn();
                 $(".app-header").animate({
                     'padding-top': '40px'
-                }, 1000);
+                }, 1000, function() {
+                    mmAniDone = true;
+                    mmClicked.click();
+                });
             });
 
             // Match background gradient to theme
