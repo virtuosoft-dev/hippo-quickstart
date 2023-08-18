@@ -15,9 +15,6 @@
     .quickstart label {
         vertical-align: text-top;
     }
-    .app-header {
-        padding-top: 12px;
-    }
 </style>
 <div class="toolbar">
     <div class="toolbar-inner">
@@ -83,6 +80,10 @@
                     fadeTopBar();
                 }
             });
+            $(".app-header").animate({
+                'padding-top': '12px'
+            }, 1000);
+            $('.top-bar').fadeOut();
 
             // Match background gradient to theme
             function LightenDarkenColor(col, amt) {
