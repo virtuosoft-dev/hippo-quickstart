@@ -15,6 +15,9 @@
     .quickstart label {
         vertical-align: text-top;
     }
+    .app-header {
+        padding-top: 12px;
+    }
 </style>
 <div class="toolbar">
     <div class="toolbar-inner">
@@ -49,9 +52,39 @@
     </div>
 </div>
 <script>
-    // Match background gradient to theme
     (function($){
         $(function() {
+
+            // Fading top-bar
+            var fadeTopBarTo = false;
+            function fadeTopBar() {
+                if (fadeTopBarTo) {
+                    clearTimeout(fadeTopBarTo);
+                }
+                fadeTopBarTo = setTimeout(() => {
+                    $('.top-bar').fadeOut();
+                }, 5000);
+            }
+            addEventListener("scroll", (event) => {
+                if (!$('.top-bar').is(':visible')) {
+                    $('.top-bar').fadeIn();
+                }
+                fadeTopBar();
+            });
+            $('.top-bar').on('mousemove', () => {
+                fadeTopBar();
+            });
+            document.addEventListener('mousemove', function(event) {
+                let mouseY = event.clientY;
+                if (mouseY <= 20) {
+                    if (!$('.top-bar').is(':visible')) {
+                        $('.top-bar').fadeIn();
+                    }
+                    fadeTopBar();
+                }
+            });
+
+            // Match background gradient to theme
             function LightenDarkenColor(col, amt) {
                 if (col.length == 4) {
                     col = col.split("").map((item)=>{
