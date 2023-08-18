@@ -86,14 +86,13 @@
             $('.top-bar').fadeOut();
             $('.main-menu-item').on('click', (e) => {
                 e.preventDefault();
-                var mmClicked = $(this);
+                var mmURL = window.location.protocol + '//' + window.location.host + $(this).children('a').attr('href');
                 $('.top-bar').fadeIn();
                 $(".app-header").animate({
                     'padding-top': '40px'
                 }, 1000, function() {
-                    let url = window.location.protocol + '//' + window.location.host + $(mmClicked).children('a').attr('href');
-                    console.log(url);
-                    window.location = url;
+                    console.log(mmURL);
+                    window.location = mmURL;
                 });
             });
 
