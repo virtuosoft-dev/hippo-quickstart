@@ -84,18 +84,16 @@
                 'padding-top': '12px'
             }, 1000);
             $('.top-bar').fadeOut();
-            var mmAniDone = false;
-            var mmClicked = null;
             $('.main-menu-item').on('click', (e) => {
                 if (mmAniDone) return;
                 e.preventDefault();
-                mmClicked = $(this);
+                var mmClicked = $(this);
                 $('.top-bar').fadeIn();
                 $(".app-header").animate({
                     'padding-top': '40px'
                 }, 1000, function() {
-                    mmAniDone = true;
-                    $(mmClicked).children('a').click();
+                    let url = window.location.protocol + '//' + window.location.host + $(mmClicked).children('a').attr('href');
+                    window.location = url;
                 });
             });
 
