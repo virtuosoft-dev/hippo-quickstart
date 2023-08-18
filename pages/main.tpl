@@ -95,7 +95,7 @@
                     'padding-top': '40px'
                 }, 1000, function() {
                     mmAniDone = true;
-                    $(mmClicked).click();
+                    $(mmClicked).children('a').click();
                 });
             });
 
