@@ -91,7 +91,6 @@
                 $(".app-header").animate({
                     'padding-top': '40px'
                 }, 1000, function() {
-                    console.log(mmURL);
                     window.location = mmURL;
                 });
             });
