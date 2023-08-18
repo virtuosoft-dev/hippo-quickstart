@@ -84,6 +84,12 @@
                 'padding-top': '12px'
             }, 1000);
             $('.top-bar').fadeOut();
+            $('.main-menu-item').on('click', () => {
+                $('.top-bar').fadeIn();
+                $(".app-header").animate({
+                    'padding-top': '40px'
+                }, 1000);
+            });
 
             // Match background gradient to theme
             function LightenDarkenColor(col, amt) {
