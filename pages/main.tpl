@@ -84,17 +84,17 @@
                 'padding-top': '12px'
             }, 1000);
             $('.top-bar').fadeOut();
-            $('.main-menu-item').on('click', (e) => {
-                e.preventDefault();
-                var mmURL = window.location.protocol + '//' + window.location.host + $(this).children('a').attr('href');
-                $('.top-bar').fadeIn();
-                $(".app-header").animate({
-                    'padding-top': '40px'
-                }, 1000, function() {
-                    console.log(mmURL);
-                    window.location = mmURL;
-                });
-            });
+            // $('.main-menu-item').on('click', (e) => {
+            //     e.preventDefault();
+            //     var mmURL = window.location.protocol + '//' + window.location.host + $(this).children('a').attr('href');
+            //     $('.top-bar').fadeIn();
+            //     $(".app-header").animate({
+            //         'padding-top': '40px'
+            //     }, 1000, function() {
+            //         console.log(mmURL);
+            //         window.location = mmURL;
+            //     });
+            // });
 
             // Match background gradient to theme
             function LightenDarkenColor(col, amt) {
