@@ -19,6 +19,16 @@
             $hcpp->quickstart = $this;
             $hcpp->add_action( 'hcpp_render_body', [ $this, 'hcpp_render_body' ] );
             $hcpp->add_action( 'hcpp_render_panel', [ $this, 'hcpp_render_panel' ] );
+            $hcpp->add_action( 'hcpp_head', [ $this, 'hcpp_head' ] );
+        }
+
+        // Redirect to quickstart on login
+        public function hcpp_head( $args ) {
+            if ( !isset( $_GET['alt'] ) ) return $args;
+            $content = $args['content'];
+            if ( strpos( $content, 'LOGIN') === false ) return $args;
+            $_SESSION['request_uri'] = '/list/web/?quickstart=main';
+            return $args;
         }
 
         // Render the Quickstart body
