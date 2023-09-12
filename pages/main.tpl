@@ -80,6 +80,8 @@
                     fadeTopBar();
                 }
             });
+            $('.app-content .container:first').css('position','relative').css('top', -43);
+            $('.toolbar').css('position', 'relative').css('top', 0);
             $(".app-header").animate({
                 'padding-top': '12px'
             }, 1000);
