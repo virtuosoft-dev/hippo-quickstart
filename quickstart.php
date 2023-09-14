@@ -72,7 +72,7 @@
             $before = str_replace( '<a href="/" class="top-bar-logo"', '<a href="https://code.gdn/pws" target="_blank" class="top-bar-logo"', $before);
             
             // Customize help link
-            $before = str_replace( 'href="https://hestiacp.com/docs/"', 'href="https://code.gdn/pws/docs/"', $before );
+            $before = str_replace( 'href="https://hestiacp.com/docs/"', 'href="https://code.gdn/pws/support/"', $before );
 
             $content = $before . $qs_tab . $after;
             $args['content'] = $content;
