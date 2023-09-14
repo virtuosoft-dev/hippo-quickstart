@@ -69,7 +69,7 @@
             </li>';
 
             // Default to quickstart if logo is clicked
-            $before = str_replace( '<a href="/" class="top-bar-logo"', '<a href="/list/web/?quickstart=main" class="top-bar-logo"', $before);
+            $before = str_replace( '<a href="/" class="top-bar-logo"', '<a href="https://code.gdn/pws" target="_blank" class="top-bar-logo"', $before);
             $content = $before . $qs_tab . $after;
             $args['content'] = $content;
             return $args;
