@@ -32,7 +32,7 @@
 </div>
 <div class="body-reset container">
     <div class="quickstart qs_main">
-        <h1>CodeGarden makes it easy to create websites.</h1>
+        <h1>Devstia makes it easy to create websites.</h1>
         <legend>Choose an option &amp; click the "Continue" button:</legend>
         <p>
         <input name="qsOption" type="radio" id="qs_create" checked="checked"/>
