@@ -5,7 +5,7 @@
  * 
  * @version 1.0.0
  * @license GPL-3.0
- * @link https://github.com/steveorevo/hcpp-quickstart
+ * @link https://github.com/virtuosoft-dev/hcpp-quickstart
  * 
  */
 
@@ -34,14 +34,44 @@
         // Render the Quickstart body
         public function hcpp_render_body( $args ) {
             if ( !isset( $_GET['quickstart'] ) ) return $args;
-            $content = $args['content'];
-            global $hcpp;
-            $footer = '<footer ' . $hcpp->delLeftMost( $content, '<footer ');
-            switch ( $_GET['quickstart'] ) {
-                default:
-                    $content = file_get_contents( __DIR__ . '/pages/main.tpl' );
+            $authorized_pages = [
+                'main',
+                'import_export',
+                'import',
+                'export',
+                'db_details',
+                'create',
+                'remove_copy'
+            ];
+
+            // Sanitize the quickstart parameter, default to main
+            $load = $_GET['quickstart'];
+            $load = str_replace(array('/', '\\'), '', $load);
+            if (empty($load) || !preg_match('/^[A-Za-z0-9_-]+$/', $load)) {
+                $load = 'main';
+            } 
+            if ( !in_array( $load, $authorized_pages ) ) {
+                $load = 'main';
             }
-            $args['content'] = $content . $footer;
+
+            // Check for valid user session or direct to login
+            if(session_status() == PHP_SESSION_NONE){
+                session_start();
+            }
+            if ( !isset( $_SESSION['user'] ) ) {
+                header('Location: /login/?alt=1');
+                exit;
+            }
+
+            // Load the requested page
+            global $hcpp;
+            ob_start();
+            require( __DIR__ . '/pages/' . $load . '.php' );
+            $page = ob_get_clean();
+            $content = $args['content'];
+            $footer = '<footer ' . $hcpp->delLeftMost( $content, '<footer ');
+            $page = $hcpp->do_action('hcpp_quickstart_body', $page);
+            $args['content'] = $page . $footer;    
             return $args;
         }
 
