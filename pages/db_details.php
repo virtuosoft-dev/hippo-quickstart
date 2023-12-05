@@ -1,15 +1,13 @@
 <?php require( 'header.php' ); ?>
 <?php
+    // Sanitize domain
     $domain = $_GET['domain'];
+    $domain = preg_replace('/[^a-zA-Z0-9\.\-]/', '', $domain);
     $user = $_SESSION['user'];
-
-    // Get a list of databases for the given user
-
-    // Get a list of folders to scan for credentials
-
-    // Omit folders .git, node_modules, wp-content, wp-includes, wp-admin, etc.
-
-    // Check files for credentials .php, .js, .json, .conf, .config, .jsx, .ini, .sh, .xml, .inc, .ts, .cfg, .yml, .yaml, .py, .rb, .env
+    exec(HESTIA_CMD . "v-invoke-plugin quickstart_website_details " . $user . " " . $domain . " 'json'", $output, $return_var);
+    echo $HESTIA_CMD . "v-invoke-plugin quickstart_website_details " . $user . " " . $domain . " 'json'";
+    $db_details = json_decode(implode("", $output), true);
+    var_dump( $db_details );
 ?>
 <div class="toolbar nobar"></div>
 <div class="body-reset container">
@@ -24,6 +22,8 @@
                     <div class="units-table-cell">Database Credentials</div>
                     <div class="units-table-cell"></div>
                     <div class="units-table-cell u-text-center">Type</div>
+                    <div class="units-table-cell"></div>
+                    <div class="units-table-cell u-text-center">Disk</div>
                 </div>
 
                 <?php
@@ -54,8 +54,14 @@
                     </div>
                     <div class="units-table-cell"></div>
                     <div class="units-table-cell u-text-center-desktop">
-                        <span class="u-hide-desktop u-text-bold">Disk:</span>
+                        <span class="u-hide-desktop u-text-bold">Type:</span>
                         <span class="u-text-bold"><?php //echo $details['U_DISK']; ?></span>
+                    </div>
+                    <div class="units-table-cell"></div>
+                    <div class="units-table-cell u-text-center-desktop">
+                        <span class="u-hide-desktop u-text-bold">Disk:</span>
+                        <span class="u-text-bold"><?php echo $details['U_DISK']; ?></span>
+                        <span class="u-text-small">mb</span>
                     </div>
                 </div>
                 <?php
