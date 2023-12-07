@@ -37,6 +37,14 @@
     .quickstart .units-table-header .units-table-cell {
         padding: 5px 15px;
     }
+    .disabled {
+        opacity: 0.4;
+        filter: saturate(0);
+    }
+    .ref-files {
+        font-weight: normal;
+        font-size: x-small;
+    }
 </style>
 <script>
     console.log('<?php echo __DIR__; ?>');

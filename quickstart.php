@@ -20,12 +20,41 @@
             $hcpp->add_action( 'hcpp_invoke_plugin', [ $this, 'hcpp_invoke_plugin' ] );
             $hcpp->add_action( 'hcpp_render_body', [ $this, 'hcpp_render_body' ] );
             $hcpp->add_action( 'hcpp_render_panel', [ $this, 'hcpp_render_panel' ] );
+            $hcpp->add_action( 'hcpp_rebooted', [ $this, 'hcpp_rebooted' ] );
             $hcpp->add_action( 'hcpp_head', [ $this, 'hcpp_head' ] );
         }
 
-        // Highly optimized for speed, scan revelent files for database credentials
+        // Clean up the devstia_export_* on reboot
+        public function hcpp_rebooted( $args ) {
+
+            // Clean up /tmp/devstia_export_* files
+            shell_exec('rm -rf /tmp/devstia_export_*');
+
+            // Cycle through all users and remove /home/user/tmp/devstia_export_* folders
+            global $hcpp;
+            $users = $hcpp->run( "list-users json" );
+            foreach( $users as $user => $details) {
+                $command = "find /home/$user/tmp -maxdepth 1 -type d | egrep 'devstia_export_'";
+                $folders = array_filter(explode("\n", shell_exec($command)));
+                foreach( $folders as $folder ) {
+                    $command = "rm -rf $folder";
+                    shell_exec($command);
+                }
+            }
+
+            // Remove from 
+            return $args;
+        }
+
+        // Run elevated commands from the plugin
         public function hcpp_invoke_plugin( $args ) {
-            if ( $args[0] != 'quickstart_website_details' ) return $args;
+            if ( $args[0] == 'quickstart_export_dbs' ) return $this->quickstart_export_dbs( $args );
+            if ( $args[0] == 'quickstart_export_zip' ) return $this->quickstart_export_zip( $args );
+            return $args;
+        }
+
+        // Highly optimized for speed, scan revelent files for db password and return details as JSON
+        public function quickstart_export_dbs( $args ) {
             $user = $args[1];
             $domain = $args[2];
 
@@ -39,13 +68,12 @@
 
             // Get a list of folders to scan for credentials
             $public_html = $hcpp->run( "list-web-domain " . $user . " '" . $domain . "' json " );
+            if ( $public_html == NULL ) return $args;
             $public_html = $public_html[$domain]['DOCUMENT_ROOT'];
             $nodeapp = str_replace( '/public_html/', '/nodeapp/', $public_html );
-            $private = str_replace( '/public_html/', '/private/', $public_html );
-            $document_errors = str_replace( '/public_html/', '/document_errors/', $public_html );
 
             // Omit folders, and file extensions for scan
-            $omit_folders = array( 'src', 'nodeapp/public', 'build/public', '.git', 'versions', 'node_modules', 'wp-content', 'wp-includes', 'wp-admin', 'vendor' );
+            $omit_folders = array( 'src', 'core', 'includes', 'nodeapp/public', 'build/public', '.git', 'versions', 'node_modules', 'wp-content', 'wp-includes', 'wp-admin', 'vendor' );
             $match_extensions = array( 'php', 'js', 'json', 'conf', 'config', 'jsx', 'ini', 'sh', 'xml', 'inc', 'ts', 'cfg', 'yml', 'yaml', 'py', 'rb', 'env' );
 
             // Get list of files to check from public_html folder
@@ -90,33 +118,120 @@
                 $index = 0;
                 foreach( $databases as $database ) {
                     if ( !isset( $database['REF_FILES'] ) ) $database['REF_FILES'] = [];
-                    if ( strpos( $content, $database['DBUSER'] ) !== false ) {
+                    if ( strpos( $content, $database['DATABASE'] ) !== false ) {
                         $database['REF_FILES'][] = $file;
-
-                        // Use hints on the file type to locate the password
-                        $filename = $hcpp->getRightMost( $file, '/' );
-                        var_dump( $file );
-                        var_dump( $filename );
-
-                        // Locate database password in the given reference file
-                        //$hcpp->delLeftMost( $content, $database['DBUSER'] );
-
                     }
                     $databases[$index] = $database;
                     $index++;
                 }
             }
 
-            
+            // Analyze dbs that have assoc. files, and extract the password for each database
+            $found_dbs = [];
+            foreach( $databases as $database ) {
+                if ( !isset( $database['REF_FILES'] ) || count( $database['REF_FILES'] ) == 0 ) continue;
 
-            // var_dump( $files );
-            // var_dump( count($files) );
-            // var_dump( $databases );
+                // Search for the password in the first reference file
+                $database['DBPASSWORD'] = "";
+                foreach( $database['REF_FILES'] as $file) {
+                    $content = file_get_contents( $file );
+                    $content = $hcpp->delLeftMost( $content, $database['DATABASE'] );
+                    $pwkeys = ["PASSWORD'", 'PASSWORD"', 'password"', "password'", 'password =', 'password='];
+                    $fkey = "";
+                    foreach( $pwkeys as $pwkey ) {
+                        $keypos = strpos( $content, $pwkey );
+                        if ( $keypos === false ) continue;
+                        if ( $fkey == "" ) $fkey = $pwkey;
+                        if ( $keypos < strpos( $content, $fkey ) ) $fkey = $pwkey;
+                    }
+                    if ( $fkey == "" ) continue;
+                }
+                if ( $fkey != "" ) {
+                    $content = $hcpp->delLeftMost( $content, $fkey );
+                    
+                    // Find the first instance of a single quote or double quote, whichever comes first
+                    $singleQuotePos = strpos($content, "'");
+                    $doubleQuotePos = strpos($content, '"');
+                    if ($singleQuotePos === false && $doubleQuotePos === false) {
+                        // No quotes found
+                        $qchar = '';
+                    } elseif ($singleQuotePos === false) {
+                        // Only double quote found
+                        $qchar = '"';
+                    } elseif ($doubleQuotePos === false) {
+                        // Only single quote found
+                        $qchar = "'";
+                    } else {
+                        // Both quotes found, get the first one
+                        $qchar = $singleQuotePos < $doubleQuotePos ? "'" : '"';
+                    }
+                    if ( $qchar == '' ) continue;
 
+                    // Parse out the password enclosed in the quotes $qchar
+                    $content = $hcpp->delLeftMost( $content, $qchar );
+                    $password = $hcpp->getLeftMost( $content, $qchar );
+                    $database['DBPASSWORD'] = $password;
+                    $found_dbs[] = $database;
+                    continue;
+                }
+            }
 
+            echo json_encode( $found_dbs, JSON_PRETTY_PRINT );
             return $args;
         }
 
+        // Start the export process
+        public function quickstart_export_zip( $args ) {
+
+            // Move the manifest file to the user tmp folder
+            global $hcpp;
+            $json_file = $args[1];
+            $content = file_get_contents( '/tmp/' . $json_file );
+            $devstia_manifest = json_decode( $content, true );
+            unlink( '/tmp/' . $json_file );
+            $user = $devstia_manifest['user'];
+            $domain = $devstia_manifest['domain'];
+            $export_folder = '/home/' . $user . '/tmp/' . $hcpp->delRightMost( $json_file, '.json' );
+            if ( !is_dir( $export_folder ) ) mkdir( $export_folder, true );
+            file_put_contents( $export_folder . '/devstia_manifest.json', $content );
+            $devstia_databases_folder = $export_folder . '/devstia_databases';
+
+            // Dump databases to user tmp folder
+            mkdir( $devstia_databases_folder, true );
+            chmod( $devstia_databases_folder, 0751);
+            foreach( $devstia_manifest['databases'] as $database ) {
+                $db = $database['DATABASE'];
+                $hcpp->run( "dump-database $user $db > \"$devstia_databases_folder/$db.sql\"" );
+            }
+
+            $public_html = $hcpp->run( "list-web-domain " . $user . " '" . $domain . "' json " );
+            if ( $public_html == NULL ) return $args;
+            $public_html = $public_html[$domain]['DOCUMENT_ROOT'];
+            $nodeapp = str_replace( '/public_html/', '/nodeapp/', $public_html );
+            $private = str_replace( '/public_html/', '/private/', $public_html );
+            $cgi_bin = str_replace( '/public_html/', '/cgi-bin/', $public_html );
+            $document_errors = str_replace( '/public_html/', '/document_errors/', $public_html );
+
+            // Copy website folders to user tmp folder
+            $command = "cp -r $public_html $export_folder ;";
+            $command .= "cp -r $nodeapp $export_folder ;";
+            $command .= "cp -r $private $export_folder ;";
+            $command .= "cp -r $cgi_bin $export_folder ;";
+            $command .= "cp -r $document_errors $export_folder ;";
+            file_put_contents( "/tmp/test.txt", $command );
+            shell_exec( $command );
+
+            // Reset ownership, zip up contents, move to exports, and clean up
+            $zip_file = "/home/$user/web/exports/" . $domain . $hcpp->getRightMost( $export_folder, 'devstia_export' ) . '.zip';
+            $command = "chown -R $user:$user $export_folder && cd $export_folder ";
+            $command .= "&& zip -r $export_folder.zip . && cd .. && rm -rf $export_folder ";
+            $command .= "&& mkdir -p /home/$user/web/exports ";
+            $command .= "&& mv $export_folder.zip $zip_file ";
+            $command .= "&& chown -R $user:$user /home/$user/web/exports ";
+            shell_exec( $command );
+            return $args;
+        }
+        
         // Redirect to quickstart on login
         public function hcpp_head( $args ) {
             if ( !isset( $_GET['alt'] ) ) return $args;
@@ -134,7 +249,8 @@
                 'import_export',
                 'import',
                 'export',
-                'db_details',
+                'export_dbs',
+                'export_now',
                 'create',
                 'remove_copy'
             ];
