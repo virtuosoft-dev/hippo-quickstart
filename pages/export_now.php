@@ -1,41 +1,43 @@
-<?php require( 'header.php' ); 
+<?php require( 'header.php' ); ?>
+<?php
     // Omit databases that are not selected
+    global $hcpp;
     $db_details = $_SESSION['db_details'];
     $domain = $_GET['domain'];
     $dbs = [];
     foreach( $db_details as $db => $details ) {
         if ( in_array( $details['DATABASE'], explode( ",", $_GET['dbs'] ) ) ) {
             $dbs[] = $details;
+
+            // Cull user folder from ref_files
+            foreach( $dbs as $key => $db ) {
+                foreach( $db['REF_FILES'] as $key2 => $file ) {
+                    $dbs[$key]['REF_FILES'][$key2] = "." . $hcpp->delLeftMost( $file, $domain );
+                }
+            }
         }
     }
 
-    global $hcpp;
+    // Create a manifest file for the export
     $json_file = 'devstia_export_' . date( 'Y-m-d-His' ) . '.json';
+    $proxy = "";
     $devstia_manifest = [
         'user' => $_SESSION['user'],
         'domain' => $_GET['domain'],
+        'proxy' => $proxy,
         'databases' => $dbs,
     ];
     file_put_contents( '/tmp/' . $json_file, json_encode( $devstia_manifest, JSON_PRETTY_PRINT ) );
 
     // Start export process asynchonously and get the process id
     $export_pid = shell_exec(HESTIA_CMD . "v-invoke-plugin quickstart_export_zip " . $json_file . " > /dev/null 2>/dev/null & echo $!");
-    echo $export_pid;
 ?>
 <div class="toolbar nobar"></div>
 <div class="body-reset container">
     <div class="quickstart qs_main">
-        <div class="spinner-overlay js-spinner active">
-            <i class="fas fa-circle-notch fa-spin"></i>
-        </div>
         <h1>Exporting <?php echo $domain; ?>.</h1>
         <legend>Please wait.</legend>
-        <p>
-            <div class="progress">
-                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
-                    aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
-            </div>
-        </p>
+        <br><br><br><br><br>
     </div>
 </div>
 <div class="toolbar" style="z-index:100;position:relative;">
@@ -52,7 +54,6 @@
         </div>
     </div>
 </div>
-
 <script>
     (function($){
         $(function() {
@@ -65,6 +66,9 @@
                 let qsOption = $('input[name="qsOption"]:checked').attr('id');
                 $('#continue-button').attr('href', '?quickstart=' + qsOption);
             });
+            setTimeout( () => {
+                $('.spinner-overlay').addClass('active');
+            }, 1000);
         });
     })(jQuery);
 </script>

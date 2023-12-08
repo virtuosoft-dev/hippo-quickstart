@@ -38,6 +38,13 @@ touch "/usr/local/hestia/data/hcpp/installed/quickstart"
 This plugin will furnish a new tab item 'Quickstart' which acts as an easy-to-use, guided 'wizard' to easily create a domain name and associated website backend. 
 <br>
 
+## Extending HCPP-QuickStart via Pluginable Actions
+The following [hestiacp-pluginable](https://github.com/virtuosoft-dev/hestiacp-pluginable) actions are invoked when using
+the QuickStart. Developers can hook and implement their own QuickStart using these actions:
+
+* **quickstart_header** - *injects a common header containing CSS styling and scripts for all QuickStart pages.*
+* **quickstart_main** - *displays the contents of the main QuickStart tab.*
+
 ## Support the creator
 You can help this author's open source development endeavors by donating any amount to Stephen J. Carnam @ Virtuosoft. Your donation, no matter how large or small helps pay for essential time and resources to create MIT and GPL licensed projects that you and the world can benefit from. Click the link below to donate today :)
 <div>

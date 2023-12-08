@@ -1,4 +1,4 @@
-<script src="../../pluginable.php?load=quickstart&pages=vue.global.js"></script>
+<?php ob_start(); ?>
 <style>
     .nobar {
         height: 0px;
@@ -82,3 +82,7 @@
         });
     })(jQuery);
 </script>
+<?php
+    $page = ob_get_clean();
+    echo $hcpp->do_action('quickstart_header', $page);
+?>

@@ -73,14 +73,20 @@
             $nodeapp = str_replace( '/public_html/', '/nodeapp/', $public_html );
 
             // Omit folders, and file extensions for scan
-            $omit_folders = array( 'src', 'core', 'includes', 'nodeapp/public', 'build/public', '.git', 'versions', 'node_modules', 'wp-content', 'wp-includes', 'wp-admin', 'vendor' );
-            $match_extensions = array( 'php', 'js', 'json', 'conf', 'config', 'jsx', 'ini', 'sh', 'xml', 'inc', 'ts', 'cfg', 'yml', 'yaml', 'py', 'rb', 'env' );
+            $omit_folders = array( 'src', 'core', 'includes', 'public', 'current', 'content', 'core', 'uploads', 
+                'logs', '.git', '.svn', '.hg', 'versions', 'node_modules', 'wp-content', 'wp-includes',
+                'wp-admin', 'vendor', 'mw-config', 'extensions', 'maintenance', 'i18n', 'skins' );
+            $match_extensions = array( 'php', 'ts', 'js', 'json', 'conf', 'config', 'jsx', 'ini', 'sh', 'xml', 'inc',
+                'cfg', 'yml', 'yaml', 'py', 'rb', 'env' );
 
             // Get list of files to check from public_html folder
             $files = [];
             if ( is_dir( $public_html ) ) {
 
                 // First get a list of all subfolders of public_html
+                $omit_folders = array_map(function($folder) {
+                    return '/' . $folder . '/';
+                }, $omit_folders);
                 $omit_folders_pattern = implode('|', array_map('preg_quote', $omit_folders));
                 $command = "find $public_html -type d | egrep -v '$omit_folders_pattern'";
                 $subfolders = array_filter(explode("\n", shell_exec($command)));
@@ -114,6 +120,7 @@
 
             // Check the given files for mentions of database
             foreach( $files as $file ) {
+                if ( strpos( $file, 'devstia_manifest.json' ) !== false ) continue;
                 $content = file_get_contents( $file );
                 $index = 0;
                 foreach( $databases as $database ) {
@@ -128,11 +135,13 @@
 
             // Analyze dbs that have assoc. files, and extract the password for each database
             $found_dbs = [];
+            $db_index = 0;
             foreach( $databases as $database ) {
                 if ( !isset( $database['REF_FILES'] ) || count( $database['REF_FILES'] ) == 0 ) continue;
 
                 // Search for the password in the first reference file
                 $database['DBPASSWORD'] = "";
+                $file_index = 0;;
                 foreach( $database['REF_FILES'] as $file) {
                     $content = file_get_contents( $file );
                     $content = $hcpp->delLeftMost( $content, $database['DATABASE'] );
@@ -176,6 +185,7 @@
                 }
             }
 
+            // 
             echo json_encode( $found_dbs, JSON_PRETTY_PRINT );
             return $args;
         }
@@ -249,7 +259,9 @@
                 'import_export',
                 'import',
                 'export',
+                'export_view',
                 'export_dbs',
+                'export_options',
                 'export_now',
                 'create',
                 'remove_copy'
@@ -281,7 +293,7 @@
             $page = ob_get_clean();
             $content = $args['content'];
             $footer = '<footer ' . $hcpp->delLeftMost( $content, '<footer ');
-            $page = $hcpp->do_action('hcpp_quickstart_body', $page);
+            $page = $hcpp->do_action('quickstart_' . $load, $page);
             $args['content'] = $page . $footer;    
             return $args;
         }

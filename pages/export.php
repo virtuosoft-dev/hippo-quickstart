@@ -96,8 +96,14 @@
                 $('#continue-button').attr('href', '?quickstart=export_dbs&domain=' + domain);
             });
 
-            // Select the first radio button by default
-            $('.website_radio').first().click();
+            // Select the domain or first radio button by default
+            <?php 
+                if ( isset($_GET['domain']) ) {
+                    echo "$('[type=\"radio\"][value=\"" . $_GET['domain'] . "\"]').click();\n";
+                } else { 
+                    echo "$('.website_radio').first().click();\n";
+                }
+            ?>
         });
     })(jQuery);
 </script>

@@ -7,6 +7,7 @@
     exec(HESTIA_CMD . "v-invoke-plugin quickstart_export_dbs " . $user . " " . $domain, $output, $return_var);
     $db_details = json_decode(implode("", $output), true);
     $_SESSION['db_details'] = $db_details;
+
 ?>
 <div class="toolbar nobar"></div>
 <div class="body-reset container">
@@ -26,6 +27,7 @@
                 </div>
 
                 <?php
+                    echo $proxy;
                     // Loop through each database and display details
                     foreach ( $db_details as $db => $details ) {
                         $item = 1;
@@ -36,7 +38,16 @@
                             <input id="db_checkbox_<?php echo $item; ?>" 
                                 class="db_checkbox" type="checkbox" title="Select" 
                                 name="domain[]" value="<?php echo $details['DATABASE']; ?>"
-                                checked=checked>
+                                <?php
+                                    if ( isset( $_GET['dbs'] ) ) {
+                                        if ( in_array( $details['DATABASE'], explode( ",", $_GET['dbs'] ) ) ) {
+                                            echo 'checked';
+                                        }
+                                    } else {
+                                        echo 'checked';
+                                    }
+                                ?>
+                            >
                             <label for="db_checkbox_<?php echo $item; ?>" class="u-hide-desktop">Include</label>
                         </div>
                     </div>
@@ -47,7 +58,7 @@
                                 global $hcpp;
                                 echo $details['DATABASE'] . ' / ' . $details['DBPASSWORD'];
                                 foreach( $details['REF_FILES'] as $file ) {
-                                    echo '<br><span class="ref-files">./' . $hcpp->delLeftMost( $file, "/$domain/" ) . '</span>';
+                                    echo '<br><span class="ref-files">.' . $hcpp->delLeftMost( $file, $domain ) . '</span>';
                                 }
                             ?>
                         </a>
@@ -75,7 +86,7 @@
 <div class="toolbar">
     <div class="toolbar-inner">
         <div class="toolbar-buttons">
-            <a href="?quickstart=export" class="button button-secondary button-back js-button-back" id="back">
+            <a href="?quickstart=export&domain=<?php echo $domain; ?>" class="button button-secondary button-back js-button-back" id="back">
                 <i class="fas fa-arrow-left icon-blue"></i>Back			
             </a>
         </div>
@@ -107,7 +118,7 @@
                     }
                 });
                 dbs = dbs.join(',');
-                $('#continue-button').attr('href', '?quickstart=export_now&domain=<?php echo $domain; ?>&dbs=' + dbs);
+                $('#continue-button').attr('href', '?quickstart=export_options&domain=<?php echo $domain; ?>&dbs=' + dbs);
             }
             checkDbs();
         });

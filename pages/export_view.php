@@ -2,31 +2,22 @@
 <div class="toolbar nobar"></div>
 <div class="body-reset container">
     <div class="quickstart qs_main">
-        <h1>Import or export a website.</h1>
-        <legend>Which operation would you like to do?</legend>
+        <h1>View of exported websites.</h1>
+        <legend>Download, delete, or share your exported creation.</legend>
         <p>
-        <input name="qsOption" type="radio" id="import" checked="checked"/>
-        <label for="create">Import a website.</label>
-        </p>
-        <p>
-        <input name="qsOption" type="radio" id="export" />
-        <label for="export">Export an existing website.</label>
-        </p>
-        <p>
-        <input name="qsOption" type="radio" id="export_view" />
-        <label for="export_view">View list of exported websites.</label>
+
         </p>
     </div>
 </div>
 <div class="toolbar">
     <div class="toolbar-inner">
         <div class="toolbar-buttons">
-            <a href="?quickstart=main" class="button button-secondary button-back js-button-back" id="back">
+            <a href="?quickstart=import_export" class="button button-secondary button-back js-button-back" id="back">
                 <i class="fas fa-arrow-left icon-blue"></i>Back			
             </a>
         </div>
         <div class="toolbar-buttons">
-            <a href="?quickstart=import" class="button" id="continue-button">
+            <a href="?quickstart=main" class="button" id="continue-button">
                 <i class="fas fa-arrow-right icon-blue"></i>Continue
             </a>         
         </div>
