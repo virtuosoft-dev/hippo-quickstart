@@ -47,7 +47,6 @@
     }
 </style>
 <script>
-    console.log('<?php echo __DIR__; ?>');
     (function($){
         $(function() {
             

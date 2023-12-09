@@ -50,9 +50,33 @@
         public function hcpp_invoke_plugin( $args ) {
             if ( $args[0] == 'quickstart_export_dbs' ) return $this->quickstart_export_dbs( $args );
             if ( $args[0] == 'quickstart_export_zip' ) return $this->quickstart_export_zip( $args );
+            if ( $args[0] == 'quickstart_export_status' ) return $this->quickstart_export_status( $args );
+            if ( $args[0] == 'quickstart_export_cancel' ) return $this->quickstart_export_cancel( $args );
             return $args;
         }
 
+        // Cancel the export process by killing the process
+        public function quickstart_export_cancel( $args ) {
+            $export_pid = $args[1];
+            shell_exec('kill -9 ' . $export_pid);
+            echo json_encode( [ 'status' => 'cancelled' ] );
+            return $args;
+        }
+
+        // Check the status of the export process
+        public function quickstart_export_status( $args ) {
+            $export_pid = $args[1];
+            $status = shell_exec('ps -p ' . $export_pid);
+            if (strpos($status, $export_pid) === false) {
+                // Export is finished
+                echo json_encode( [ 'status' => 'finished' ] );
+            } else {
+                // Export is still running
+                echo json_encode( [ 'status' => 'running' ] );
+            }
+            return $args;
+        }
+        
         // Highly optimized for speed, scan revelent files for db password and return details as JSON
         public function quickstart_export_dbs( $args ) {
             $user = $args[1];
@@ -232,7 +256,7 @@
             shell_exec( $command );
 
             // Reset ownership, zip up contents, move to exports, and clean up
-            $zip_file = "/home/$user/web/exports/" . $domain . $hcpp->getRightMost( $export_folder, 'devstia_export' ) . '.zip';
+            $zip_file = "/home/$user/web/exports/" . $devstia_manifest['zip_file'];
             $command = "chown -R $user:$user $export_folder && cd $export_folder ";
             $command .= "&& zip -r $export_folder.zip . && cd .. && rm -rf $export_folder ";
             $command .= "&& mkdir -p /home/$user/web/exports ";
