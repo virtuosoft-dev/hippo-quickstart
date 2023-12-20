@@ -4,8 +4,20 @@
     $domain = $_GET['domain'];
     $dbs = $_GET['dbs'];
 ?>
-<div class="toolbar nobar"></div>
-
+<div class="toolbar">
+    <div class="toolbar-inner">
+        <div class="toolbar-buttons">
+            <a href="?quickstart=export_dbs&domain=<?php echo $domain; ?>&dbs=<?php echo $dbs; ?>" class="button button-secondary button-back js-button-back" id="back">
+                <i class="fas fa-arrow-left icon-blue"></i>Back			
+            </a>
+        </div>
+        <div class="toolbar-buttons">
+            <a href="" class="button" id="continue-button">
+                <i class="fas fa-arrow-right icon-blue"></i>Continue
+            </a>         
+        </div>
+    </div>
+</div>
 <div class="body-reset container">
     <div class="quickstart qs_main">
         <h1>Export options.</h1>
@@ -34,20 +46,6 @@
             <input class="export_option" type="checkbox" id="exvc" checked="checked"/>
             <label for="exvc">Exclude version control files &amp; folders (.git*, .svn, .hg).</label>
         </p>
-    </div>
-</div>
-<div class="toolbar">
-    <div class="toolbar-inner">
-        <div class="toolbar-buttons">
-            <a href="?quickstart=export_dbs&domain=<?php echo $domain; ?>&dbs=<?php echo $dbs; ?>" class="button button-secondary button-back js-button-back" id="back">
-                <i class="fas fa-arrow-left icon-blue"></i>Back			
-            </a>
-        </div>
-        <div class="toolbar-buttons">
-            <a href="" class="button" id="continue-button">
-                <i class="fas fa-arrow-right icon-blue"></i>Continue
-            </a>         
-        </div>
     </div>
 </div>
 <script>

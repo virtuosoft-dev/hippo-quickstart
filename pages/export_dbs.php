@@ -9,7 +9,20 @@
     $_SESSION['db_details'] = $db_details;
 
 ?>
-<div class="toolbar nobar"></div>
+<div class="toolbar">
+    <div class="toolbar-inner">
+        <div class="toolbar-buttons">
+            <a href="?quickstart=export&domain=<?php echo $domain; ?>" class="button button-secondary button-back js-button-back" id="back">
+                <i class="fas fa-arrow-left icon-blue"></i>Back			
+            </a>
+        </div>
+        <div class="toolbar-buttons">
+            <a href="?quickstart=export_now" class="button" id="continue-button">
+                <i class="fas fa-arrow-right icon-blue"></i>Continue
+            </a>         
+        </div>
+    </div>
+</div>
 <div class="body-reset container">
     <div class="quickstart qs_main">
         <h1>Database details.</h1>
@@ -25,7 +38,6 @@
                     <div class="units-table-cell"></div>
                     <div class="units-table-cell u-text-center">Disk</div>
                 </div>
-
                 <?php
                     echo $proxy;
                     // Loop through each database and display details
@@ -80,20 +92,6 @@
                     } // end foreach( $db_details as $db => $details )
                 ?>
             </div>
-        </div>
-    </div>
-</div>
-<div class="toolbar">
-    <div class="toolbar-inner">
-        <div class="toolbar-buttons">
-            <a href="?quickstart=export&domain=<?php echo $domain; ?>" class="button button-secondary button-back js-button-back" id="back">
-                <i class="fas fa-arrow-left icon-blue"></i>Back			
-            </a>
-        </div>
-        <div class="toolbar-buttons">
-            <a href="?quickstart=export_now" class="button" id="continue-button">
-                <i class="fas fa-arrow-right icon-blue"></i>Continue
-            </a>         
         </div>
     </div>
 </div>

@@ -1,5 +1,18 @@
 <?php require( 'header.php' ); ?>
-<div class="toolbar nobar"></div>
+<div class="toolbar">
+    <div class="toolbar-inner">
+        <div class="toolbar-buttons">
+            <a href="?quickstart=import_export" class="button button-secondary button-back js-button-back" id="back">
+                <i class="fas fa-arrow-left icon-blue"></i>Back			
+            </a>
+        </div>
+        <div class="toolbar-buttons">
+            <a href="?quickstart=export_dbs" class="button" id="continue-button">
+                <i class="fas fa-arrow-right icon-blue"></i>Continue
+            </a>         
+        </div>
+    </div>
+</div>
 <div class="body-reset container">
     <div class="quickstart qs_main">
         <h1>Export an existing website.</h1>
@@ -65,20 +78,6 @@
                     } // end foreach( $websites as $domain => $details )
                 ?>
             </div>
-        </div>
-    </div>
-</div>
-<div class="toolbar">
-    <div class="toolbar-inner">
-        <div class="toolbar-buttons">
-            <a href="?quickstart=import_export" class="button button-secondary button-back js-button-back" id="back">
-                <i class="fas fa-arrow-left icon-blue"></i>Back			
-            </a>
-        </div>
-        <div class="toolbar-buttons">
-            <a href="?quickstart=export_dbs" class="button" id="continue-button">
-                <i class="fas fa-arrow-right icon-blue"></i>Continue
-            </a>         
         </div>
     </div>
 </div>

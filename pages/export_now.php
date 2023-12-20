@@ -41,7 +41,20 @@
     $_SESSION['export_key'] = $export_key;
     $_SESSION['export_pid'] = $export_pid;
 ?>
-<div class="toolbar nobar"></div>
+<div class="toolbar" style="z-index:100;position:relative;">
+    <div class="toolbar-inner">
+        <div class="toolbar-buttons">
+            <a href="#" class="button button-secondary button-back js-button-back" id="back">
+                <i class="fas fa-stop-circle icon-red"></i>Cancel			
+            </a>
+        </div>
+        <div class="toolbar-buttons">
+            <a href="#" class="button disabled" id="continue-button">
+                <i class="fas fa-flag-checkered icon-blue"></i>Finished
+            </a>         
+        </div>
+    </div>
+</div>
 <div class="body-reset container">
     <div class="quickstart qs_main">
         <h1>Exporting <?php echo $domain; ?>.</h1>
@@ -66,20 +79,6 @@
                     echo "<p>You can also find the file in your Devstia drive's \"exports\" folder.</p>";
                 }
             ?>
-        </div>
-    </div>
-</div>
-<div class="toolbar" style="z-index:100;position:relative;">
-    <div class="toolbar-inner">
-        <div class="toolbar-buttons">
-            <a href="#" class="button button-secondary button-back js-button-back" id="back">
-                <i class="fas fa-stop-circle icon-red"></i>Cancel			
-            </a>
-        </div>
-        <div class="toolbar-buttons">
-            <a href="#" class="button disabled" id="continue-button">
-                <i class="fas fa-flag-checkered icon-blue"></i>Finished
-            </a>         
         </div>
     </div>
 </div>

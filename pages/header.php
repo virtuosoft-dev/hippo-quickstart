@@ -1,11 +1,5 @@
 <?php ob_start(); ?>
 <style>
-    .nobar {
-        height: 0px;
-    }
-    .toolbar {
-        border-bottom: none;
-    }
     .qs_main {
         min-width: 50%;
         min-height: 150px;
