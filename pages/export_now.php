@@ -6,6 +6,7 @@
     $domain = $_GET['domain'];
     $user = $_SESSION['user'];
     $dbs = [];
+    $web_detail = $hcpp->run( "v-list-web-domain $user $domain json" )[$domain];
     foreach( $db_details as $db => $details ) {
         if ( in_array( $details['DATABASE'], explode( ",", $_GET['dbs'] ) ) ) {
             $dbs[] = $details;
@@ -24,12 +25,14 @@
     $dtstamp = date( 'Y-m-d-His' );
     $json_file = 'devstia_export_' . $dtstamp . '.json';
     $zip_file = $domain . '_' . $dtstamp . '.zip';
-    $proxy = "";
     $devstia_manifest = [
         'zip_file' => $zip_file, 
         'user' => $user,
         'domain' => $domain,
-        'proxy' => $proxy,
+        'proxy' => $web_detail['PROXY'],
+        'proxy_ext' => $web_detail['PROXY_EXT'],
+        'template' => $web_detail['TPL'],
+        'backend' => $web_detail['BACKEND'],
         'databases' => $dbs,
     ];
     $_SESSION['devstia_manifest'] = $devstia_manifest;
