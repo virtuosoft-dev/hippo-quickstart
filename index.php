@@ -47,3 +47,25 @@ if ( $_GET['action'] == 'download')  {
         exit;
     }
 }
+
+// Process file upload
+if ($_GET['action'] == 'upload') {
+    $allowedMimeTypes = [
+        'application/zip', 
+        'application/x-xz', 
+        'application/octet-stream', 
+        'application/gzip', 
+        'application/x-rar-compressed',
+        'application/x-tar',
+        'application/x-bzip2',
+        'application/x-7z-compressed'
+    ];
+    if ($_FILES['file']['error'] == UPLOAD_ERR_OK && in_array($_FILES['file']['type'], $allowedMimeTypes)) {
+        $tmp_name = $_FILES['file']['tmp_name'];
+        $name = tempnam("/tmp", "file");
+        move_uploaded_file($tmp_name, $name);
+        echo "File uploaded successfully.";
+    } else {
+        echo "Failed to upload file.";
+    }
+}

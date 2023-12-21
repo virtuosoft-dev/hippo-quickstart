@@ -39,6 +39,14 @@
         font-weight: normal;
         font-size: x-small;
     }
+    #dropZone {
+        text-align:center;
+        border:3px dashed;
+        padding:30px;
+    }
+    #dropZone.dragover {
+        background-color: #eee;
+    }
 </style>
 <script>
     (function($){
