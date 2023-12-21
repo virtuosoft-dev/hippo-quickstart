@@ -28,7 +28,6 @@
         <h1>Database details.</h1>
         <legend>The following databases were referenced in files for <?php echo $domain ?>.<br>These will be included in your export. Uncheck to omit them.</legend>
         <div class="export-list">
-            <div class="toolbar nobar"></div>
             <div class="units-table js-units-container">
                 <div class="units-table-header">
                     <div class="units-table-cell"></div>
