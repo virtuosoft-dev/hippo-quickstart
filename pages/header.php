@@ -13,6 +13,7 @@
     .quickstart {
         font-size: larger;
         padding: 30px;
+        margin: 30px;
     }
     .quickstart input[type="radio"] {
         transform: scale(1.3);

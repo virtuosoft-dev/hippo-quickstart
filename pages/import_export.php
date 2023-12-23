@@ -19,7 +19,7 @@
         <legend>Which operation would you like to do?</legend>
         <p>
         <input name="qsOption" type="radio" id="import" checked="checked"/>
-        <label for="create">Import a website.</label>
+        <label for="import">Import a website.</label>
         </p>
         <p>
         <input name="qsOption" type="radio" id="export" />

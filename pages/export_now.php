@@ -26,14 +26,15 @@
     $json_file = 'devstia_export_' . $dtstamp . '.json';
     $zip_file = $domain . '_' . $dtstamp . '.zip';
     $devstia_manifest = [
-        'zip_file' => $zip_file, 
-        'user' => $user,
+        'alias' => $web_detail['ALIAS'],
+        'backend' => $web_detail['BACKEND'],
+        'databases' => $dbs,
         'domain' => $domain,
         'proxy' => $web_detail['PROXY'],
         'proxy_ext' => $web_detail['PROXY_EXT'],
         'template' => $web_detail['TPL'],
-        'backend' => $web_detail['BACKEND'],
-        'databases' => $dbs,
+        'user' => $user,
+        'zip_file' => $zip_file, 
     ];
     $_SESSION['devstia_manifest'] = $devstia_manifest;
     file_put_contents( '/tmp/' . $json_file, json_encode( $devstia_manifest, JSON_PRETTY_PRINT ) );
@@ -42,7 +43,7 @@
     $export_pid = trim( shell_exec(HESTIA_CMD . "v-invoke-plugin quickstart_export_zip " . $json_file . " > /dev/null 2>/dev/null & echo $!") );
     $export_key = $hcpp->nodeapp->random_chars( 16 );
     $_SESSION['export_key'] = $export_key;
-    $_SESSION['export_pid'] = $export_pid;
+    $_SESSION[$export_key . '_pid'] = $export_pid;
 ?>
 <div class="toolbar" style="z-index:100;position:relative;">
     <div class="toolbar-inner">
@@ -60,29 +61,9 @@
 </div>
 <div class="body-reset container">
     <div class="quickstart qs_main">
-        <h1>Exporting <?php echo $domain; ?>.</h1>
-        <legend id="please_wait">Please wait. Copying and compressing files.</legend>
+        <h1>Export <?php echo $domain; ?>.</h1>
+        <legend id="status">Please wait. Copying and compressing files.</legend>
         <div id="error" style="display: none;"></div>
-        <div id="finished" style="display:none;">
-            <p>Export finished. You can download the exported archive at:</p>
-            <div style="padding:10px;">
-                <strong><a href="../../pluginable.php?load=quickstart&action=download&export_key=<?php echo $export_key; ?>">
-                    <?php
-                        $zip_file = $json_file;
-                        $zip_file = $hcpp->delRightMost( $zip_file, '.json' ) . '.zip';
-                        $zip_file = $domain . $hcpp->delLeftMost( $zip_file, 'devstia_export' );
-                        echo $zip_file;
-                    ?>
-                </a></strong>
-            </div>
-            <br>
-            <?php 
-                if ( $user == 'devstia' ) {
-                    echo "<p><strong>Devstia Preview:</strong></p>";
-                    echo "<p>You can also find the file in your Devstia drive's \"exports\" folder.</p>";
-                }
-            ?>
-        </div>
     </div>
 </div>
 <script>
@@ -93,7 +74,7 @@
             $('#back').on('click', (e) => {
                 e.preventDefault();
                 $.ajax({
-                    url: '../../pluginable.php?load=quickstart&action=cancel&export_key=<?php echo $export_key; ?>',
+                    url: '../../pluginable.php?load=quickstart&action=export_cancel&export_key=<?php echo $export_key; ?>',
                     type: 'GET',
                     success: function( data ) {
                         $('#error').html( '<p>Export canceled.</p>');
@@ -101,13 +82,12 @@
                         $('#back').hide();
                         $('#continue-button').removeClass('disabled');
                         $('#continue-button').attr('href', '?quickstart=main');
-                        $('#please_wait').hide();
                         $('.spinner-overlay').removeClass('active');
                     }
                 });
             });
 
-            // Check the export_key every 10 seconds
+            // Check the export_key every 8 seconds
             var export_key = '<?php echo $export_key; ?>';
             var export_int = setInterval( () => {
                 $.ajax({
@@ -116,21 +96,36 @@
                     success: function( data ) {
                         try {
                             data = JSON.parse( data );
-                            if ( data.status == 'running' ) return;
-                            if ( data.status == 'finished' ) {
-                                $('#finished').show();
-                            } else {
-                                $('#error').html( '<p>An unknown error occurred. Please try again.</p>');
-                                $('#error').show();
-                            }
                         } catch( e ) {
                             $('#error').html( '<p>Error parsing JSON: ' + e + '</p>');
                             $('#error').show();
                         }
+                        if ( data.status == 'running' ) return;
+                        if ( data.status == 'finished' ) {
+                            $('#status').html(`<p>Finished! You can download the exported archive at:</p>
+                            <div style="padding:10px;">
+                                <strong><a href="../../pluginable.php?load=quickstart&action=download&export_key=<?php echo $export_key; ?>">
+                                <?php
+                                    $zip_file = $json_file;
+                                    $zip_file = $hcpp->delRightMost( $zip_file, '.json' ) . '.zip';
+                                    $zip_file = $domain . $hcpp->delLeftMost( $zip_file, 'devstia_export' );
+                                    echo $zip_file;
+                                ?>
+                                </a></strong>
+                            </div>
+                            <br>
+                            <?php 
+                                if ( $user == 'devstia' ) {
+                                    echo "<p><strong>Devstia Preview:</strong></p>";
+                                    echo "<p>You can also find the file in your Devstia drive's \"exports\" folder.</p>";
+                                }
+                            ?>`);                            
+                        } else {
+                            $('#status').html( '<p>An unknown error occurred. Please try again.</p>');
+                        }
                         $('#back').hide();
                         $('#continue-button').removeClass('disabled');
                         $('#continue-button').attr('href', '?quickstart=main');
-                        $('#please_wait').hide();
                         $('.spinner-overlay').removeClass('active');
                         clearInterval( export_int );
                     }

@@ -1,4 +1,8 @@
 <?php require( 'header.php' ); ?>
+<?php
+    $import_key = $hcpp->nodeapp->random_chars( 16 );
+    $_SESSION['import_key'] = $import_key;
+?>
 <div class="toolbar">
     <div class="toolbar-inner">
         <div class="toolbar-buttons">
@@ -7,8 +11,8 @@
             </a>
         </div>
         <div class="toolbar-buttons">
-            <a href="#" class="button disabled" id="import-button">
-                <i class="fas fa-arrow-right icon-blue"></i>Import
+            <a href="#" class="button disabled" id="continue-button">
+                <i class="fas fa-arrow-right icon-blue"></i>Continue
             </a>         
         </div>
     </div>
@@ -20,7 +24,7 @@
             <input type="file" id="fileInput" name="fileInput" style="display: none;" />
             <div id="dropZone">
                 <i class="fas fa-upload"></i><br>
-                Drop file here or click to upload.<br>
+                Drop file here or click to upload.
             </div>
     </div>
 </div>
@@ -64,28 +68,51 @@
 
             // Upload file to server
             function uploadFile(file) {
+    
+                // Show the progress bar
+                var progressBar = $('<progress>').attr({ value: 0, max: 100 });
+                $('#dropZone').html('');
+                $('#dropZone').append(progressBar);
+
                 var formData = new FormData();
                 formData.append('file', file);
                 $.ajax({
-                    url: '../../pluginable.php?load=quickstart&action=upload',
+                    url: '../../pluginable.php?load=quickstart&action=upload&import_key=<?php echo $import_key; ?>',
                     type: 'POST',
                     data: formData,
                     processData: false,
                     contentType: false,
-                    success: function(data) {
-                        console.log('File uploaded successfully.');
+                    xhr: function() {
+                        var xhr = new window.XMLHttpRequest();
+                        xhr.upload.addEventListener('progress', function(evt) {
+                            if (evt.lengthComputable) {
+                                var percentComplete = evt.loaded / evt.total * 100;
+                                progressBar.val(percentComplete);
+                            }
+                        }, false);
+                        return xhr;
                     },
-                    error: function() {
-                        console.log('Failed to upload file.');
+                    success: function(data) {
+                        try {
+                            data = JSON.parse(data);
+                        } catch (e) {
+                            data = { status: 'error', message: 'Unknown error occurred: [' + data + ']' }; 
+                        }
+                        if (data.status == 'uploaded') {
+                            $('#dropZone').html('<i class="fas fa-file-archive"></i><br>' + data.message + '</span>');
+                            $('#continue-button').attr('href', '?quickstart=import_options&import_key=<?php echo $import_key; ?>');
+                            $('#back').attr('href', '?quickstart=import_export&import_key=<?php echo $import_key; ?>');
+                            $('#continue-button').removeClass('disabled');
+                        }else{
+                            $('#dropZone').html('<i class="fas fa-exclamation-triangle" style="color:orange;"></i><br>' + data.message + '</span>');
+                        }
+                    },
+                    error: function() {                        
+                        // Reset the progress bar
+                        $('#dropZone').html('<i class="fas fa-exclamation-triangle" style="color:orange;"></i><br>Upload failed. Please try again.</span>');
                     }
                 });
             }
-
-            // Update the continue button href based on selected qsOption
-            $('input[name="qsOption"]').on('change', (e) => {
-                let qsOption = $('input[name="qsOption"]:checked').attr('id');
-                $('#continue-button').attr('href', '?quickstart=' + qsOption);
-            });
         });
     })(jQuery);
 </script>

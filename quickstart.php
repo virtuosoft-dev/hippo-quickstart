@@ -24,11 +24,11 @@
             $hcpp->add_action( 'hcpp_head', [ $this, 'hcpp_head' ] );
         }
 
-        // Clean up the devstia_export_* on reboot
+        // Clean up the devstia_*
         public function hcpp_rebooted( $args ) {
 
-            // Clean up /tmp/devstia_export_* files
-            shell_exec('rm -rf /tmp/devstia_export_*');
+            // Clean up /tmp/devstia_* files
+            shell_exec('rm -rf /tmp/devstia_*');
 
             // Cycle through all users and remove /home/user/tmp/devstia_export_* folders
             global $hcpp;
@@ -41,8 +41,6 @@
                     shell_exec($command);
                 }
             }
-
-            // Remove from 
             return $args;
         }
 
@@ -52,6 +50,73 @@
             if ( $args[0] == 'quickstart_export_zip' ) return $this->quickstart_export_zip( $args );
             if ( $args[0] == 'quickstart_export_status' ) return $this->quickstart_export_status( $args );
             if ( $args[0] == 'quickstart_export_cancel' ) return $this->quickstart_export_cancel( $args );
+            if ( $args[0] == 'quickstart_import_status' ) return $this->quickstart_import_status( $args );
+            if ( $args[0] == 'quickstart_import_cancel' ) return $this->quickstart_import_cancel( $args );
+            if ( $args[0] == 'quickstart_import_file' ) return $this->quickstart_import_file( $args );
+            return $args;
+        }
+
+        // Check the status of the import process
+        public function quickstart_import_status( $args ) {
+            $import_pid = $args[1];
+            $import_key = $args[2];
+            $status = shell_exec('ps -p ' . $import_pid);
+            if (strpos($status, $import_pid) === false) {
+
+                // Import is finished, check for manifest
+                $manifest = '/tmp/devstia_import_' . $import_key . '/devstia_manifest.json';
+                if ( file_exists( $manifest ) ) {
+                    try {
+                        $content = file_get_contents( $manifest );
+                        $devstia_manifest = json_decode( $content, true );
+                    } catch( Exception $e ) {
+                        echo json_encode( [ 'status' => 'error', 'message' => 'Error parsing manifest file.' ] );
+                    }
+                    $message = 'Fill in options.';
+                    if ( is_dir('/home/devstia') ) {
+                        $message .= ' <i>Devstia Preview should use a <b>.dev.pw</b> TLD.</i>';
+                    }
+                    echo json_encode( [ 
+                        'status' => 'finished', 
+                        'message' => $message, 
+                        'domain' => $devstia_manifest['domain'], 
+                        'alias' => $devstia_manifest['alias']
+                    ] );
+                }else{
+                    echo json_encode( [ 
+                        'status' => 'error',
+                        'message' => 'Import failed. Please try again.'
+                    ] );
+                }
+            } else {
+                // Import is still running
+                echo json_encode( [ 'status' => 'running', 'message' => 'Please wait. Decompressing and analyzing files.' ] );
+            }
+            return $args;
+        }
+
+        // Import the website archive
+        public function quickstart_import_file( $args ) {
+            global $hcpp;
+            $import_file = $args[1];
+            $import_folder = $hcpp->getLeftMost( $import_file, '.' );
+            if ( file_exists( $import_file ) ) {
+                $command = 'unzip -o -q ' . $import_file . ' -d ' . $import_folder . ' ';
+                $command .= '&& rm -rf ' . $import_file . ' ';
+                $command .= '&& chown -R admin:admin ' . $import_folder;
+                file_put_contents('/tmp/test.txt', $command);
+                $command = $hcpp->do_action( 'quickstart_import_file_command', $command );
+                shell_exec( $command );
+            }
+            return $args;
+        }
+
+        // Cancel the import process by killing the process, clean up files
+        public function quickstart_import_cancel( $args ) {
+            $import_pid = $args[1];
+            $import_key = $args[2];
+            shell_exec('kill -9 ' . $import_pid . ' ; rm -rf /tmp/devstia_import_' . $import_key . '*');
+            echo json_encode( [ 'status' => 'cancelled' ] );
             return $args;
         }
 
@@ -280,6 +345,7 @@
             if ( !isset( $_GET['quickstart'] ) ) return $args;
             $authorized_pages = [
                 'main',
+                'import_options',
                 'import_export',
                 'import',
                 'export',
