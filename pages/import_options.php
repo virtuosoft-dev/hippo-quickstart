@@ -8,7 +8,7 @@
     if (false == isset($_SESSION[$import_key . '_file'])) return;
     $import_file = $_SESSION[$import_key . '_file'];
 
-    // Start import process asynchonously and get the process id
+    // Start import file processing asynchonously and get the process id
     global $hcpp;
     $import_pid = trim( shell_exec(HESTIA_CMD . "v-invoke-plugin quickstart_import_file " . $import_file . " > /dev/null 2>/dev/null & echo $!") );
     $_SESSION[$import_key . '_pid'] = $import_pid;
@@ -47,6 +47,7 @@
                     success: function( data ) {
                         $('#status').html( 'Import canceled. Click continue.');
                         $('#back').hide();
+                        $('#options').hide();
                         $('#continue-button').removeClass('disabled');
                         $('#continue-button').attr('href', '?quickstart=main');
                         $('.spinner-overlay').removeClass('active');
@@ -69,9 +70,11 @@
                         if ( data.status == 'running' ) return;
                         if ( data.status == 'finished' ) {
                             $('#status').html(data.message);
-                            let html = `<div class="u-mb10">
+                            const domain = data.domain;
+                            let html = `<form id="import_now" method="POST" action="?quickstart=import_now&import_key=<?php echo $import_key; ?>">
+                                        <div class="u-mb10">
                                             <label for="v_domain" class="form-label">Import Web Domain</label>
-                                            <input type="text" class="form-control" name="v_domain" id="v_domain" value="" required="">
+                                            <input type="text" class="form-control" name="v_domain" id="v_domain" value="${domain}" required="">
                                         </div>`;
                             if (data.alias.trim() != '') {
                                 const aliases = data.alias.replace(',', "\n");
@@ -80,8 +83,8 @@
                                             <textarea class="form-control" name="v_aliases" id="v_aliases">${aliases}</textarea>
                                         </div>`;
                             }
+                            html += '</form>';
                             $('#options').html(html);
-                            $('#v_domain').val(data.domain);
                             setTimeout(()=>{
                                 $('#v_domain').focus().select();
                             }, 500);
@@ -92,9 +95,12 @@
                                 $('#status').html('An unknown error occurred. Please try again.');
                             }
                         }
-                        $('#back').hide();
                         $('#continue-button').removeClass('disabled');
-                        $('#continue-button').attr('href', '?quickstart=import_now&import_key=<?php echo $import_key; ?>');
+                        $('#continue-button').attr('href', '#');
+                        $('#continue-button').on('click', (e) => {
+                            e.preventDefault();
+                            $('#import_now').submit();
+                        });
                         $('.spinner-overlay').removeClass('active');
                         clearInterval( import_int );
                     }

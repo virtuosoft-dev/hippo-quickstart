@@ -53,6 +53,50 @@
             if ( $args[0] == 'quickstart_import_status' ) return $this->quickstart_import_status( $args );
             if ( $args[0] == 'quickstart_import_cancel' ) return $this->quickstart_import_cancel( $args );
             if ( $args[0] == 'quickstart_import_file' ) return $this->quickstart_import_file( $args );
+            if ( $args[0] == 'quickstart_import_now' ) return $this->quickstart_import_now( $args );
+            return $args;
+        }
+
+        // Now import the given folder
+        public function quickstart_import_now( $args ) {
+            $request_file = '/tmp/devstia_import_' . $args[1] . '.json';
+            if ( !file_exists( $request_file ) ) return $args;
+            $content = file_get_contents( $request_file );
+            unlink ( $request_file );
+            $request = json_decode( $content, true );
+
+            // Allow plugins to modify the request
+            global $hcpp;
+            $request = $hcpp->do_action( 'quickstart_import_now_request', $request );
+            $import_folder = $request['import_folder'];
+
+            // Get the manifest file
+            $manifest = $import_folder . '/devstia_manifest.json';
+            if ( !file_exists( $manifest ) ) return $args;
+            $content = file_get_contents( $manifest );
+            $devstia_manifest = json_decode( $content, true );
+
+            // Allow plugins to modify the manifest
+            $devstia_manifest = $hcpp->do_action( 'quickstart_import_now_manifest', $devstia_manifest );
+
+            // Create the domain
+            $new_user = $request['user'];
+            $new_domain = $request['v_domain'];
+            $new_aliases = $request['v_aliases'];
+            $orig_user = $devstia_manifest['user'];
+            $orig_domain = $devstia_manifest['domain'];
+            $orig_aliases = $devstia_manifest['alias'];
+
+            // Create the databases
+            $orig_dbs = $devstia_manifest['databases'];
+            $devstia_databases_folder = $import_folder . '/devstia_databases';
+
+            // Copy the files
+
+            // Set the permissions
+
+            // 
+
             return $args;
         }
 
@@ -347,6 +391,7 @@
                 'main',
                 'import_options',
                 'import_export',
+                'import_now',
                 'import',
                 'export',
                 'export_view',
