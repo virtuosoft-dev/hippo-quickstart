@@ -54,13 +54,46 @@
             if ( $args[0] == 'quickstart_import_cancel' ) return $this->quickstart_import_cancel( $args );
             if ( $args[0] == 'quickstart_import_file' ) return $this->quickstart_import_file( $args );
             if ( $args[0] == 'quickstart_import_now' ) return $this->quickstart_import_now( $args );
+            if ( $args[0] == 'quickstart_import_result' ) return $this->quickstart_import_result( $args );
             return $args;
         }
 
+        // Return the result of the import process
+        public function quickstart_import_result( $args ) {
+            $import_pid = $args[1];
+            $import_key = $args[2];
+            $status = shell_exec('ps -p ' . $import_pid);
+            $result_file = "/tmp/devstia_import_$import_key.result";
+            if (strpos($status, $import_pid) === false) {
+                if ( file_exists( $result_file ) ) {
+                    $content = file_get_contents( $result_file );
+                    unlink( $result_file );
+                    echo $content;
+                }else{
+                    echo json_encode( [ 'status' => 'error', 'message' => 'Import failed. Please try again.' ] );
+                }
+            }else{
+                if ( file_exists( $result_file ) ) {
+                    $content = file_get_contents( $result_file );
+                    echo $content;
+                }else{
+                    echo json_encode( [ 'status' => 'running', 'message' => 'Please wait. Importing website.' ] );
+                }
+            }
+            return $args;
+        }
+ 
         // Now import the given folder
         public function quickstart_import_now( $args ) {
-            $request_file = '/tmp/devstia_import_' . $args[1] . '.json';
-            if ( !file_exists( $request_file ) ) return $args;
+            $import_key = $args[1];
+            $request_file = "/tmp/devstia_import_$import_key.json";
+            $result_file = "/tmp/devstia_import_$import_key.result";
+            if ( !file_exists( $request_file ) ) {
+                $result = json_encode( [ 'status' => 'error', 'message' => 'Request file not found.' ] );
+                file_put_contents( $result_file, $result );
+                chown ( $result_file, 'admin' );
+                return $args;
+            }
             $content = file_get_contents( $request_file );
             unlink ( $request_file );
             $request = json_decode( $content, true );
@@ -72,30 +105,64 @@
 
             // Get the manifest file
             $manifest = $import_folder . '/devstia_manifest.json';
-            if ( !file_exists( $manifest ) ) return $args;
-            $content = file_get_contents( $manifest );
-            $devstia_manifest = json_decode( $content, true );
-
-            // Allow plugins to modify the manifest
-            $devstia_manifest = $hcpp->do_action( 'quickstart_import_now_manifest', $devstia_manifest );
+            if ( !file_exists( $manifest ) ) {
+                $result = json_encode( [ 'status' => 'error', 'message' => 'Manifest file not found.' ] );
+                file_put_contents( $result_file, $result );
+                chown ( $result_file, 'admin' );
+                return $args;
+            }
+            
+            // Parse the manifest file
+            try {
+                $content = file_get_contents( $manifest );
+                $devstia_manifest = json_decode( $content, true );
+                $devstia_manifest = $hcpp->do_action( 'quickstart_import_now_manifest', $devstia_manifest ); // Allow plugin mods
+                $orig_user = $devstia_manifest['user'];
+                $orig_domain = $devstia_manifest['domain'];
+                $orig_aliases = $devstia_manifest['alias'];
+                $proxy_ext = $devstia_manifest['proxy_ext'];
+            }catch( Exception $e ) {
+                $result = json_encode( [ 'status' => 'error', 'message' => 'Error parsing manifest file.' ] );
+                file_put_contents( $result_file, $result );
+                chown ( $result_file, 'admin' );
+                return $args;
+            }
 
             // Create the domain
+            $result = json_encode( [ 'status' => 'running', 'message' => "Please wait. Creating domain." ] );
+            file_put_contents( $result_file, $result );
             $new_user = $request['user'];
             $new_domain = $request['v_domain'];
-            $new_aliases = $request['v_aliases'];
-            $orig_user = $devstia_manifest['user'];
-            $orig_domain = $devstia_manifest['domain'];
-            $orig_aliases = $devstia_manifest['alias'];
-
+            $new_aliases = str_replace( "\r\n", ",", $request['v_aliases'] );
+            $details = $hcpp->run('list-user-ips ' . $new_user . ' json');
+            $first_ip = null;
+            foreach ( $details as $ip => $ip_details ) {
+                $first_ip = $ip;
+                break;
+            }
+            $command = "add-web-domain $new_user $new_domain $first_ip no $new_aliases $proxy_ext";
+            $result = $hcpp->run( $command );
+            if ( $result != '' ) {
+                $result = json_encode( [ 'status' => 'error', 'message' => $result ] );
+                file_put_contents( $result_file, $result );
+                chown ( $result_file, 'admin' );
+                return $args;
+            }
+            
             // Create the databases
             $orig_dbs = $devstia_manifest['databases'];
             $devstia_databases_folder = $import_folder . '/devstia_databases';
+            if ( is_array( $orig_dbs ) && !empty( $orig_dbs ) ) {
+                $result = json_encode( [ 'status' => 'running', 'message' => "Please wait. Creating databases." ] );
+                file_put_contents( $result_file, $result );
+                chown ( $result_file, 'admin' );
+            }
 
             // Copy the files
 
             // Set the permissions
 
-            // 
+            // Signal complete
 
             return $args;
         }
@@ -469,6 +536,3 @@
     }
     new Quickstart();
 }
-
-
-                
