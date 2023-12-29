@@ -59,7 +59,7 @@ if (in_array( $_GET['action'], ['export_status', 'export_cancel', 'download'] ))
 }
 
 // Process file upload
-if (in_array( $_GET['action'], ['import_cancel', 'import_status', 'upload'] ) ) {
+if (in_array( $_GET['action'], ['import_cancel', 'import_status', 'import_result', 'upload'] ) ) {
 
     // Process file upload
     if ( $_GET['action'] == 'upload' ) {
@@ -96,7 +96,7 @@ if (in_array( $_GET['action'], ['import_cancel', 'import_status', 'upload'] ) ) 
         }
         echo json_encode( $response );
     }
-
+ 
     // Validate import_pid, $_SESSION['import_key'] not required (multiple imports can be running at once)
     if (false == isset($_GET['import_key'])) return;
     $import_key = $_GET['import_key'];
@@ -104,8 +104,13 @@ if (in_array( $_GET['action'], ['import_cancel', 'import_status', 'upload'] ) ) 
     $import_pid = $_SESSION[$import_key . '_pid'];
 
     // Check import_pid status
-    if ($_GET['action'] == 'import_status') {
+    if ( $_GET['action'] == 'import_status' ) {
         echo shell_exec( '/usr/local/hestia/bin/v-invoke-plugin quickstart_import_status ' . $import_pid . ' ' . $import_key);
+    }
+
+    // Check import_result
+    if ( $_GET['action'] == 'import_result' ) {
+        echo shell_exec( '/usr/local/hestia/bin/v-invoke-plugin quickstart_import_result ' . $import_pid . ' ' . $import_key);
     }
 
     // Cancel the import by killing the process
