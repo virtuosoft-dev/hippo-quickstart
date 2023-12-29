@@ -66,19 +66,29 @@
             //         }
             //     });
             // });
-
-            // // Check the import key every 8 seconds
-            // var import_int = setInterval( () => {
-            //     $.ajax({
-            //         url: '../../pluginable.php?load=quickstart&action=import_now_status&import_key=<?php echo $import_key; ?>',
-            //         type: 'GET',
-            //         success: function( data ) {
-            //             try {
-            //                 data = JSON.parse( data );
-            //             } catch( e ) {
-            //                 $('#error').html( '<p>Error parsing JSON: ' + e + '</p>');
-            //                 $('#error').show();
-            //             }
+            // Check the import key every 8 seconds
+            var import_int = setInterval( () => {
+                $.ajax({
+                    url: '../../pluginable.php?load=quickstart&action=import_result&import_key=<?php echo $import_key; ?>',
+                    type: 'GET',
+                    success: function( data ) {
+                        try {
+                            data = JSON.parse( data );
+                        } catch( e ) {
+                            data = { 'status': 'error', 'message': 'Error parsing JSON: ' + e };
+                        }
+                        $('#status').html(data.message);
+                        if ( data.status != 'running' ) {
+                            $('#back').hide();
+                            $('#options').hide();
+                            $('#continue-button').removeClass('disabled');
+                            $('#continue-button').attr('href', '?quickstart=main');
+                            $('.spinner-overlay').removeClass('active');
+                            clearInterval( import_int );
+                        }
+                    }
+                }); 
+            }, 8000);
             //             if ( data.status == 'running' ) return;
             //             if ( data.status == 'finished' ) {
             //                 $('#status').html(data.message);
