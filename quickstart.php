@@ -149,21 +149,57 @@
                 return $args;
             }
             
+            // Copy the files
+
+            // Get the destination folder
+            $command = "list-web-domain $new_user $new_domain json";
+            $detail = $hcpp->run( $command );
+            $dest_folder = $detail[$new_domain]['DOCUMENT_ROOT'];
+            $dest_folder = $hcpp->delRightMost( $dest_folder, 'public_html' );
+            
+            // Copy all subfolders in the import folder
+            $result = json_encode( [ 'status' => 'running', 'message' => "Please wait. Copying files." ] );
+            file_put_contents( $result_file, $result );
+            chown ( $result_file, 'admin' );
+            $folders = array_filter(glob($import_folder . '/*'), 'is_dir');
+            $command = "";
+            foreach( $folders as $folder ) {
+                $subfolder = $hcpp->getRightMost( $folder, '/' );
+                $command .= __DIR__ . '/abcopy ' . $folder . '/ ' . $dest_folder . "$subfolder/ ; ";
+                $command .= "chown -R $new_user:$new_user " . $dest_folder . "$subfolder/ ; ";
+            }
+            $command = $hcpp->do_action( 'quickstart_import_copy_files', $command ); // Allow plugin mods
+            shell_exec( $command );
+
             // Create the databases
             $orig_dbs = $devstia_manifest['databases'];
             $devstia_databases_folder = $import_folder . '/devstia_databases';
             if ( is_array( $orig_dbs ) && !empty( $orig_dbs ) ) {
                 $result = json_encode( [ 'status' => 'running', 'message' => "Please wait. Creating databases." ] );
-                file_put_contents( $result_file, $result );
                 chown ( $result_file, 'admin' );
+
+                // Create
+                foreach( $orig_dbs as $db ) {
+                    $orig_db = $db['DATABASE'];
+                    $orig_type = $db['TYPE'];
+                    $orig_charset = $db['CHARSET'];
+                    $ref_files = $db['REF_FILES'];
+
+                    // Generate new credentials
+                    $db_name = $hcpp->nodeapp->random_chars(5);
+                    $db_password = $hcpp->nodeapp->random_chars(20);
+                    $command = "add-database $new_user $db_name $db_name $db_password $orig_type localhost $orig_charset";
+                    file_put_contents( "/tmp/database.txt", $command );
+                    $result = $hcpp->run( $command );
+                    if ( $result != '' ) {
+                        $result = json_encode( [ 'status' => 'error', 'message' => $result ] );
+                        file_put_contents( $result_file, $result );
+                        chown ( $result_file, 'admin' );
+                        return $args;
+                    }
+                }
             }
-
-            // Copy the files
-
-            // Set the permissions
-
-            // Signal complete
-
+            
             return $args;
         }
 
@@ -215,7 +251,6 @@
                 $command = 'unzip -o -q ' . $import_file . ' -d ' . $import_folder . ' ';
                 $command .= '&& rm -rf ' . $import_file . ' ';
                 $command .= '&& chown -R admin:admin ' . $import_folder;
-                file_put_contents('/tmp/test.txt', $command);
                 $command = $hcpp->do_action( 'quickstart_import_file_command', $command );
                 shell_exec( $command );
             }
