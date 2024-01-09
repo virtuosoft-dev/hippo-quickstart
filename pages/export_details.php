@@ -4,10 +4,9 @@
     $domain = $_GET['domain'];
     $domain = preg_replace('/[^a-zA-Z0-9\.\-]/', '', $domain);
     $user = $_SESSION['user'];
-    exec(HESTIA_CMD . "v-invoke-plugin quickstart_export_dbs " . $user . " " . $domain, $output, $return_var);
+    exec(HESTIA_CMD . "v-invoke-plugin quickstart_export_details " . $user . " " . $domain, $output, $return_var);
     $db_details = json_decode(implode("", $output), true);
     $_SESSION['db_details'] = $db_details;
-
 ?>
 <div class="toolbar">
     <div class="toolbar-inner">
@@ -40,8 +39,9 @@
                 <?php
                     echo $proxy;
                     // Loop through each database and display details
+                    $item = 1;
                     foreach ( $db_details as $db => $details ) {
-                        $item = 1;
+                        if ( !isset( $details['DATABASE'] ) ) continue;
                 ?>
                 <div class="units-table-row">
                     <div class="units-table-cell">
@@ -68,8 +68,8 @@
                             <?php 
                                 global $hcpp;
                                 echo $details['DATABASE'] . ' / ' . $details['DBPASSWORD'];
-                                foreach( $details['REF_FILES'] as $file ) {
-                                    echo '<br><span class="ref-files">.' . $hcpp->delLeftMost( $file, $domain ) . '</span>';
+                                foreach( $details['ref_files'] as $file ) {
+                                    echo '<br><span class="ref-files">' . $file . '</span>';
                                 }
                             ?>
                         </a>

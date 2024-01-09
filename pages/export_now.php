@@ -7,15 +7,20 @@
     $user = $_SESSION['user'];
     $dbs = [];
     $web_detail = $hcpp->run( "v-list-web-domain $user $domain json" )[$domain];
+    $main_ref_files = [];
     foreach( $db_details as $db => $details ) {
+        if ( !isset( $details['DATABASE'] ) ) {
+            $main_ref_files = $details['ref_files'];
+            continue;
+        }
         if ( in_array( $details['DATABASE'], explode( ",", $_GET['dbs'] ) ) ) {
             $dbs[] = $details;
 
             // Cull user folder from ref_files
             foreach( $dbs as $key => $db ) {
-                foreach( $db['REF_FILES'] as $key2 => $file ) {
+                foreach( $db['ref_files'] as $key2 => $file ) {
                     if ( substr( $file, 0, 1 ) == '.' ) continue;
-                    $dbs[$key]['REF_FILES'][$key2] = "." . $hcpp->delLeftMost( $file, $domain );
+                    $dbs[$key]['ref_files'][$key2] = "." . $hcpp->delLeftMost( $file, $domain );
                 }
             }
         }
@@ -34,7 +39,8 @@
         'proxy_ext' => $web_detail['PROXY_EXT'],
         'template' => $web_detail['TPL'],
         'user' => $user,
-        'zip_file' => $zip_file, 
+        'zip_file' => $zip_file,
+        'ref_files' => $main_ref_files
     ];
     $_SESSION['devstia_manifest'] = $devstia_manifest;
     file_put_contents( '/tmp/' . $json_file, json_encode( $devstia_manifest, JSON_PRETTY_PRINT ) );

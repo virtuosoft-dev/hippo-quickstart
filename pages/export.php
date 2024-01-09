@@ -7,7 +7,7 @@
             </a>
         </div>
         <div class="toolbar-buttons">
-            <a href="?quickstart=export_dbs" class="button" id="continue-button">
+            <a href="?quickstart=export_details" class="button" id="continue-button">
                 <i class="fas fa-arrow-right icon-blue"></i>Continue
             </a>         
         </div>
@@ -92,7 +92,7 @@
             // Radio click, select domain and tack on domain to continue button
             $('.website_radio').on('click', function() {
                 let domain = $(this).val();
-                $('#continue-button').attr('href', '?quickstart=export_dbs&domain=' + domain);
+                $('#continue-button').attr('href', '?quickstart=export_details&domain=' + domain);
             });
 
             // Select the domain or first radio button by default

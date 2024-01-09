@@ -46,7 +46,7 @@
 
         // Run elevated commands from the plugin
         public function hcpp_invoke_plugin( $args ) {
-            if ( $args[0] == 'quickstart_export_dbs' ) return $this->quickstart_export_dbs( $args );
+            if ( $args[0] == 'quickstart_export_details' ) return $this->quickstart_export_details( $args );
             if ( $args[0] == 'quickstart_export_zip' ) return $this->quickstart_export_zip( $args );
             if ( $args[0] == 'quickstart_export_status' ) return $this->quickstart_export_status( $args );
             if ( $args[0] == 'quickstart_export_cancel' ) return $this->quickstart_export_cancel( $args );
@@ -183,7 +183,7 @@
                     $orig_db = $db['DATABASE'];
                     $orig_type = $db['TYPE'];
                     $orig_charset = $db['CHARSET'];
-                    $ref_files = $db['REF_FILES'];
+                    $ref_files = $db['ref_files'];
 
                     // Generate new credentials
                     $db_name = $hcpp->nodeapp->random_chars(5);
@@ -288,8 +288,9 @@
             return $args;
         }
         
-        // Highly optimized for speed, scan revelent files for db password and return details as JSON
-        public function quickstart_export_dbs( $args ) {
+        // Highly optimized for speed, scan revelent files for db credentials, and migration
+        // details (domain, aliases, user path) and return details as JSON
+        public function quickstart_export_details( $args ) {
             $user = $args[1];
             $domain = $args[2];
 
@@ -302,10 +303,24 @@
             }
 
             // Get a list of folders to scan for credentials
-            $public_html = $hcpp->run( "list-web-domain " . $user . " '" . $domain . "' json " );
-            if ( $public_html == NULL ) return $args;
-            $public_html = $public_html[$domain]['DOCUMENT_ROOT'];
+            $web_domain = $hcpp->run( "list-web-domain " . $user . " '" . $domain . "' json " );
+            if ( $web_domain == NULL ) return $args;
+            $public_html = $web_domain[$domain]['DOCUMENT_ROOT'];
             $nodeapp = str_replace( '/public_html/', '/nodeapp/', $public_html );
+
+            // Gather web domain items for migration; mentions of domain, aliases, or user folder
+            $aliases = $web_domain[$domain]['ALIAS'];
+            $aliases = explode( ',', $aliases );
+            $migrate_strings = [
+                "/home/$user", 
+                $domain
+            ];
+            $migrate_ref_files = [];
+            if ( !empty( $aliases ) && $aliases[0] != '' ) {
+                foreach( $aliases as $alias ) {
+                    $migrate_strings[] = $alias;
+                }
+            }
 
             // Omit folders, and file extensions for scan
             $omit_folders = array( 'src', 'core', 'includes', 'public', 'current', 'content', 'core', 'uploads', 
@@ -352,19 +367,35 @@
                     $files = array_merge( $files, $f );
                 }
             }
-
-            // Check the given files for mentions of database
+            
+            // Check the given files 
             foreach( $files as $file ) {
                 if ( strpos( $file, 'devstia_manifest.json' ) !== false ) continue;
                 $content = file_get_contents( $file );
                 $index = 0;
+
+                // Check for mentions of database, domain, aliases, 
                 foreach( $databases as $database ) {
-                    if ( !isset( $database['REF_FILES'] ) ) $database['REF_FILES'] = [];
+                    if ( !isset( $database['ref_files'] ) ) $database['ref_files'] = [];
                     if ( strpos( $content, $database['DATABASE'] ) !== false ) {
-                        $database['REF_FILES'][] = $file;
+                        $database['ref_files'][] = $file;// $hcpp->delLeftMost( $file, $domain );
                     }
                     $databases[$index] = $database;
                     $index++;
+                }
+
+                // Check for any of the migrate strings
+                foreach( $migrate_strings as $m ) {
+                    if ( !in_array( $file, $migrate_ref_files ) ) {
+                        if ( strpos( $content, $m ) !== false ) {
+                            $migrate_ref_files[] = $file;
+                        }else{
+                            // Check escape encoded version too
+                            if ( strpos( $content, addcslashes( $m, "\/\n\r\0" ) ) !== false ) {
+                                $migrate_ref_files[] = $file;
+                            }
+                        }   
+                    }
                 }
             }
 
@@ -372,12 +403,12 @@
             $found_dbs = [];
             $db_index = 0;
             foreach( $databases as $database ) {
-                if ( !isset( $database['REF_FILES'] ) || count( $database['REF_FILES'] ) == 0 ) continue;
+                if ( !isset( $database['ref_files'] ) || count( $database['ref_files'] ) == 0 ) continue;
 
                 // Search for the password in the first reference file
                 $database['DBPASSWORD'] = "";
-                $file_index = 0;;
-                foreach( $database['REF_FILES'] as $file) {
+                $file_index = 0;
+                foreach( $database['ref_files'] as $file) {
                     $content = file_get_contents( $file );
                     $content = $hcpp->delLeftMost( $content, $database['DATABASE'] );
                     $pwkeys = ["PASSWORD'", 'PASSWORD"', 'password"', "password'", 'password =', 'password='];
@@ -420,7 +451,17 @@
                 }
             }
 
-            // 
+            // Append migrate files to the found_dbs array
+            $found_dbs[] = [ 'ref_files' => $migrate_ref_files ];
+
+            // Make ref_files relative paths
+            foreach( $found_dbs as $key => $db ) {
+                foreach( $db['ref_files'] as $key2 => $file ) {
+                    $found_dbs[$key]['ref_files'][$key2] = "." . $hcpp->delLeftMost( $file, $domain );
+                }
+            }
+
+            // Output the found databases and migrations
             echo json_encode( $found_dbs, JSON_PRETTY_PRINT );
             return $args;
         }
@@ -497,7 +538,7 @@
                 'import',
                 'export',
                 'export_view',
-                'export_dbs',
+                'export_details',
                 'export_options',
                 'export_now',
                 'create',

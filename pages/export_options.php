@@ -7,7 +7,7 @@
 <div class="toolbar">
     <div class="toolbar-inner">
         <div class="toolbar-buttons">
-            <a href="?quickstart=export_dbs&domain=<?php echo $domain; ?>&dbs=<?php echo $dbs; ?>" class="button button-secondary button-back js-button-back" id="back">
+            <a href="?quickstart=export_details&domain=<?php echo $domain; ?>&dbs=<?php echo $dbs; ?>" class="button button-secondary button-back js-button-back" id="back">
                 <i class="fas fa-arrow-left icon-blue"></i>Back			
             </a>
         </div>
