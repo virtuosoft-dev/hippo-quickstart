@@ -37,7 +37,6 @@
                     <div class="units-table-cell u-text-center">Disk</div>
                 </div>
                 <?php
-                    echo $proxy;
                     // Loop through each database and display details
                     $item = 1;
                     foreach ( $db_details as $db => $details ) {

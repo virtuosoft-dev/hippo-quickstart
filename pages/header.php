@@ -48,6 +48,26 @@
     #dropZone.dragover {
         background-color: #eee;
     }
+    .export_options h3, .adv-trash {
+        cursor: pointer;
+    }
+    #advanced-opt {
+        max-width: 640px;
+    }
+    .adv-trash {
+        text-align: center;
+    }
+    @media (min-width:1024px) {
+        thead#adv-options-table tr {
+            display: contents;
+        }
+    }
+    @media (max-width:1024px) {
+        thead#adv-options-table {
+            display: contents;
+            width: 100%;
+        }
+    }
 </style>
 <script>
     (function($){

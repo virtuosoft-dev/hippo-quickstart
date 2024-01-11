@@ -20,7 +20,7 @@
             foreach( $dbs as $key => $db ) {
                 foreach( $db['ref_files'] as $key2 => $file ) {
                     if ( substr( $file, 0, 1 ) == '.' ) continue;
-                    $dbs[$key]['ref_files'][$key2] = "." . $hcpp->delLeftMost( $file, $domain );
+                    $dbs[$key]['ref_files'][$key2] = $file;
                 }
             }
         }
@@ -30,6 +30,7 @@
     $dtstamp = date( 'Y-m-d-His' );
     $json_file = 'devstia_export_' . $dtstamp . '.json';
     $zip_file = $domain . '_' . $dtstamp . '.zip';
+    file_put_contents('/tmp/test.txt', print_r( $_POST, true ));
     $devstia_manifest = [
         'alias' => $web_detail['ALIAS'],
         'backend' => $web_detail['BACKEND'],
@@ -40,7 +41,9 @@
         'template' => $web_detail['TPL'],
         'user' => $user,
         'zip_file' => $zip_file,
-        'ref_files' => $main_ref_files
+        'ref_files' => $main_ref_files,
+        'export_options' => $_POST['export_options'] ?? '',
+        'export_adv_options' => $_POST['export_adv_options'] ?? ''
     ];
     $_SESSION['devstia_manifest'] = $devstia_manifest;
     file_put_contents( '/tmp/' . $json_file, json_encode( $devstia_manifest, JSON_PRETTY_PRINT ) );
