@@ -152,6 +152,13 @@
                         return $(this).text();
                     }).get();
                     row.pop();
+
+                    // Label the columns, make ref_files an array
+                    row = {
+                        'label': row[0],
+                        'value': row[1],
+                        'ref_files': row[2].split('\n'),
+                    };
                     tableData.push(row);
                 });
                 $('#export_adv_options').val(JSON.stringify(tableData));

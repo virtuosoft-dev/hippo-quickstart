@@ -43,7 +43,7 @@
         'zip_file' => $zip_file,
         'ref_files' => $main_ref_files,
         'export_options' => $_POST['export_options'] ?? '',
-        'export_adv_options' => $_POST['export_adv_options'] ?? ''
+        'export_adv_options' => json_decode( $_POST['export_adv_options'] ?? ''),
     ];
     $_SESSION['devstia_manifest'] = $devstia_manifest;
     file_put_contents( '/tmp/' . $json_file, json_encode( $devstia_manifest, JSON_PRETTY_PRINT ) );
