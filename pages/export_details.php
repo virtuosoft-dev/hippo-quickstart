@@ -24,7 +24,7 @@
 </div>
 <div class="body-reset container">
     <div class="quickstart qs_main">
-        <h1>Database details.</h1>
+        <h1>Database Details</h1>
         <legend>The following databases were referenced in files for <?php echo $domain ?>.<br>These will be included in your export. Uncheck to omit them.</legend>
         <div class="export-list">
             <div class="units-table js-units-container">

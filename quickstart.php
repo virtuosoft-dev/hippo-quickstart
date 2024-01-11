@@ -477,6 +477,8 @@
             unlink( '/tmp/' . $json_file );
             $user = $devstia_manifest['user'];
             $domain = $devstia_manifest['domain'];
+            $export_options = $devstia_manifest['export_options'];
+            $export_adv_options = $devstia_manifest['export_adv_options'];
             $export_folder = '/home/' . $user . '/tmp/' . $hcpp->delRightMost( $json_file, '.json' );
             if ( !is_dir( $export_folder ) ) mkdir( $export_folder, true );
             file_put_contents( $export_folder . '/devstia_manifest.json', $content );
@@ -498,22 +500,25 @@
             $cgi_bin = str_replace( '/public_html/', '/cgi-bin/', $public_html );
             $document_errors = str_replace( '/public_html/', '/document_errors/', $public_html );
 
-            // Copy website folders to user tmp folder
-            $command = "cp -r $public_html $export_folder ;";
-            $command .= "cp -r $nodeapp $export_folder ;";
-            $command .= "cp -r $private $export_folder ;";
-            $command .= "cp -r $cgi_bin $export_folder ;";
-            $command .= "cp -r $document_errors $export_folder ;";
-            file_put_contents( "/tmp/test.txt", $command );
-            shell_exec( $command );
+            // Copy website folders to user tmp folder, accounting for export options
+            $abcopy = __DIR__ . '/abcopy';
+            $exvc = ';';
+            if ( strpos($export_options, 'exvc') !== false ) $exvc = ' true;';
+            $command = '';
+            if ( strpos($export_options, 'public_html') !== false ) $command .= "$abcopy $public_html $export_folder/public_html" . $exvc;
+            if ( strpos($export_options, 'nodeapp') !== false ) $command .= "$abcopy $nodeapp $export_folder/nodeapp" . $exvc;
+            if ( strpos($export_options, 'private') !== false ) $command .= "$abcopy $private $export_folder/private" . $exvc;
+            if ( strpos($export_options, 'cgi_bin') !== false ) $command .= "$abcopy $cgi_bin $export_folder/cgi_bin" . $exvc;
+            if ( strpos($export_options, 'document_errors') !== false ) $command .= "$abcopy $document_errors $export_folder/document_errors" . $exvc;
 
             // Reset ownership, zip up contents, move to exports, and clean up
             $zip_file = "/home/$user/web/exports/" . $devstia_manifest['zip_file'];
-            $command = "chown -R $user:$user $export_folder && cd $export_folder ";
+            $command .= "chown -R $user:$user $export_folder && cd $export_folder ";
             $command .= "&& zip -r $export_folder.zip . && cd .. && rm -rf $export_folder ";
             $command .= "&& mkdir -p /home/$user/web/exports ";
             $command .= "&& mv $export_folder.zip $zip_file ";
             $command .= "&& chown -R $user:$user /home/$user/web/exports ";
+            $command = $hcpp->do_action( 'quickstart_export_zip', $command ); // Allow plugin mods
             shell_exec( $command );
             return $args;
         }

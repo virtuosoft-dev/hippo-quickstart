@@ -19,7 +19,7 @@
     </div>
     <div class="body-reset container">
         <div class="quickstart qs_main export_options">
-            <h1>Export options.</h1>
+            <h1>Export Options</h1>
             <legend>Leave all items checked for default export options.</legend>
             <p>
                 <input class="export_option" type="checkbox" id="cgi_bin" checked="checked"/>
@@ -46,7 +46,7 @@
                 <label for="exvc">Exclude version control files &amp; folders (.git*, .svn, .hg).</label>
             </p>
             <br/>
-            <h3><i class="fas fa-caret-right"></i> Advanced options.</h3>
+            <h3><i class="fas fa-caret-right"></i> Advanced Options</h3>
             <div id="advanced-opt" style="display:none;">
                 <p>
                     Additional search and replace controls that will appear when importing. Use these 

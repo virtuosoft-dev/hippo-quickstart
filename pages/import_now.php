@@ -37,7 +37,7 @@
 </div>
 <div class="body-reset container">
     <div class="quickstart qs_main">
-        <h1>Import website files.</h1>
+        <h1>Import Website Files</h1>
         <legend id="status">Please wait. Importing website.</legend>
         <div id="options">
             <pre>

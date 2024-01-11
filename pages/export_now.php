@@ -30,7 +30,6 @@
     $dtstamp = date( 'Y-m-d-His' );
     $json_file = 'devstia_export_' . $dtstamp . '.json';
     $zip_file = $domain . '_' . $dtstamp . '.zip';
-    file_put_contents('/tmp/test.txt', print_r( $_POST, true ));
     $devstia_manifest = [
         'alias' => $web_detail['ALIAS'],
         'backend' => $web_detail['BACKEND'],
@@ -70,7 +69,7 @@
 </div>
 <div class="body-reset container">
     <div class="quickstart qs_main">
-        <h1>Export <?php echo $domain; ?>.</h1>
+        <h1>Export <?php echo $domain; ?></h1>
         <legend id="status">Please wait. Copying and compressing files.</legend>
         <div id="error" style="display: none;"></div>
     </div>

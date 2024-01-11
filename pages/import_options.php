@@ -29,7 +29,7 @@
 </div>
 <div class="body-reset container">
     <div class="quickstart qs_main">
-        <h1>Import options.</h1>
+        <h1>Import Options</h1>
         <legend id="status">Please wait. Decompressing and analyzing files.</legend>
         <div id="options"></div>
     </div>

@@ -12,13 +12,14 @@
 # 
 
 # Check for the correct number of arguments
-if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 <source folder> <destination folder>"
+if [ "$#" -lt 2 ]; then
+    echo "Usage: $0 <source folder> <destination folder> [exclude version control]"
     exit 1
 fi
 
 source_dir="$1"
 destination_dir="$2"
+exclude_vc="${3:-false}"
 
 # Ensure source directory ends with a trailing slash
 if [[ ! "$source_dir" == */ ]]; then
@@ -30,8 +31,12 @@ if [[ ! "$destination_dir" == */ ]]; then
     destination_dir="$destination_dir/"
 fi
 
-# Perform the initial copy using rsync
-rsync -a "$source_dir" "$destination_dir"
+# Perform the initial copy using rsync, optionally excluding version control files
+if [ "$exclude_vc" = true ] ; then
+    rsync -av --exclude='.git*' --exclude='.svn' --exclude='.hb' "$source_dir" "$destination_dir"
+else
+    rsync -a "$source_dir" "$destination_dir"
+fi
 
 # Find absolute symbolic links within the destination directory
 absolute_links=()
