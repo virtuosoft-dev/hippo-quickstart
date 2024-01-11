@@ -68,7 +68,7 @@
     </div>
 </div>
 <div class="body-reset container">
-    <div class="quickstart qs_main">
+    <div class="quickstart qs_export_now">
         <h1>Export <?php echo $domain; ?></h1>
         <legend id="status">Please wait. Copying and compressing files.</legend>
         <div id="error" style="display: none;"></div>
@@ -85,7 +85,7 @@
                     url: '../../pluginable.php?load=quickstart&action=export_cancel&export_key=<?php echo $export_key; ?>',
                     type: 'GET',
                     success: function( data ) {
-                        $('#error').html( '<p>Export canceled.</p>');
+                        $('#error').html( '<p>Export cancelled.</p>');
                         $('#error').show();
                         $('#back').hide();
                         $('#continue-button').removeClass('disabled');

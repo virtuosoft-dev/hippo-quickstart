@@ -14,7 +14,7 @@
     </div>
 </div>
 <div class="body-reset container">
-    <div class="quickstart qs_main">
+    <div class="quickstart qs_create">
         <h1>Create a New Website</h1>
         <legend>Choose a blueprint to create your new website:</legend>
         <p>

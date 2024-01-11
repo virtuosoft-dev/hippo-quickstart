@@ -227,7 +227,8 @@
                         'status' => 'finished', 
                         'message' => $message, 
                         'domain' => $devstia_manifest['domain'], 
-                        'alias' => $devstia_manifest['alias']
+                        'alias' => $devstia_manifest['alias'],
+                        'export_adv_options' => $devstia_manifest['export_adv_options'],
                     ] );
                 }else{
                     echo json_encode( [ 

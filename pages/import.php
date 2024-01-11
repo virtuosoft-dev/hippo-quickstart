@@ -18,7 +18,7 @@
     </div>
 </div>
 <div class="body-reset container">
-    <div class="quickstart qs_main">
+    <div class="quickstart qs_import">
         <h1>Import a Website</h1>
         <legend>Upload a <a href="https://devstia.com/compatible-website-archive" target="_blank">compatible website archive</a>.</legend>
             <input type="file" id="fileInput" name="fileInput" style="display: none;" />

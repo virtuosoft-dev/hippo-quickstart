@@ -23,7 +23,7 @@
     </div>
 </div>
 <div class="body-reset container">
-    <div class="quickstart qs_main">
+    <div class="quickstart qs_details">
         <h1>Database Details</h1>
         <legend>The following databases were referenced in files for <?php echo $domain ?>.<br>These will be included in your export. Uncheck to omit them.</legend>
         <div class="export-list">

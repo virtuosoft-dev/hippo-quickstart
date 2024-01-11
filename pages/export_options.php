@@ -18,7 +18,7 @@
         </div>
     </div>
     <div class="body-reset container">
-        <div class="quickstart qs_main export_options">
+        <div class="quickstart qs_export_options">
             <h1>Export Options</h1>
             <legend>Leave all items checked for default export options.</legend>
             <p>

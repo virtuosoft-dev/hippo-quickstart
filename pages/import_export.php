@@ -14,7 +14,7 @@
     </div>
 </div>
 <div class="body-reset container">
-    <div class="quickstart qs_main">
+    <div class="quickstart qs_export">
         <h1>Import or Export a Website</h1>
         <legend>Which operation would you like to do?</legend>
         <p>

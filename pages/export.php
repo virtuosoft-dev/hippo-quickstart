@@ -14,7 +14,7 @@
     </div>
 </div>
 <div class="body-reset container">
-    <div class="quickstart qs_main">
+    <div class="quickstart qs_export">
         <h1>Export an Existing Website</h1>
         <legend>Select which website you would like to export.</legend>
         <div class="export-list">

@@ -14,7 +14,7 @@
     </div>
 </div>
 <div class="body-reset container">
-    <div class="quickstart qs_main">
+    <div class="quickstart qs_remove_copy">
         <h1>Remove or Copy a Website</h1>
         <legend>Choose one or more websites from the list of websites:</legend>
         <p>

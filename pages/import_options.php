@@ -28,7 +28,7 @@
     </div>
 </div>
 <div class="body-reset container">
-    <div class="quickstart qs_main">
+    <div class="quickstart qs_import_options">
         <h1>Import Options</h1>
         <legend id="status">Please wait. Decompressing and analyzing files.</legend>
         <div id="options"></div>
@@ -45,7 +45,7 @@
                     url: '../../pluginable.php?load=quickstart&action=import_cancel&import_key=<?php echo $import_key; ?>',
                     type: 'GET',
                     success: function( data ) {
-                        $('#status').html( 'Import canceled. Click continue.');
+                        $('#status').html( 'Import cancelled. Click continue.');
                         $('#back').hide();
                         $('#options').hide();
                         $('#continue-button').removeClass('disabled');
@@ -55,12 +55,22 @@
                 });
             });
 
+            // Var-safe title function
+            function titleToVarName(str) {
+                str = str.toLowerCase(); // Convert all characters to lowercase
+                str = str.replace(/[^a-z0-9\s]/g, ''); // Remove all non-alphanumeric characters except spaces
+                str = str.replace(/\s+/g, '_'); // Replace one or more spaces with underscores
+                str = str.replace(/_([a-z])/g, function (g) { return g[1].toUpperCase(); }); // Convert underscores to camelCase
+                return str;
+            }
+
             // Check the import key every 8 seconds
             var import_int = setInterval( () => {
                 $.ajax({
                     url: '../../pluginable.php?load=quickstart&action=import_status&import_key=<?php echo $import_key; ?>',
                     type: 'GET',
                     success: function( data ) {
+                        console.log(data);
                         try {
                             data = JSON.parse( data );
                         } catch( e ) {
@@ -70,10 +80,12 @@
                         if ( data.status == 'running' ) return;
                         if ( data.status == 'finished' ) {
                             $('#status').html(data.message);
+
+                            // Create form to customize domain/aliases 
                             const domain = data.domain;
                             let html = `<form id="import_now" method="POST" action="?quickstart=import_now&import_key=<?php echo $import_key; ?>">
                                         <div class="u-mb10">
-                                            <label for="v_domain" class="form-label">Import Web Domain</label>
+                                            <label for="v_domain" class="form-label">Web Domain</label>
                                             <input type="text" class="form-control" name="v_domain" id="v_domain" value="${domain}" required="">
                                         </div>`;
                             if (data.alias.trim() != '') {
@@ -83,12 +95,42 @@
                                             <textarea class="form-control" name="v_aliases" id="v_aliases">${aliases}</textarea>
                                         </div>`;
                             }
+                            
+                            // Create form for export advanced options
+                            if (data.export_adv_options.length > 0) {
+                                data.export_adv_options.forEach( (option) => {
+                                    let labelVar = titleToVarName(option.label);
+                                    html += `<div class="u-mb10">
+                                                <label for="eao_${labelVar}" class="form-label">${option.label}</label>
+                                                <input type="text" class="form-control" name="eao_${labelVar}" id="eao_${labelVar}" value="${option.value}">
+                                                <input type="hidden" name="eao_${labelVar}_ref_files" value="${option.ref_files}">
+                                            </div>`;
+                                });
+
+                                // html += `<div class="u-mb10">
+                                //             <label for="v_export_adv_options" class="form-label">Advanced Options</label>
+                                //             <select class="form-control" name="v_export_adv_options" id="v_export_adv_options">`;
+                                // data.export_adv_options.forEach( (option) => {
+                                //     html += `<option value="${option}">${option}</option>`;
+                                // });
+                                // html += `</select></div>`;
+                            }
+
+
                             html += '</form>';
                             $('#options').html(html);
                             setTimeout(()=>{
                                 $('#v_domain').focus().select();
                             }, 500);
+                            $('#continue-button').attr('href', '#');
+                            $('#continue-button').on('click', (e) => {
+                                if ($('#continue-button').attr('href') == '#') {
+                                    e.preventDefault();
+                                    $('#import_now').submit();
+                                }
+                            });
                         } else {
+                            $('#continue-button').attr('href', '?quickstart=main');
                             if ( data.status == 'error' ) {
                                 $('#status').html(data.message);
                             }else{
@@ -96,11 +138,6 @@
                             }
                         }
                         $('#continue-button').removeClass('disabled');
-                        $('#continue-button').attr('href', '#');
-                        $('#continue-button').on('click', (e) => {
-                            e.preventDefault();
-                            $('#import_now').submit();
-                        });
                         $('.spinner-overlay').removeClass('active');
                         clearInterval( import_int );
                     }

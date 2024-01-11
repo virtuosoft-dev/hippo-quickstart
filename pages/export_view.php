@@ -14,7 +14,7 @@
     </div>
 </div>
 <div class="body-reset container">
-    <div class="quickstart qs_main">
+    <div class="quickstart qs_export_view">
         <h1>View of Exported Websites</h1>
         <legend>Download, delete, or share your exported creation.</legend>
         <p>

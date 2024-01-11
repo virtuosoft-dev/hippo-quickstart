@@ -1,19 +1,17 @@
 <?php ob_start(); ?>
 <style>
-    .qs_main {
+    .quickstart {
         min-width: 50%;
         min-height: 150px;
+        font-size: larger;
+        padding: 30px;
+        margin: 30px;
     }
-    .qs_main legend {
+    .quickstart legend {
         margin-bottom: 20px;
     }
     main .body-reset {
         min-height: 300px;
-    }
-    .quickstart {
-        font-size: larger;
-        padding: 30px;
-        margin: 30px;
     }
     .quickstart input[type="radio"] {
         transform: scale(1.3);
@@ -48,7 +46,11 @@
     #dropZone.dragover {
         background-color: #eee;
     }
-    .export_options h3, .adv-trash {
+    .qs_import_options label,
+    .qs_export_options label {
+        font-size: .85rem;
+    }
+    .qs_export_options h3, .adv-trash {
         cursor: pointer;
     }
     #advanced-opt {

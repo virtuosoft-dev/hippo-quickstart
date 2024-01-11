@@ -69,6 +69,8 @@ if (in_array( $_GET['action'], ['import_cancel', 'import_status', 'import_result
         if ($_GET['import_key'] != $_SESSION['import_key']) return;
         if (false == isset($_SESSION['import_key'])) return;
         $import_key = $_SESSION['import_key'];
+
+        // Generate response
         $response = [
             'status' => 'error',
             'message' => 'Unknown error occurred.'

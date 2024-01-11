@@ -36,7 +36,7 @@
     </div>
 </div>
 <div class="body-reset container">
-    <div class="quickstart qs_main">
+    <div class="quickstart qs_import_now">
         <h1>Import Website Files</h1>
         <legend id="status">Please wait. Importing website.</legend>
         <div id="options">
@@ -57,7 +57,7 @@
             //         url: '../../pluginable.php?load=quickstart&action=import_cancel&import_key=<?php echo $import_key; ?>',
             //         type: 'GET',
             //         success: function( data ) {
-            //             $('#status').html( 'Import canceled. Click continue.');
+            //             $('#status').html( 'Import cancelled. Click continue.');
             //             $('#back').hide();
             //             $('#options').hide();
             //             $('#continue-button').removeClass('disabled');
