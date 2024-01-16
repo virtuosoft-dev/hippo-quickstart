@@ -106,6 +106,8 @@ if (in_array( $_GET['action'], ['import_cancel', 'import_status', 'import_result
     $import_pid = $_SESSION[$import_key . '_pid'];
 
     // Check import_pid status
+    global $hcpp;
+    
     if ( $_GET['action'] == 'import_status' ) {
         echo shell_exec( '/usr/local/hestia/bin/v-invoke-plugin quickstart_import_status ' . $import_pid . ' ' . $import_key);
     }

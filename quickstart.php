@@ -62,22 +62,26 @@
         public function quickstart_import_result( $args ) {
             $import_pid = $args[1];
             $import_key = $args[2];
-            $status = shell_exec('ps -p ' . $import_pid);
             $result_file = "/tmp/devstia_import_$import_key.result";
-            if (strpos($status, $import_pid) === false) {
-                if ( file_exists( $result_file ) ) {
-                    $content = file_get_contents( $result_file );
-                    unlink( $result_file );
-                    echo $content;
-                }else{
-                    echo json_encode( [ 'status' => 'error', 'message' => 'Import failed. Please try again.' ] );
+            if ( file_exists( $result_file ) ) {
+                $content = file_get_contents( $result_file );
+                unlink( $result_file );
+                echo $content;
+
+                if ( strpos( $content, '"status":"error"' ) !== false || strpos( $content, '"status":"finished"' ) !== false ) {
+
+                    // Clean up
+                    shell_exec('rm -rf /tmp/devstia_import_' . $import_key . '*');
                 }
             }else{
-                if ( file_exists( $result_file ) ) {
-                    $content = file_get_contents( $result_file );
-                    echo $content;
-                }else{
+                $status = shell_exec('ps -p ' . $import_pid);
+                if (strpos($status, $import_pid) !== false) {
                     echo json_encode( [ 'status' => 'running', 'message' => 'Please wait. Importing website.' ] );
+                }else{
+                    echo json_encode( [ 'status' => 'error', 'message' => 'Import failed. Please try again.' ] );
+
+                    // Clean up
+                    shell_exec('rm -rf /tmp/devstia_import_' . $import_key . '*');
                 }
             }
             return $args;
@@ -89,9 +93,7 @@
             $request_file = "/tmp/devstia_import_$import_key.json";
             $result_file = "/tmp/devstia_import_$import_key.result";
             if ( !file_exists( $request_file ) ) {
-                $result = json_encode( [ 'status' => 'error', 'message' => 'Request file not found.' ] );
-                file_put_contents( $result_file, $result );
-                chown ( $result_file, 'admin' );
+                $this->report_status( $result_file, 'Request file not found.', 'error' );
                 return $args;
             }
             $content = file_get_contents( $request_file );
@@ -106,31 +108,27 @@
             // Get the manifest file
             $manifest = $import_folder . '/devstia_manifest.json';
             if ( !file_exists( $manifest ) ) {
-                $result = json_encode( [ 'status' => 'error', 'message' => 'Manifest file not found.' ] );
-                file_put_contents( $result_file, $result );
-                chown ( $result_file, 'admin' );
+                $this->report_status( $result_file, 'Manifest file not found.', 'error' );
                 return $args;
             }
             
             // Parse the manifest file
             try {
                 $content = file_get_contents( $manifest );
-                $devstia_manifest = json_decode( $content, true );
-                $devstia_manifest = $hcpp->do_action( 'quickstart_import_now_manifest', $devstia_manifest ); // Allow plugin mods
-                $orig_user = $devstia_manifest['user'];
-                $orig_domain = $devstia_manifest['domain'];
-                $orig_aliases = $devstia_manifest['alias'];
-                $proxy_ext = $devstia_manifest['proxy_ext'];
+                $manifest = json_decode( $content, true );
+                $manifest = $hcpp->do_action( 'quickstart_import_now_manifest', $manifest ); // Allow plugin mods
+                $orig_user = $manifest['user'];
+                $orig_domain = $manifest['domain'];
+                $orig_aliases = $manifest['alias'];
+                $proxy_ext = $manifest['proxy_ext'];
+                $backend = $manifest['backend'];
             }catch( Exception $e ) {
-                $result = json_encode( [ 'status' => 'error', 'message' => 'Error parsing manifest file.' ] );
-                file_put_contents( $result_file, $result );
-                chown ( $result_file, 'admin' );
+                $this->report_status( $result_file, 'Error parsing manifest file.', 'error' );
                 return $args;
             }
 
             // Create the domain
-            $result = json_encode( [ 'status' => 'running', 'message' => "Please wait. Creating domain." ] );
-            file_put_contents( $result_file, $result );
+            $this->report_status( $result_file, 'Please wait. Creating domain.' );
             $new_user = $request['user'];
             $new_domain = $request['v_domain'];
             $new_aliases = str_replace( "\r\n", ",", $request['v_aliases'] );
@@ -143,64 +141,175 @@
             $command = "add-web-domain $new_user $new_domain $first_ip no $new_aliases $proxy_ext";
             $result = $hcpp->run( $command );
             if ( $result != '' ) {
-                $result = json_encode( [ 'status' => 'error', 'message' => $result ] );
-                file_put_contents( $result_file, $result );
-                chown ( $result_file, 'admin' );
+                $this->report_status( $result_file, $result, 'error' );
                 return $args;
             }
-            
-            // Copy the files
 
-            // Get the destination folder
-            $command = "list-web-domain $new_user $new_domain json";
-            $detail = $hcpp->run( $command );
-            $dest_folder = $detail[$new_domain]['DOCUMENT_ROOT'];
-            $dest_folder = $hcpp->delRightMost( $dest_folder, 'public_html' );
-            
+            // Wait up to 15 seconds for public_html/index.html to be created
+            $dest_folder = '/home/' . $new_user . '/web/' . $new_domain;
+            for ( $i = 0; $i < 15; $i++ ) {
+                if ( file_exists( $dest_folder . '/public_html/index.html' ) ) break;
+                sleep(1);
+            }
+            if ( !is_dir( $dest_folder . '/public_html' ) ) {
+                $this->report_status( $result_file, 'Error timeout awaiting domain creation. ' . $dest_folder, 'error' );
+                return $args;
+            }
+
             // Copy all subfolders in the import folder
-            $result = json_encode( [ 'status' => 'running', 'message' => "Please wait. Copying files." ] );
-            file_put_contents( $result_file, $result );
-            chown ( $result_file, 'admin' );
+            $this->report_status( $result_file, 'Please wait. Copying files.' );
             $folders = array_filter(glob($import_folder . '/*'), 'is_dir');
-            $command = "";
+            $command = "rm -f $dest_folder/public_html/index.html ; ";
             foreach( $folders as $folder ) {
                 $subfolder = $hcpp->getRightMost( $folder, '/' );
-                $command .= __DIR__ . '/abcopy ' . $folder . '/ ' . $dest_folder . "$subfolder/ ; ";
-                $command .= "chown -R $new_user:$new_user " . $dest_folder . "$subfolder/ ; ";
+                $command .= __DIR__ . '/abcopy ' . $folder . '/ ' . $dest_folder . "/$subfolder/ ; ";
+                $command .= "chown -R $new_user:$new_user " . $dest_folder . "/$subfolder/ ; ";
+                if ( $subfolder == 'public_html' ) {
+                    $command .= "chown $new_user:www-data " . $dest_folder . "/$subfolder/ ; ";
+                }
             }
             $command = $hcpp->do_action( 'quickstart_import_copy_files', $command ); // Allow plugin mods
             shell_exec( $command );
 
-            // Create the databases
-            $orig_dbs = $devstia_manifest['databases'];
-            $devstia_databases_folder = $import_folder . '/devstia_databases';
-            if ( is_array( $orig_dbs ) && !empty( $orig_dbs ) ) {
-                $result = json_encode( [ 'status' => 'running', 'message' => "Please wait. Creating databases." ] );
-                chown ( $result_file, 'admin' );
+            // Prepare aliases
+            $new_aliases = explode( ',', $new_aliases );
+            $orig_aliases = explode( ',', $orig_aliases );
+            if ( count( $new_aliases ) != count( $orig_aliases ) ) {
+                $this->report_status( $result_file, 'Number of aliases does not match original for substitution.', 'error' );
+                return $args;
+            }
 
-                // Create
+            // Create the databases
+            $orig_dbs = $manifest['databases'];
+            if ( is_array( $orig_dbs ) && !empty( $orig_dbs ) ) {
                 foreach( $orig_dbs as $db ) {
+
+                    // Get the original database details
+                    $orig_dbuser = $db['DBUSER'];
                     $orig_db = $db['DATABASE'];
+                    $orig_password = $db['DBPASSWORD'];
                     $orig_type = $db['TYPE'];
                     $orig_charset = $db['CHARSET'];
                     $ref_files = $db['ref_files'];
 
-                    // Generate new credentials
+                    // Generate new credentials and new database
                     $db_name = $hcpp->nodeapp->random_chars(5);
                     $db_password = $hcpp->nodeapp->random_chars(20);
                     $command = "add-database $new_user $db_name $db_name $db_password $orig_type localhost $orig_charset";
-                    file_put_contents( "/tmp/database.txt", $command );
+                    $db_name = $new_user . '_' . $db_name;
+                    $this->report_status( $result_file, "Please wait. Creating database: $db_name" );
                     $result = $hcpp->run( $command );
-                    if ( $result != '' ) {
-                        $result = json_encode( [ 'status' => 'error', 'message' => $result ] );
-                        file_put_contents( $result_file, $result );
-                        chown ( $result_file, 'admin' );
+
+                    // Search and replace credentials in ref_files
+                    foreach( $ref_files as $file ) {
+                        $file = $dest_folder . '/' . $hcpp->delLeftMost( $file, '/' );
+                        try {
+                            $this->search_replace_file( 
+                                $file, 
+                                [$orig_db, $orig_password], 
+                                [$db_name, $db_password] 
+                            );
+                        }catch( Exception $e ) {
+                            $this->report_status( $result_file, $e->getMessage(), 'error' );
+                            return $args;
+                        }
+                    }
+
+                    // Search and replace domain, user path, and aliases in db sql files
+                    $db_sql_file = $dest_folder . '/devstia_databases/' . $db['DATABASE'] . '.sql';
+                    $searches = [$orig_domain, "/home/$orig_user"];
+                    $replaces = [$new_domain, "/home/$new_user"];
+                    $searches = array_merge( $searches, $orig_aliases );
+                    $replaces = array_merge( $replaces, $new_aliases );
+                    try {
+                        $this->search_replace_file( $db_sql_file, $searches, $replaces );
+                    }catch( Exception $e ) {
+                        $this->report_status( $result_file, $e->getMessage(), 'error' );
+                        return $args;
+                    }
+
+                    // Import the database sql file
+                    if ( $orig_type == 'mysql' ) {
+
+                        // Support MySQL
+                        $command = "mysql -h localhost -u $db_name -p$db_password $db_name < $db_sql_file";
+                    }else{
+
+                        // Support PostgreSQL
+                        $command = "export PGPASSWORD=\"$db_password\"; psql -h localhost -U $db_name $db_name $db_sql_file";
+                    }
+                    $command = $hcpp->do_action( 'quickstart_import_now_db', $command ); // Allow plugin mods
+                    $result = shell_exec( $command );
+                    if ( strpos( strtolower( $result ), 'error' != '' ) !== false ){
+                        $this->report_status( $result_file, $result, 'error' );
                         return $args;
                     }
                 }
             }
-            
+
+            // Update smtp.json file
+            $smtp_file = $dest_folder . '/private/smtp.json';
+            if ( file_exists( $smtp_file ) ) {
+                try {
+                    // Get the original file's permissions and ownership
+                    $fileStat = stat( $smtp_file );
+                    $fileMode = $fileStat['mode'];
+                    $fileUid = $fileStat['uid'];
+                    $fileGid = $fileStat['gid'];
+
+                    // Update the file
+                    $content = file_get_contents( $smtp_file );
+                    $content = json_decode( $content, true );
+                    $content['username'] = $new_domain;
+                    $content['password'] = $hcpp->nodeapp->random_chars( 16 );
+                    file_put_contents( $smtp_file, json_encode( $content, JSON_PRETTY_PRINT ) );
+
+                    // Restore the original file's permissions and ownership
+                    chmod( $smtp_file, $fileMode );
+                    chown( $smtp_file, $fileUid );
+                    chgrp( $smtp_file, $fileGid );
+                }catch( Exception $e ) {
+                    $this->report_status( $result_file, $e->getMessage(), 'error' );
+                    return $args;
+                }
+            }
+
+            // Search and replace on base files
+            foreach( $manifest['ref_files'] as $file ) {
+                $file = $dest_folder . '/' . $hcpp->delLeftMost( $file, '/' );
+                if ( !file_exists( $file ) ) continue;
+                try {
+                    $searches = [$orig_domain, "/home/$orig_user"];
+                    $replaces = [$new_domain, "/home/$new_user"];
+                    $searches = array_merge( $searches, $orig_aliases );
+                    $replaces = array_merge( $replaces, $new_aliases );
+                    $this->search_replace_file( 
+                        $file, 
+                        $searches,
+                        $replaces
+                    );
+                }catch( Exception $e ) {
+                    $this->report_status( $result_file, $e->getMessage(), 'error' );
+                    return $args;
+                }
+            }
+
+            // Search and replace export advanced options
+
+            //shell_exec( 'rm -rf ' . $dest_folder . '/devstia_databases' );
+
+            // Update the web domain backend
+            $hcpp->run( "change-web-domain-backend-tpl $new_user $new_domain $backend" );
+
             return $args;
+        }
+
+        public function report_status( $result_file, $message, $status = 'running' ) {
+            $result = json_encode( [ 'status' => $status, 'message' => $message ] );
+            unlink( $result_file );
+            file_put_contents( $result_file, $result );
+            chown( $result_file, 'admin' );
+            chgrp( $result_file, 'admin' );
         }
 
         // Check the status of the import process
@@ -215,7 +324,7 @@
                 if ( file_exists( $manifest ) ) {
                     try {
                         $content = file_get_contents( $manifest );
-                        $devstia_manifest = json_decode( $content, true );
+                        $manifest = json_decode( $content, true );
                     } catch( Exception $e ) {
                         echo json_encode( [ 'status' => 'error', 'message' => 'Error parsing manifest file.' ] );
                     }
@@ -226,9 +335,9 @@
                     echo json_encode( [ 
                         'status' => 'finished', 
                         'message' => $message, 
-                        'domain' => $devstia_manifest['domain'], 
-                        'alias' => $devstia_manifest['alias'],
-                        'export_adv_options' => $devstia_manifest['export_adv_options'],
+                        'domain' => $manifest['domain'], 
+                        'alias' => $manifest['alias'],
+                        'export_adv_options' => $manifest['export_adv_options'],
                     ] );
                 }else{
                     echo json_encode( [ 
@@ -474,12 +583,12 @@
             global $hcpp;
             $json_file = $args[1];
             $content = file_get_contents( '/tmp/' . $json_file );
-            $devstia_manifest = json_decode( $content, true );
+            $manifest = json_decode( $content, true );
             unlink( '/tmp/' . $json_file );
-            $user = $devstia_manifest['user'];
-            $domain = $devstia_manifest['domain'];
-            $export_options = $devstia_manifest['export_options'];
-            $export_adv_options = $devstia_manifest['export_adv_options'];
+            $user = $manifest['user'];
+            $domain = $manifest['domain'];
+            $export_options = $manifest['export_options'];
+            $export_adv_options = $manifest['export_adv_options'];
             $export_folder = '/home/' . $user . '/tmp/' . $hcpp->delRightMost( $json_file, '.json' );
             if ( !is_dir( $export_folder ) ) mkdir( $export_folder, true );
             file_put_contents( $export_folder . '/devstia_manifest.json', $content );
@@ -488,7 +597,7 @@
             // Dump databases to user tmp folder
             mkdir( $devstia_databases_folder, true );
             chmod( $devstia_databases_folder, 0751);
-            foreach( $devstia_manifest['databases'] as $database ) {
+            foreach( $manifest['databases'] as $database ) {
                 $db = $database['DATABASE'];
                 $hcpp->run( "dump-database $user $db > \"$devstia_databases_folder/$db.sql\"" );
             }
@@ -509,11 +618,11 @@
             if ( strpos($export_options, 'public_html') !== false ) $command .= "$abcopy $public_html $export_folder/public_html" . $exvc;
             if ( strpos($export_options, 'nodeapp') !== false ) $command .= "$abcopy $nodeapp $export_folder/nodeapp" . $exvc;
             if ( strpos($export_options, 'private') !== false ) $command .= "$abcopy $private $export_folder/private" . $exvc;
-            if ( strpos($export_options, 'cgi_bin') !== false ) $command .= "$abcopy $cgi_bin $export_folder/cgi_bin" . $exvc;
+            if ( strpos($export_options, 'cgi_bin') !== false ) $command .= "$abcopy $cgi_bin $export_folder/cgi-bin" . $exvc;
             if ( strpos($export_options, 'document_errors') !== false ) $command .= "$abcopy $document_errors $export_folder/document_errors" . $exvc;
 
             // Reset ownership, zip up contents, move to exports, and clean up
-            $zip_file = "/home/$user/web/exports/" . $devstia_manifest['zip_file'];
+            $zip_file = "/home/$user/web/exports/" . $manifest['zip_file'];
             $command .= "chown -R $user:$user $export_folder && cd $export_folder ";
             $command .= "&& zip -r $export_folder.zip . && cd .. && rm -rf $export_folder ";
             $command .= "&& mkdir -p /home/$user/web/exports ";
@@ -614,6 +723,195 @@
             $content = $before . $qs_tab . $after;
             $args['content'] = $content;
             return $args;
+        }
+
+        /**
+         * Search and replace the given string in the given source text file, with special support
+         * for PHP serialized strings in MySQL's "quickdump" file format, and the search for escaped
+         * characters in the strings.
+         * 
+         * @param string $file The path and filename to the file to modify.
+         * @param string|string[] $search The string or array of strings to search for.
+         * @param string|string[] $replace The string or array of strings to replace with.
+         */
+        // Search and replace the given string in the given SQL file, assuming it's a quickdump file
+        public function search_replace_file( $file, $search, $replace ) {
+
+            // Check parameters
+            if ( !file_exists( $file ) ) {
+                throw new Exception( "File '$file' does not exist." );
+            }
+            if ( !is_string( $search ) && !is_array( $search ) ) {
+                throw new Exception( "Parameter 'search' must be a string or array." );
+            }
+            if ( !is_string( $replace ) && !is_array( $replace ) ) {
+                throw new Exception( "Parameter 'replace' must be a string or array." );
+            }
+            if ( is_string( $search ) ) {
+                $search = [ $search ];
+            }
+            if ( is_string( $replace ) ) {
+                $replace = [ $replace ];
+            }
+            if ( count( $search ) != count( $replace ) ) {
+                throw new Exception( "Parameters 'search' and 'replace' must have the same number of elements." );
+            }
+
+            // Duplicate search and replace strings with escaped versions if necessary
+            $searchEscaped = [];
+            $replaceEscaped = [];
+            for ($i = 0; $i < count($search); $i++) {
+                $searchE = addcslashes($search[$i], "\/\n\r\0");
+                
+                // Check if already in array
+                if ( in_array( $searchE, $search ) ) continue;
+                $searchEscaped[] = $searchE;
+                $replaceEscaped[] = addcslashes($replace[$i], "\/\n\r\0");
+            }
+            $search = array_merge( $search, $searchEscaped );
+            $replace = array_merge( $replace, $replaceEscaped );
+
+            // Load the file and replace the strings
+            $handle = fopen( $file, 'r' );
+            $tempFile = $file . '.tmp';
+            $writeStream = fopen( $tempFile, 'w' );
+            $regex1 = "/('.*?'|[^',\s]+)(?=\s*,|\s*;|\s*$)/";
+            global $regex2;
+            $regex2 = "/s:(\d+):\"(.*?)\";/ms";
+            while ( ( $line = fgets( $handle ) ) !== false ) {
+                $origLine = $line;
+                $line = trim( $line );
+                $bModifed = false;
+                for ( $i = 0; $i < count( $search ); $i++ ) {
+                    $searchString = $search[$i];
+                    $replaceString = $replace[$i];
+                    if ( strpos( $line, $searchString ) !== false && $searchString != $replaceString ) {
+
+                        // Sense Quickdump format
+                        if (strpos($line, "(") === 0 && (substr($line, -2) === ")," || substr($line, -2) === ");")) {
+                            $startLine = substr( $line, 0, 1 );
+                            $endLine = substr( $line, -2 );
+                            $line = substr( $line, 1, -2 );
+                            $line = str_replace("\\0", "~0Placeholder", $line );
+                            $matches = [];
+                            preg_match_all( $regex1, $line, $matches );
+                            $items = $matches[0];
+                            $line = implode( '', [$startLine, implode( ",", array_map( function ( $item ) use ( $searchString, $replaceString ) {
+                                if (strpos( $item, "'" ) === 0 && strrpos( $item, "'" ) === strlen( $item ) - 1 ) {
+                                    $item = substr( $item, 1, -1 );
+                                    $item = str_replace( $searchString, $replaceString, $item );
+
+                                    // Sense serialized strings
+                                    if ( $this->is_serialized( $item ) ) {
+
+                                        // Recalculate the length of the serialized strings
+                                        $item = json_decode(json_encode( $item ) );
+                                        $item = str_replace( "\\", "", $item );
+                                        $item = str_replace( "~0Placeholder", "\0", $item );
+                                        global $regex2;
+                                        $item = preg_replace_callback( $regex2, function ( $matches ) {
+                                            return 's:' . strlen( $matches[2] ) . ':"' . $matches[2] . '";';
+                                        }, $item);
+                                        $item = addslashes( $item );
+                                    }else{
+                                        $item = str_replace( "\0", "~0Placeholder", $item );
+                                    }
+                                    return implode( '', ["'" , $item , "'"] );
+                                } else if ( $item === 'null' ) {
+                                    return null;
+                                } else if ( is_numeric( $item ) ) {
+                                    return (float)$item;
+                                } else {
+                                    return $item;
+                                }
+                            }, $items ) ), $endLine] );
+                        }else{
+                            $line = str_replace( $searchString, $replaceString, $line );
+                        }
+                        $bModifed = true;
+                    }
+                }
+                if (false === $bModifed) {
+                    $line = $origLine;
+                }
+
+                // Ensure the line ends with a newline
+                if ( substr( $line, -1 ) != "\n" ) {
+                    $line .= "\n";
+                }
+                fwrite( $writeStream, $line );
+            }
+            fclose( $handle );
+            fclose( $writeStream );
+
+            // Get the original file's permissions and ownership
+            $fileStat = stat( $file );
+            $fileMode = $fileStat['mode'];
+            $fileUid = $fileStat['uid'];
+            $fileGid = $fileStat['gid'];
+
+            // Replace the original file with the temp file
+            rename( $tempFile, $file );
+
+            // Restore the original file's permissions and ownership
+            chmod( $file, $fileMode );
+            chown( $file, $fileUid );
+            chgrp( $file, $fileGid );
+        }
+
+        // Check if a string is serialized
+        public function is_serialized( $data, $strict = true ) {
+            if (strlen( $data) < 4 ) {
+                return false;
+            }
+            if ( $data[1] !== ':' ) {
+                return false;
+            }
+            if ( $data === 'N;' ) {
+                return true;
+            }
+            if ( $strict) {
+                $lastc = $data[strlen( $data) - 1];
+                if ( $lastc !== ';' && $lastc !== '}' ) {
+                    return false;
+                }
+            } else {
+                $semicolon = strpos( $data, ';' );
+                $brace = strpos( $data, '}' );
+                // Either ; or } must exist.
+                if ( $semicolon === false && $brace === false ) {
+                    return false;
+                }
+                // But neither must be in the first X characters.
+                if ( $semicolon !== false && $semicolon < 3 ) {
+                    return false;
+                }
+                if ( $brace !== false && $brace < 4 ) {
+                    return false;
+                }
+            }
+            $token = $data[0];
+            switch ( $token ) {
+                case 's':
+                    if ( $strict ) {
+                        if ( $data[strlen( $data) - 2] !== '"' ) {
+                            return false;
+                        }
+                    } else if (!strpos( $data, '"' ) ) {
+                        return false;
+                    }
+                    // Or else fall through.
+                case 'a':
+                case 'O':
+                case 'E':
+                    return (bool)preg_match( "/^" . $token . ":[0-9]+:/", $data );
+                case 'b':
+                case 'i':
+                case 'd':
+                    $end = $strict ? '$' : '';
+                    return (bool)preg_match( "/^" . $token . ":[0-9.E+-]+;" . $end . "/", $data );
+            }
+            return false;
         }
     }
     new Quickstart();

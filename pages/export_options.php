@@ -100,11 +100,22 @@
     (function($){
         $(function() {
 
+            // Escape encode our any html
+            function escapeHtml(unsafe) {
+                return unsafe
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/\//g, "&#x2F;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+
             // Advanced options, add row to the table
             $('#add-row-button').on('click', function() {
-                var label = $('#label-input').val();
-                var value = $('#value-input').val();
-                var refFiles = $('#ref-files-input').val();
+                const label = escapeHtml($('#label-input').val());
+                const value = escapeHtml($('#value-input').val());
+                const refFiles = escapeHtml($('#ref-files-input').val());
                 $('#advanced-options-table tbody').append(
                     '<tr class="units-table-row"><td class="units-table-cell">' + label + 
                     '</td><td class="units-table-cell">' + value + '</td><td class="units-table-cell">' + 

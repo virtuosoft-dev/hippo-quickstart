@@ -41,7 +41,7 @@
         <legend id="status">Please wait. Importing website.</legend>
         <div id="options">
             <pre>
-                <?php var_dump(json_encode($_REQUEST, JSON_PRETTY_PRINT) ); ?>
+                
             </pre>
         </div>
     </div>
@@ -72,10 +72,11 @@
                     url: '../../pluginable.php?load=quickstart&action=import_result&import_key=<?php echo $import_key; ?>',
                     type: 'GET',
                     success: function( data ) {
+                        console.log(data);
                         try {
                             data = JSON.parse( data );
                         } catch( e ) {
-                            data = { 'status': 'error', 'message': 'Error parsing JSON: ' + e };
+                            data = { 'status': 'error', 'message': 'Error parsing JSON: ' + e + "\n" + data };
                         }
                         $('#status').html(data.message);
                         if ( data.status != 'running' ) {

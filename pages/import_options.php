@@ -85,7 +85,7 @@
                             const domain = data.domain;
                             let html = `<form id="import_now" method="POST" action="?quickstart=import_now&import_key=<?php echo $import_key; ?>">
                                         <div class="u-mb10">
-                                            <label for="v_domain" class="form-label">Web Domain</label>
+                                            <label for="v_domain" class="form-label">Domain</label>
                                             <input type="text" class="form-control" name="v_domain" id="v_domain" value="${domain}" required="">
                                         </div>`;
                             if (data.alias.trim() != '') {
@@ -99,21 +99,31 @@
                             // Create form for export advanced options
                             if (data.export_adv_options.length > 0) {
                                 data.export_adv_options.forEach( (option) => {
+                                    if (option.label == '') {
+                                        html += `<div class="u-mb10">` + option.value + `</div>`;
+                                        return;
+                                    }
                                     let labelVar = titleToVarName(option.label);
                                     html += `<div class="u-mb10">
-                                                <label for="eao_${labelVar}" class="form-label">${option.label}</label>
-                                                <input type="text" class="form-control" name="eao_${labelVar}" id="eao_${labelVar}" value="${option.value}">
-                                                <input type="hidden" name="eao_${labelVar}_ref_files" value="${option.ref_files}">
-                                            </div>`;
+                                                <label for="eao_${labelVar}" class="form-label">${option.label}</label>`;
+                                    if (option.value.indexOf("\n") > -1) {
+                                        if (option.value.indexOf("|") > -1) {
+                                            html += `<select class="form-select" name="eao_${labelVar}" id="eao_${labelVar}">`;
+                                            option.value.split("\n").forEach( (opt) => {
+                                                const optArr = opt.split("|");
+                                                html += `<option value="${optArr[1]}">${optArr[0]}</option>`;
+                                            });
+                                            html += `</select>`;
+                                        }else{
+                                            const h = option.value.split("\n").length * 1.75;
+                                            html += `<textarea class="form-control" name="eao_${labelVar}" id="eao_${labelVar}" style="min-height:${h}rem;">${option.value}</textarea>`;
+                                        }
+                                    }else{
+                                        html += `<input type="text" class="form-control" name="eao_${labelVar}" id="eao_${labelVar}" value="${option.value}">`;
+                                    }
+                                    html += `<input type="hidden" name="eao_${labelVar}_ref_files" value="${option.ref_files}">
+                                        </div>`;
                                 });
-
-                                // html += `<div class="u-mb10">
-                                //             <label for="v_export_adv_options" class="form-label">Advanced Options</label>
-                                //             <select class="form-control" name="v_export_adv_options" id="v_export_adv_options">`;
-                                // data.export_adv_options.forEach( (option) => {
-                                //     html += `<option value="${option}">${option}</option>`;
-                                // });
-                                // html += `</select></div>`;
                             }
 
 

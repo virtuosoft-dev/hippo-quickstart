@@ -63,6 +63,9 @@
         thead#adv-options-table tr {
             display: contents;
         }
+        .qs_export_options .units-table-cell {
+            line-height: 1.5em;
+        }
     }
     @media (max-width:1024px) {
         thead#adv-options-table {
