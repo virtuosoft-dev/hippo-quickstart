@@ -138,7 +138,7 @@
                 $first_ip = $ip;
                 break;
             }
-            $command = "add-web-domain $new_user $new_domain $first_ip no $new_aliases $proxy_ext";
+            $command = "add-web-domain $new_user $new_domain $first_ip no \"$new_aliases\" $proxy_ext";
             $result = $hcpp->run( $command );
             if ( $result != '' ) {
                 $this->report_status( $result_file, $result, 'error' );
@@ -295,8 +295,46 @@
             }
 
             // Search and replace export advanced options
+            $export_adv_options = $manifest['export_adv_options'];
+            foreach( $export_adv_options as $option ) {
 
-            //shell_exec( 'rm -rf ' . $dest_folder . '/devstia_databases' );
+                // Get original value
+                $value = $option['value'];
+                $label = $option['label'];
+                $ref_files = $option['ref_files'];
+                if ( $label == '' ) continue;
+
+                // Find new value from form
+                $labelVar = 'eao_' . $this->title_to_var_name( $label );
+                $new_value = '';
+                if ( isset( $request[$labelVar] ) ) {
+                    $new_value = $request[$labelVar];
+                }
+
+                // Get default value if multiselect
+                if ( strpos( $value, "|") !== false ) {
+                    $value = $hcpp->delLeftMost( $value, "|");
+                    $value = $hcpp->getLeftMost( $value, "\n");
+                }
+
+                // Search and replace the value in ref. files
+                foreach( $ref_files as $file ) {
+                    $file = $dest_folder . '/' . $hcpp->delLeftMost( $file, '/' );
+                    if ( !file_exists( $file ) ) continue;
+                    if ( $value == $new_value ) continue;
+                    try {
+                        $this->search_replace_file( 
+                            $file, 
+                            [$value], 
+                            [$new_value] 
+                        );
+                    }catch( Exception $e ) {
+                        $this->report_status( $result_file, $e->getMessage(), 'error' );
+                        return $args;
+                    }
+                }
+            }
+            shell_exec( 'rm -rf ' . $dest_folder . '/devstia_databases' );
 
             // Update the web domain backend
             $hcpp->run( "change-web-domain-backend-tpl $new_user $new_domain $backend" );
@@ -844,6 +882,18 @@
             fclose( $handle );
             fclose( $writeStream );
 
+            // Check for multi-line block in search and replace them in
+            // the temp file as a whole because line-by-line won't work.
+            for ( $i = 0; $i < count( $search ); $i++ ) {
+                $searchString = $search[$i];
+                $replaceString = $replace[$i];
+                if ( strpos( $searchString, "\n" ) !== false ) {
+                    $content = file_get_contents( $tempFile );
+                    $content = str_replace( $searchString, $replaceString, $content );
+                    file_put_contents( $tempFile, $content );
+                }
+            }
+
             // Get the original file's permissions and ownership
             $fileStat = stat( $file );
             $fileMode = $fileStat['mode'];
@@ -912,6 +962,15 @@
                     return (bool)preg_match( "/^" . $token . ":[0-9.E+-]+;" . $end . "/", $data );
             }
             return false;
+        }
+
+        // Convert a title to a valid variable name
+        public function title_to_var_name( $str ) {
+            $str = strtolower($str); // Convert all characters to lowercase
+            $str = preg_replace('/[^a-z0-9\s]/', '', $str); // Remove all non-alphanumeric characters except spaces
+            $str = preg_replace('/\s+/', '_', $str); // Replace one or more spaces with underscores
+            $str = preg_replace_callback('/_([a-z])/', function ($match) { return strtoupper($match[1]); }, $str); // Convert underscores to camelCase
+            return $str;
         }
     }
     new Quickstart();

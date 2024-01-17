@@ -49,9 +49,11 @@
             <h3><i class="fas fa-caret-right"></i> Advanced Options</h3>
             <div id="advanced-opt" style="display:none;">
                 <p>
-                    Additional search and replace controls that will appear when importing. Use these 
-                    to replace strings in the database and files; allowing the user to customize
-                    the archive before importing.
+                    Additional search and replace controls to appear when importing. Use these 
+                    to replace strings in the database and files; allowing user customizations.
+                </p>
+                <p>
+                    Learn more on <a href="https://devstia.com/docs/export-advanced-options" target="_blank">Devstia's website</a>.
                 </p>
                 <br/>
                 <table id="advanced-options-table" class="units-table js-units-container">
@@ -64,6 +66,31 @@
                         </tr>
                     </thead>
                     <tbody>
+                        <?php
+
+
+                            // Pre-populate the table with any existing advanced options if private/devstia_manifest.json exists
+                            $private_folder = "/home/" . $_SESSION['user'] . "/web/" . $domain . "/private";
+                            if ( file_exists( $private_folder . '/devstia_manifest.json' ) ) {
+                                try {
+                                    $content = file_get_contents( $private_folder . '/devstia_manifest.json' );
+                                    $json = json_decode( $content, true );
+                                    foreach ( $json['export_adv_options'] as $option ) {
+                                        $label = htmlspecialchars( $option['label'], ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+                                        $value = htmlspecialchars( $option['value'], ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+                                        $ref_files = htmlspecialchars( implode( "\n", $option['ref_files'] ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+                                        echo '<tr class="units-table-row">';
+                                        echo '    <td class="units-table-cell">' . $label . '</td>';
+                                        echo '    <td class="units-table-cell">' . $value . '</td>';
+                                        echo '    <td class="units-table-cell">' . $ref_files . '</td>';
+                                        echo '    <td class="units-table-cell adv-trash"><span class="delete-row-button"><i class="fas fa-trash"></i> Delete</span></td>';
+                                        echo '</tr>';
+                                    }
+                                }catch (Exception $e) {
+                                    echo 'Caught exception: ',  $e->getMessage(), "\n";
+                                }
+                            }
+                        ?>
                     </tbody>
                 </table>
                 <br/>
@@ -84,7 +111,7 @@
                         <label for="ref-files-input" class="form-label">
                             Reference Files
                         </label>
-                        <textarea class="form-control" name="ref-files-input" id="ref-files-input" placeholder="./devstia_databases/*.sql"></textarea>
+                        <textarea class="form-control" name="ref-files-input" id="ref-files-input" placeholder="./public_html/index.html"></textarea>
                     </div>
                     <button class="button" type="button" id="add-row-button">
                         <i class="fas fa-plus icon-blue"></i>Add
