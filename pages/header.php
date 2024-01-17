@@ -73,6 +73,13 @@
             width: 100%;
         }
     }
+    .qs_remove_copy .form-check {
+        float: left;
+    }
+    .qs_remove_copy .alert {
+        margin-top: 50px;
+        transform: scale(.9);
+    }
 </style>
 <script>
     (function($){

@@ -442,175 +442,10 @@
             $user = $args[1];
             $domain = $args[2];
 
-            // Get a list of databases for the given user
-            global $hcpp;
-            $data = $hcpp->run( "list-databases " . $user . " json" );
-            $databases = [];
-            foreach ($data as $key => $value) {
-                array_push( $databases, $value );
-            }
-
-            // Get a list of folders to scan for credentials
-            $web_domain = $hcpp->run( "list-web-domain " . $user . " '" . $domain . "' json " );
-            if ( $web_domain == NULL ) return $args;
-            $public_html = $web_domain[$domain]['DOCUMENT_ROOT'];
-            $nodeapp = str_replace( '/public_html/', '/nodeapp/', $public_html );
-
-            // Gather web domain items for migration; mentions of domain, aliases, or user folder
-            $aliases = $web_domain[$domain]['ALIAS'];
-            $aliases = explode( ',', $aliases );
-            $migrate_strings = [
-                "/home/$user", 
-                $domain
-            ];
-            $migrate_ref_files = [];
-            if ( !empty( $aliases ) && $aliases[0] != '' ) {
-                foreach( $aliases as $alias ) {
-                    $migrate_strings[] = $alias;
-                }
-            }
-
-            // Omit folders, and file extensions for scan
-            $omit_folders = array( 'src', 'core', 'includes', 'public', 'current', 'content', 'core', 'uploads', 
-                'logs', '.git', '.svn', '.hg', 'versions', 'node_modules', 'wp-content', 'wp-includes',
-                'wp-admin', 'vendor', 'mw-config', 'extensions', 'maintenance', 'i18n', 'skins' );
-            $match_extensions = array( 'php', 'ts', 'js', 'json', 'conf', 'config', 'jsx', 'ini', 'sh', 'xml', 'inc',
-                'cfg', 'yml', 'yaml', 'py', 'rb', 'env' );
-
-            // Get list of files to check from public_html folder
-            $files = [];
-            if ( is_dir( $public_html ) ) {
-
-                // First get a list of all subfolders of public_html
-                $omit_folders = array_map(function($folder) {
-                    return '/' . $folder . '/';
-                }, $omit_folders);
-                $omit_folders_pattern = implode('|', array_map('preg_quote', $omit_folders));
-                $command = "find $public_html -type d | egrep -v '$omit_folders_pattern'";
-                $subfolders = array_filter(explode("\n", shell_exec($command)));
-
-                // Given a list of subfolders, get a list of all files that have the match extensions
-                $match_extensions_pattern = implode('|', array_map('preg_quote', $match_extensions));
-                foreach( $subfolders as $folder) {
-                    $command = "find $folder -maxdepth 1 -type f | egrep '$match_extensions_pattern'";    
-                    $f = array_filter(explode("\n", shell_exec($command)));
-                    $files = array_merge( $files, $f );
-                }
-
-            }
-
-            // Get list of files to check from nodeapp folder
-            if ( is_dir( $nodeapp ) ) {
-
-                // First get a list of all subfolders of nodeapp
-                $omit_folders_pattern = implode('|', array_map('preg_quote', $omit_folders));
-                $command = "find $nodeapp -type d | egrep -v '$omit_folders_pattern'";
-                $subfolders = array_filter(explode("\n", shell_exec($command)));
-
-                // Given a list of subfolders, get a list of all files that have the match extensions
-                $match_extensions_pattern = implode('|', array_map('preg_quote', $match_extensions));
-                foreach( $subfolders as $folder) {
-                    $command = "find $folder -maxdepth 1 -type f | egrep '$match_extensions_pattern'";    
-                    $f = array_filter(explode("\n", shell_exec($command)));
-                    $files = array_merge( $files, $f );
-                }
-            }
-            
-            // Check the given files 
-            foreach( $files as $file ) {
-                if ( strpos( $file, 'devstia_manifest.json' ) !== false ) continue;
-                $content = file_get_contents( $file );
-                $index = 0;
-
-                // Check for mentions of database, domain, aliases, 
-                foreach( $databases as $database ) {
-                    if ( !isset( $database['ref_files'] ) ) $database['ref_files'] = [];
-                    if ( strpos( $content, $database['DATABASE'] ) !== false ) {
-                        $database['ref_files'][] = $file;// $hcpp->delLeftMost( $file, $domain );
-                    }
-                    $databases[$index] = $database;
-                    $index++;
-                }
-
-                // Check for any of the migrate strings
-                foreach( $migrate_strings as $m ) {
-                    if ( !in_array( $file, $migrate_ref_files ) ) {
-                        if ( strpos( $content, $m ) !== false ) {
-                            $migrate_ref_files[] = $file;
-                        }else{
-                            // Check escape encoded version too
-                            if ( strpos( $content, addcslashes( $m, "\/\n\r\0" ) ) !== false ) {
-                                $migrate_ref_files[] = $file;
-                            }
-                        }   
-                    }
-                }
-            }
-
-            // Analyze dbs that have assoc. files, and extract the password for each database
-            $found_dbs = [];
-            $db_index = 0;
-            foreach( $databases as $database ) {
-                if ( !isset( $database['ref_files'] ) || count( $database['ref_files'] ) == 0 ) continue;
-
-                // Search for the password in the first reference file
-                $database['DBPASSWORD'] = "";
-                $file_index = 0;
-                foreach( $database['ref_files'] as $file) {
-                    $content = file_get_contents( $file );
-                    $content = $hcpp->delLeftMost( $content, $database['DATABASE'] );
-                    $pwkeys = ["PASSWORD'", 'PASSWORD"', 'password"', "password'", 'password =', 'password='];
-                    $fkey = "";
-                    foreach( $pwkeys as $pwkey ) {
-                        $keypos = strpos( $content, $pwkey );
-                        if ( $keypos === false ) continue;
-                        if ( $fkey == "" ) $fkey = $pwkey;
-                        if ( $keypos < strpos( $content, $fkey ) ) $fkey = $pwkey;
-                    }
-                    if ( $fkey == "" ) continue;
-                }
-                if ( $fkey != "" ) {
-                    $content = $hcpp->delLeftMost( $content, $fkey );
-                    
-                    // Find the first instance of a single quote or double quote, whichever comes first
-                    $singleQuotePos = strpos($content, "'");
-                    $doubleQuotePos = strpos($content, '"');
-                    if ($singleQuotePos === false && $doubleQuotePos === false) {
-                        // No quotes found
-                        $qchar = '';
-                    } elseif ($singleQuotePos === false) {
-                        // Only double quote found
-                        $qchar = '"';
-                    } elseif ($doubleQuotePos === false) {
-                        // Only single quote found
-                        $qchar = "'";
-                    } else {
-                        // Both quotes found, get the first one
-                        $qchar = $singleQuotePos < $doubleQuotePos ? "'" : '"';
-                    }
-                    if ( $qchar == '' ) continue;
-
-                    // Parse out the password enclosed in the quotes $qchar
-                    $content = $hcpp->delLeftMost( $content, $qchar );
-                    $password = $hcpp->getLeftMost( $content, $qchar );
-                    $database['DBPASSWORD'] = $password;
-                    $found_dbs[] = $database;
-                    continue;
-                }
-            }
-
-            // Append migrate files to the found_dbs array
-            $found_dbs[] = [ 'ref_files' => $migrate_ref_files ];
-
-            // Make ref_files relative paths
-            foreach( $found_dbs as $key => $db ) {
-                foreach( $db['ref_files'] as $key2 => $file ) {
-                    $found_dbs[$key]['ref_files'][$key2] = "." . $hcpp->delLeftMost( $file, $domain );
-                }
-            }
+            $details = $this->get_site_details( $user, $domain );
 
             // Output the found databases and migrations
-            echo json_encode( $found_dbs, JSON_PRETTY_PRINT );
+            echo json_encode( $details, JSON_PRETTY_PRINT );
             return $args;
         }
 
@@ -761,6 +596,185 @@
             $content = $before . $qs_tab . $after;
             $args['content'] = $content;
             return $args;
+        }
+
+        /**
+         * Get the site details for the given user's website domain. Highly optimized for speed,
+         * scan revelent files for db credentials, and migration details (domain, aliases, 
+         * user path) and return details as an associative array.
+         * 
+         * @param string $user The username of the user.
+         * @param string $domain The domain of the website.
+         */
+        public function get_site_details( $user, $domain ) {
+
+            // Get a list of databases for the given user
+            global $hcpp;
+            $data = $hcpp->run( "list-databases " . $user . " json" );
+            $databases = [];
+            foreach ($data as $key => $value) {
+                array_push( $databases, $value );
+            }
+
+            // Get a list of folders to scan for credentials
+            $web_domain = $hcpp->run( "list-web-domain " . $user . " '" . $domain . "' json " );
+            if ( $web_domain == NULL ) return $args;
+            $public_html = $web_domain[$domain]['DOCUMENT_ROOT'];
+            $nodeapp = str_replace( '/public_html/', '/nodeapp/', $public_html );
+
+            // Gather web domain items for migration; mentions of domain, aliases, or user folder
+            $aliases = $web_domain[$domain]['ALIAS'];
+            $aliases = explode( ',', $aliases );
+            $migrate_strings = [
+                "/home/$user", 
+                $domain
+            ];
+            $migrate_ref_files = [];
+            if ( !empty( $aliases ) && $aliases[0] != '' ) {
+                foreach( $aliases as $alias ) {
+                    $migrate_strings[] = $alias;
+                }
+            }
+
+            // Omit folders, and file extensions for scan
+            $omit_folders = array( 'src', 'core', 'includes', 'public', 'current', 'content', 'core', 'uploads', 
+                'logs', '.git', '.svn', '.hg', 'versions', 'node_modules', 'wp-content', 'wp-includes',
+                'wp-admin', 'vendor', 'mw-config', 'extensions', 'maintenance', 'i18n', 'skins' );
+            $match_extensions = array( 'php', 'ts', 'js', 'json', 'conf', 'config', 'jsx', 'ini', 'sh', 'xml', 'inc',
+                'cfg', 'yml', 'yaml', 'py', 'rb', 'env' );
+
+            // Get list of files to check from public_html folder
+            $files = [];
+            if ( is_dir( $public_html ) ) {
+
+                // First get a list of all subfolders of public_html
+                $omit_folders = array_map(function($folder) {
+                    return '/' . $folder . '/';
+                }, $omit_folders);
+                $omit_folders_pattern = implode('|', array_map('preg_quote', $omit_folders));
+                $command = "find $public_html -type d | egrep -v '$omit_folders_pattern'";
+                $subfolders = array_filter(explode("\n", shell_exec($command)));
+
+                // Given a list of subfolders, get a list of all files that have the match extensions
+                $match_extensions_pattern = implode('|', array_map('preg_quote', $match_extensions));
+                foreach( $subfolders as $folder) {
+                    $command = "find $folder -maxdepth 1 -type f | egrep '$match_extensions_pattern'";    
+                    $f = array_filter(explode("\n", shell_exec($command)));
+                    $files = array_merge( $files, $f );
+                }
+
+            }
+
+            // Get list of files to check from nodeapp folder
+            if ( is_dir( $nodeapp ) ) {
+
+                // First get a list of all subfolders of nodeapp
+                $omit_folders_pattern = implode('|', array_map('preg_quote', $omit_folders));
+                $command = "find $nodeapp -type d | egrep -v '$omit_folders_pattern'";
+                $subfolders = array_filter(explode("\n", shell_exec($command)));
+
+                // Given a list of subfolders, get a list of all files that have the match extensions
+                $match_extensions_pattern = implode('|', array_map('preg_quote', $match_extensions));
+                foreach( $subfolders as $folder) {
+                    $command = "find $folder -maxdepth 1 -type f | egrep '$match_extensions_pattern'";    
+                    $f = array_filter(explode("\n", shell_exec($command)));
+                    $files = array_merge( $files, $f );
+                }
+            }
+            
+            // Check the given files 
+            foreach( $files as $file ) {
+                if ( strpos( $file, 'devstia_manifest.json' ) !== false ) continue;
+                $content = file_get_contents( $file );
+                $index = 0;
+
+                // Check for mentions of database, domain, aliases, 
+                foreach( $databases as $database ) {
+                    if ( !isset( $database['ref_files'] ) ) $database['ref_files'] = [];
+                    if ( strpos( $content, $database['DATABASE'] ) !== false ) {
+                        $database['ref_files'][] = $file;// $hcpp->delLeftMost( $file, $domain );
+                    }
+                    $databases[$index] = $database;
+                    $index++;
+                }
+
+                // Check for any of the migrate strings
+                foreach( $migrate_strings as $m ) {
+                    if ( !in_array( $file, $migrate_ref_files ) ) {
+                        if ( strpos( $content, $m ) !== false ) {
+                            $migrate_ref_files[] = $file;
+                        }else{
+                            // Check escape encoded version too
+                            if ( strpos( $content, addcslashes( $m, "\/\n\r\0" ) ) !== false ) {
+                                $migrate_ref_files[] = $file;
+                            }
+                        }   
+                    }
+                }
+            }
+
+            // Analyze dbs that have assoc. files, and extract the password for each database
+            $found_dbs = [];
+            foreach( $databases as $database ) {
+                if ( !isset( $database['ref_files'] ) || count( $database['ref_files'] ) == 0 ) continue;
+
+                // Search for the password in the first reference file
+                $database['DBPASSWORD'] = "";
+                foreach( $database['ref_files'] as $file) {
+                    $content = file_get_contents( $file );
+                    $content = $hcpp->delLeftMost( $content, $database['DATABASE'] );
+                    $pwkeys = ["PASSWORD'", 'PASSWORD"', 'password"', "password'", 'password =', 'password='];
+                    $fkey = "";
+                    foreach( $pwkeys as $pwkey ) {
+                        $keypos = strpos( $content, $pwkey );
+                        if ( $keypos === false ) continue;
+                        if ( $fkey == "" ) $fkey = $pwkey;
+                        if ( $keypos < strpos( $content, $fkey ) ) $fkey = $pwkey;
+                    }
+                    if ( $fkey == "" ) continue;
+                }
+                if ( $fkey != "" ) {
+                    $content = $hcpp->delLeftMost( $content, $fkey );
+                    
+                    // Find the first instance of a single quote or double quote, whichever comes first
+                    $singleQuotePos = strpos($content, "'");
+                    $doubleQuotePos = strpos($content, '"');
+                    if ($singleQuotePos === false && $doubleQuotePos === false) {
+                        // No quotes found
+                        $qchar = '';
+                    } elseif ($singleQuotePos === false) {
+                        // Only double quote found
+                        $qchar = '"';
+                    } elseif ($doubleQuotePos === false) {
+                        // Only single quote found
+                        $qchar = "'";
+                    } else {
+                        // Both quotes found, get the first one
+                        $qchar = $singleQuotePos < $doubleQuotePos ? "'" : '"';
+                    }
+                    if ( $qchar == '' ) continue;
+
+                    // Parse out the password enclosed in the quotes $qchar
+                    $content = $hcpp->delLeftMost( $content, $qchar );
+                    $password = $hcpp->getLeftMost( $content, $qchar );
+                    $database['DBPASSWORD'] = $password;
+                    $found_dbs[] = $database;
+                    continue;
+                }
+            }
+
+            // Append migrate files to the found_dbs array
+            $found_dbs[] = [ 'ref_files' => $migrate_ref_files ];
+
+            // Make ref_files relative paths
+            foreach( $found_dbs as $key => $db ) {
+                foreach( $db['ref_files'] as $key2 => $file ) {
+                    $found_dbs[$key]['ref_files'][$key2] = "." . $hcpp->delLeftMost( $file, $domain );
+                }
+            }
+
+            // Output the found databases and migrations
+            return $found_dbs;
         }
 
         /**
