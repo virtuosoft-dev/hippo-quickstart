@@ -4,7 +4,7 @@
     $domain = $_GET['domain'];
     $domain = preg_replace('/[^a-zA-Z0-9\.\-]/', '', $domain);
     $user = $_SESSION['user'];
-    exec(HESTIA_CMD . "v-invoke-plugin quickstart_export_details " . $user . " " . $domain, $output, $return_var);
+    exec(HESTIA_CMD . "v-invoke-plugin quickstart_site_details " . $user . " " . $domain, $output, $return_var);
     $db_details = json_decode(implode("", $output), true);
     $_SESSION['db_details'] = $db_details;
 ?>

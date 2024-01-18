@@ -1,5 +1,6 @@
 <?php require( 'header.php' ); ?>
 <?php
+    global $hcpp;
     $import_key = $hcpp->nodeapp->random_chars( 16 );
     $_SESSION['import_key'] = $import_key;
 ?>

@@ -46,7 +46,7 @@
 
         // Run elevated commands from the plugin
         public function hcpp_invoke_plugin( $args ) {
-            if ( $args[0] == 'quickstart_export_details' ) return $this->quickstart_export_details( $args );
+            if ( $args[0] == 'quickstart_site_details' ) return $this->quickstart_site_details( $args );
             if ( $args[0] == 'quickstart_export_zip' ) return $this->quickstart_export_zip( $args );
             if ( $args[0] == 'quickstart_export_status' ) return $this->quickstart_export_status( $args );
             if ( $args[0] == 'quickstart_export_cancel' ) return $this->quickstart_export_cancel( $args );
@@ -436,9 +436,8 @@
             return $args;
         }
         
-        // Highly optimized for speed, scan revelent files for db credentials, and migration
-        // details (domain, aliases, user path) and return details as JSON
-        public function quickstart_export_details( $args ) {
+        // Get site details for the given user and domain
+        public function quickstart_site_details( $args ) {
             $user = $args[1];
             $domain = $args[2];
 
@@ -530,7 +529,9 @@
                 'export_options',
                 'export_now',
                 'create',
-                'remove_copy'
+                'remove_copy',
+                'copy_details',
+                'remove_details'
             ];
 
             // Sanitize the quickstart parameter, default to main
@@ -605,6 +606,7 @@
          * 
          * @param string $user The username of the user.
          * @param string $domain The domain of the website.
+         * @return array An associative array of the site details.
          */
         public function get_site_details( $user, $domain ) {
 
@@ -764,7 +766,11 @@
             }
 
             // Append migrate files to the found_dbs array
-            $found_dbs[] = [ 'ref_files' => $migrate_ref_files ];
+            $found_dbs[] = [ 
+                'domain' => $domain,
+                'aliases' => $aliases,
+                'ref_files' => $migrate_ref_files 
+            ];
 
             // Make ref_files relative paths
             foreach( $found_dbs as $key => $db ) {

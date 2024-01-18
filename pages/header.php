@@ -50,7 +50,9 @@
     .qs_export_options label {
         font-size: .85rem;
     }
-    .qs_export_options h3, .adv-trash {
+    .qs_export_options h3,
+    .qs_copy_details h3,
+    .adv-trash {
         cursor: pointer;
     }
     #advanced-opt {
@@ -77,7 +79,6 @@
         float: left;
     }
     .qs_remove_copy .alert {
-        margin-top: 50px;
         transform: scale(.9);
     }
 </style>
