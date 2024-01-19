@@ -9,11 +9,11 @@
         <div class="toolbar-inner">
             <div class="toolbar-buttons">
                 <a href="?quickstart=export_details&domain=<?php echo $domain; ?>&dbs=<?php echo $dbs; ?>" class="button button-secondary button-back js-button-back" id="back">
-                    <i class="fas fa-arrow-left icon-blue"></i>Back			
+                    <i tabindex="300" class="fas fa-arrow-left icon-blue"></i>Back			
                 </a>
             </div>
             <div class="toolbar-buttons">
-                <button class="button" type="submit" id="continue-button"><i class="fas fa-arrow-right icon-blue"></i>Continue</button>
+                <button tabindex="200" class="button" type="submit" id="continue-button"><i class="fas fa-arrow-right icon-blue"></i>Continue</button>
             </div>
         </div>
     </div>
@@ -22,31 +22,31 @@
             <h1>Export Options</h1>
             <legend>Leave all items checked for default export options.</legend>
             <p>
-                <input class="export_option" type="checkbox" id="cgi_bin" checked="checked"/>
+                <input class="export_option" type="checkbox" id="cgi_bin" checked="checked" tabindex="100"/>
                 <label for="cgi_bin">Include ./cgi-bin folder.</label>
             </p>
             <p>
-                <input class="export_option" type="checkbox" id="document_errors" checked="checked"/>
+                <input class="export_option" type="checkbox" id="document_errors" checked="checked" tabindex="100"/>
                 <label for="document_errors">Include ./document_errors folder.</label>
             </p>
             <p>
-                <input class="export_option" type="checkbox" id="nodeapp" checked="checked"/>
+                <input class="export_option" type="checkbox" id="nodeapp" checked="checked" tabindex="100"/>
                 <label for="nodeapp">Include ./nodeapp folder.</label>
             </p>
             <p>
-                <input class="export_option" type="checkbox" id="private" checked="checked"/>
+                <input class="export_option" type="checkbox" id="private" checked="checked" tabindex="100"/>
                 <label for="private">Include ./private folder.</label>
             </p>
             <p>
-                <input class="export_option" type="checkbox" id="public_html" checked="checked"/>
+                <input class="export_option" type="checkbox" id="public_html" checked="checked" tabindex="100"/>
                 <label for="public_html">Include ./public_html folder.</label>
             </p>
             <p>
-                <input class="export_option" type="checkbox" id="exvc" checked="checked"/>
+                <input class="export_option" type="checkbox" id="exvc" checked="checked" tabindex="100"/>
                 <label for="exvc">Exclude version control files &amp; folders (.git*, .svn, .hg).</label>
             </p>
             <br/>
-            <h3><i class="fas fa-caret-right"></i> Advanced Options</h3>
+            <h3 tabindex="100"><i class="fas fa-caret-right"></i> Advanced Options</h3>
             <div id="advanced-opt" style="display:none;">
                 <p>
                     Additional search and replace controls to appear when importing. Use these 
@@ -83,7 +83,7 @@
                                         echo '    <td class="units-table-cell">' . $label . '</td>';
                                         echo '    <td class="units-table-cell">' . $value . '</td>';
                                         echo '    <td class="units-table-cell">' . $ref_files . '</td>';
-                                        echo '    <td class="units-table-cell adv-trash"><span class="delete-row-button"><i class="fas fa-trash"></i> Delete</span></td>';
+                                        echo '    <td class="units-table-cell adv-trash"><span tabindex="100" class="delete-row-button"><i class="fas fa-trash"></i> Delete</span></td>';
                                         echo '</tr>';
                                     }
                                 }catch (Exception $e) {
@@ -99,22 +99,22 @@
                         <label for="label-input" class="form-label">
                             Label
                         </label>
-                        <input type="text" class="form-control" name="label-input" id="label-input" placeholder="Label">
+                        <input type="text" class="form-control" name="label-input" id="label-input" placeholder="Label" tabindex="100">
                     </div>
                     <div class="u-mb10">
                         <label for="value-input" class="form-label">
                             Value
                         </label>
-                        <textarea class="form-control" name="value-input" id="value-input" placeholder="Value"></textarea>
+                        <textarea class="form-control" name="value-input" id="value-input" placeholder="Value" tabindex="100"></textarea>
                     </div>
                     <div class="u-mb10">
                         <label for="ref-files-input" class="form-label">
                             Reference Files
                         </label>
-                        <textarea class="form-control" name="ref-files-input" id="ref-files-input" placeholder="./public_html/index.html"></textarea>
+                        <textarea class="form-control" name="ref-files-input" id="ref-files-input" placeholder="./public_html/index.html" tabindex="100"></textarea>
                     </div>
                     <button class="button" type="button" id="add-row-button">
-                        <i class="fas fa-plus icon-blue"></i>Add
+                        <i tabindex="100" class="fas fa-plus icon-blue"></i>Add
                     </button>
                 </form>
             </div>
@@ -146,7 +146,7 @@
                 $('#advanced-options-table tbody').append(
                     '<tr class="units-table-row"><td class="units-table-cell">' + label + 
                     '</td><td class="units-table-cell">' + value + '</td><td class="units-table-cell">' + 
-                    refFiles + '</td><td class="units-table-cell adv-trash"><span class="delete-row-button"><i class="fas fa-trash"></i> Delete</span></td></tr>'
+                    refFiles + '</td><td class="units-table-cell adv-trash"><span tabindex="100" class="delete-row-button"><i class="fas fa-trash"></i> Delete</span></td></tr>'
                 );
                 $('#label-input').val('');
                 $('#value-input').val('');
@@ -159,7 +159,12 @@
                 $(this).closest('tr').remove();
                 updateAdvOptions();
             });
-            
+            $('.delete-row-button').on('keydown', function(e) {
+                if (e.keyCode == 13 || e.keyCode == 32) {
+                    $(this)[0].click();
+                }
+            });
+
             // Expand/collapse advanced options
             $('#advanced-opt').hide();
             $('#advanced-opt').prev().on('click', function() {

@@ -8,7 +8,7 @@
     if (false == isset($_SESSION[$import_key . '_file'])) return;
     $import_file = $_SESSION[$import_key . '_file'];
 
-    // Start import file processing asynchonously and get the process id
+    // Start import file processing asynchronously and get the process id
     global $hcpp;
     $import_pid = trim( shell_exec(HESTIA_CMD . "v-invoke-plugin quickstart_import_file " . $import_file . " > /dev/null 2>/dev/null & echo $!") );
     $_SESSION[$import_key . '_pid'] = $import_pid;
@@ -17,12 +17,12 @@
     <div class="toolbar-inner">
         <div class="toolbar-buttons">
             <a href="#" class="button button-secondary button-back js-button-back" id="back">
-                <i class="fas fa-stop-circle icon-red"></i>Cancel			
+                <i tabindex="300" class="fas fa-stop-circle icon-red"></i>Cancel			
             </a>
         </div>
         <div class="toolbar-buttons">
             <a href="?quickstart=import" class="button disabled" id="continue-button">
-                <i class="fas fa-arrow-right icon-blue"></i>Continue
+                <i tabindex="200" class="fas fa-arrow-right icon-blue"></i>Continue
             </a>         
         </div>
     </div>
@@ -70,7 +70,6 @@
                     url: '../../pluginable.php?load=quickstart&action=import_status&import_key=<?php echo $import_key; ?>',
                     type: 'GET',
                     success: function( data ) {
-                        console.log(data);
                         try {
                             data = JSON.parse( data );
                         } catch( e ) {

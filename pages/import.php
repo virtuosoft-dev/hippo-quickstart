@@ -8,12 +8,12 @@
     <div class="toolbar-inner">
         <div class="toolbar-buttons">
             <a href="?quickstart=import_export" class="button button-secondary button-back js-button-back" id="back">
-                <i class="fas fa-arrow-left icon-blue"></i>Back			
+                <i tabindex="300" class="fas fa-arrow-left icon-blue"></i>Back			
             </a>
         </div>
         <div class="toolbar-buttons">
             <a href="#" class="button disabled" id="continue-button">
-                <i class="fas fa-arrow-right icon-blue"></i>Continue
+                <i tabindex="200" class="fas fa-arrow-right icon-blue"></i>Continue
             </a>         
         </div>
     </div>
@@ -23,7 +23,7 @@
         <h1>Import a Website</h1>
         <legend>Upload a <a href="https://devstia.com/compatible-website-archive" target="_blank">compatible website archive</a>.</legend>
             <input type="file" id="fileInput" name="fileInput" style="display: none;" />
-            <div id="dropZone">
+            <div id="dropZone" tabindex="100">
                 <i class="fas fa-upload"></i><br>
                 Drop file here or click to upload.
             </div>
@@ -38,6 +38,11 @@
             // Handle click on drop zone to trigger file input click
             dropZone.on('click', function() {
                 fileInput.click();
+            });
+            dropZone.on('keydown', function(e) {
+                if (e.keyCode == 13 || e.keyCode == 32) {
+                    $(this)[0].click();
+                }
             });
 
             // Handle file input change

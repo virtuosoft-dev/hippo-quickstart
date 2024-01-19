@@ -1,36 +1,77 @@
 <?php require( 'header.php' ); ?>
 <?php
 
-    // Validate import key
-    if (false == (isset($_GET['import_key']) && isset($_SESSION['import_key']))) return;
-    if ($_GET['import_key'] != $_SESSION['import_key']) return;
-    $import_key = $_GET['import_key'];
-    if (false == isset($_SESSION[$import_key . '_file'])) return;
-    $import_file = $_SESSION[$import_key . '_file'];
-    unset ($_SESSION['import_key' . '_file']);
-
-    // Write request with import file to temp file
+    // Validate remove_copy key
     global $hcpp;
-    $import_folder = $hcpp->getLeftMost( $import_file, '.' );
-    $_REQUEST['import_folder'] = $import_folder;
-    $_REQUEST['user'] = $_SESSION['user'];
-    $request_file = '/tmp/devstia_import_' . $import_key . '.json';
-    file_put_contents( $request_file, json_encode($_REQUEST, JSON_PRETTY_PRINT) );
+    if (false == (isset($_GET['rc_key']) && isset($_SESSION['rc_key']))) return;
+    if ($_GET['rc_key'] != $_SESSION['rc_key']) return;
+    $rc_key = $_GET['rc_key'];
+
+    // Gather details and write json temp file
+    $site_details = $_SESSION[$rc_key . '_site_details'];
+    $selected_databases = $_REQUEST['selected_databases'];
+    $copy_details = [
+        'orig_domain' => '',
+        'new_domain' => '',
+        'orig_aliases' => [],
+        'new_aliases' => [],
+        'databases' => [],
+        'ref_files' => [],
+        'user' => ''
+    ];
+    foreach( $site_details as $detail ) {
+        if ( isset( $detail['DATABASE']) ) {
+            $database = $detail['DATABASE'];
+            if ( in_array( $database, $selected_databases ) ) {
+                $detail['new_DATABASE'] = $_SESSION['user'] . '_' . $hcpp->nodeapp->random_chars(5);
+                $detail['new_DBPASSWORD'] = $hcpp->nodeapp->random_chars(20);
+                $copy_details['databases'][] = $detail;
+            }
+        }
+        if ( isset( $detail['domain'] ) ) {
+            $copy_details['orig_domain'] = $detail['domain'];
+            $copy_details['orig_aliases'] = $detail['aliases'];
+            $copy_details['ref_files'] = $detail['ref_files'];
+            $copy_details['user'] = $_SESSION['user'];
+        }
+    } 
+    $copy_details['new_domain'] = $_REQUEST['v_domain'];
+    $new_aliases = explode( "\n", $_REQUEST['v_aliases'] );
+    $copy_details['new_aliases'] = array_map( 'trim', $new_aliases );
+    $request_file = '/tmp/devstia_copy_' . $rc_key . '.json';
+    file_put_contents( $request_file, json_encode($copy_details, JSON_PRETTY_PRINT) );
+
+    // Start copy process asynchonously and get the process id
+    $copy_pid = trim( shell_exec(HESTIA_CMD . "v-invoke-plugin quickstart_copy_now " . $rc_key . " > /dev/null 2>/dev/null & echo $!") );
+    exit();
+
+    // // Write copy details to temp file
+    // global $hcpp;
+    // $copy_details = [
+    //     "orig_domain" => $domain,
+    //     "orig_user" => $user,
+    //     "orig_aliases" = 
+    // ];
+    // $copy_folder = "/home/$user/web/$domain";
+    // $_REQUEST['import_folder'] = $import_folder;
+    // $_REQUEST['user'] = $_SESSION['user'];
+    // $request_file = '/tmp/devstia_import_' . $import_key . '.json';
+    // file_put_contents( $request_file, json_encode($_REQUEST, JSON_PRETTY_PRINT) );
     
-    // Start import process asynchonously and get the process id
-    $import_pid = trim( shell_exec(HESTIA_CMD . "v-invoke-plugin quickstart_import_now " . $import_key . " > /dev/null 2>/dev/null & echo $!") );
-    $_SESSION[$import_key . '_pid'] = $import_pid;
+    // // Start import process asynchonously and get the process id
+    // $import_pid = trim( shell_exec(HESTIA_CMD . "v-invoke-plugin quickstart_import_now " . $import_key . " > /dev/null 2>/dev/null & echo $!") );
+    // $_SESSION[$import_key . '_pid'] = $import_pid;
 ?>
 <div class="toolbar" style="z-index:100;position:relative;">
     <div class="toolbar-inner">
         <div class="toolbar-buttons">
             <a href="#" class="button button-secondary button-back js-button-back" id="back">
-                <i tabindex="300" class="fas fa-stop-circle icon-red"></i>Cancel			
+                <i class="fas fa-stop-circle icon-red"></i>Cancel			
             </a>
         </div>
         <div class="toolbar-buttons">
             <a href="#" class="button disabled" id="continue-button">
-                <i tabindex="200" class="fas fa-arrow-right icon-blue"></i>Continue
+                <i class="fas fa-arrow-right icon-blue"></i>Continue
             </a>         
         </div>
     </div>
@@ -41,7 +82,9 @@
         <legend id="status">Please wait. Importing website.</legend>
         <div id="options">
             <pre>
-                
+                <?php
+                    
+                ?>
             </pre>
         </div>
     </div>

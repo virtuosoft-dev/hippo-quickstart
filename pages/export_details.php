@@ -12,12 +12,12 @@
     <div class="toolbar-inner">
         <div class="toolbar-buttons">
             <a href="?quickstart=export&domain=<?php echo $domain; ?>" class="button button-secondary button-back js-button-back" id="back">
-                <i class="fas fa-arrow-left icon-blue"></i>Back			
+                <i tabindex="300" class="fas fa-arrow-left icon-blue"></i>Back			
             </a>
         </div>
         <div class="toolbar-buttons">
             <a href="?quickstart=export_now" class="button" id="continue-button">
-                <i class="fas fa-arrow-right icon-blue"></i>Continue
+                <i tabindex="200" class="fas fa-arrow-right icon-blue"></i>Continue
             </a>         
         </div>
     </div>
@@ -45,7 +45,7 @@
                 <div class="units-table-row">
                     <div class="units-table-cell">
                         <div>
-                            <input id="db_checkbox_<?php echo $item; ?>" 
+                            <input id="db_checkbox_<?php echo $item; ?>" tabindex="100"
                                 class="db_checkbox" type="checkbox" title="Select" 
                                 name="domain[]" value="<?php echo $details['DATABASE']; ?>"
                                 <?php

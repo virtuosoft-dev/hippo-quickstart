@@ -531,6 +531,7 @@
                 'create',
                 'remove_copy',
                 'copy_details',
+                'copy_now',
                 'remove_details'
             ];
 
@@ -620,7 +621,7 @@
 
             // Get a list of folders to scan for credentials
             $web_domain = $hcpp->run( "list-web-domain " . $user . " '" . $domain . "' json " );
-            if ( $web_domain == NULL ) return $args;
+            if ( $web_domain == NULL ) return [];
             $public_html = $web_domain[$domain]['DOCUMENT_ROOT'];
             $nodeapp = str_replace( '/public_html/', '/nodeapp/', $public_html );
 

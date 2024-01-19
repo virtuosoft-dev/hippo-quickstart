@@ -86,6 +86,35 @@
     (function($){
         $(function() {
             
+            // Support keyboard navigation of h3 dropdowns
+            $('h3').each(function() {
+                if ( $(this).attr('tabindex') != undefined ) {
+                    $(this).on('keydown', function(e) {
+                        if (e.keyCode == 13 || e.keyCode == 32) {
+                            $(this).click();
+                        }
+                    });
+                }
+            });
+
+            // Support keyboard navigation of quickstart buttons
+            $('.toolbar a.button').each(function() {
+                QSButtons(this);
+            });
+            $('.quickstart a.button').each(function() {
+                QSButtons(this);
+            });
+            function QSButtons(self) {
+                let i = $(self).children().first();
+                if ( i.is('i') ) {
+                    i.on('keydown', function(e) {
+                        if (e.keyCode == 13 || e.keyCode == 32) {
+                            $(self)[0].click();
+                        }
+                    });
+                }
+            }
+
             // Match background gradient to theme
             function LightenDarkenColor(col, amt) {
                 if (col.length == 4) {

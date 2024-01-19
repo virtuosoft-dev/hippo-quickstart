@@ -8,12 +8,12 @@
     <div class="toolbar-inner">
         <div class="toolbar-buttons">
             <a href="?quickstart=main" class="button button-secondary button-back js-button-back" id="back">
-                <i class="fas fa-arrow-left icon-blue"></i>Back			
+                <i tabindex="300" class="fas fa-arrow-left icon-blue"></i>Back			
             </a>
         </div>
         <div class="toolbar-buttons">
             <a href="#" class="button disabled" id="continue-button">
-                <i class="fas fa-arrow-right icon-blue"></i>Continue
+                <i tabindex="200" class="fas fa-arrow-right icon-blue"></i>Continue
             </a>         
         </div>
     </div>
@@ -32,7 +32,7 @@
             <p>Removing website(s) deletes all the files and<br/>
                associated databases.</p>
         </div>
-        <div class="export-list">
+        <div class="remove-copy-list">
             <div class="toolbar">
                 <div class="toolbar-inner">
                     <div class="toolbar-right">
@@ -71,7 +71,7 @@
                         <div>
                             <input id="website_<?php echo $item; ?>" 
                                 class="website_check js-unit-checkbox" type="checkbox" title="Select" 
-                                name="domain[]" value="<?php echo $domain; ?>">
+                                name="domain[]" value="<?php echo $domain; ?>" tabindex="100">
                             <label for="website_<?php echo $item; ?>" class="u-hide-desktop">Select</label>
                         </div>
                     </div>
@@ -96,11 +96,11 @@
             <br/>
             <div id="action">
                 <div class="form-check u-mb10">
-                    <input id="v_copy_website" class="website_radio" type="radio" title="Select" name="mode[]" value="copy" checked>
+                    <input id="v_copy_website" class="website_radio" type="radio" title="Select" name="mode[]" value="copy" tabindex="100" checked>
                     <label for="v_copy_website">Copy website</label>
                 </div>
                 <div class="form-check u-mb10">
-                    <input id="v_remove_website" class="website_radio" type="radio" title="Select" name="mode[]" value="remove">
+                    <input id="v_remove_website" class="website_radio" type="radio" title="Select" name="mode[]" tabindex="100" value="remove">
                     <label for="v_remove_website">Remove website(s)</label>
                 </div>
             </div>
