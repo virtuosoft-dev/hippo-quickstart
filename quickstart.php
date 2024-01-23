@@ -306,7 +306,7 @@ if ( ! class_exists( 'Quickstart') ) {
             </li>';
 
             // Default to quickstart if logo is clicked
-            $before = str_replace( '<a href="/" class="top-bar-logo"', '<a href="https://devstia.com/preview" target="_blank" class="top-bar-logo"', $before);
+            // $before = str_replace( '<a href="/" class="top-bar-logo"', '<a href="https://devstia.com/preview" target="_blank" class="top-bar-logo"', $before);
             
             // Customize help link
             $before = str_replace( 'href="https://hestiacp.com/docs/"', 'href="https://devstia.com/preview/support/"', $before );
