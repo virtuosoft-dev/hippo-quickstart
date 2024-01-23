@@ -7,7 +7,7 @@
     if ($_GET['rc_key'] != $_SESSION['rc_key']) return;
     $rc_key = $_GET['rc_key'];
 
-    // Gather details and write json temp file
+    // Gather details and write unique json temp file
     $site_details = $_SESSION[$rc_key . '_site_details'];
     $selected_databases = $_REQUEST['selected_databases'];
     $copy_details = [
@@ -38,29 +38,13 @@
     $copy_details['new_domain'] = $_REQUEST['v_domain'];
     $new_aliases = explode( "\n", $_REQUEST['v_aliases'] );
     $copy_details['new_aliases'] = array_map( 'trim', $new_aliases );
-    $request_file = '/tmp/devstia_copy_' . $rc_key . '.json';
-    file_put_contents( $request_file, json_encode($copy_details, JSON_PRETTY_PRINT) );
+    file_put_contents( '/tmp/devstia_copy_' . $rc_key . '.json', json_encode($copy_details, JSON_PRETTY_PRINT) );
 
     // Start copy process asynchonously and get the process id
     $copy_pid = trim( shell_exec(HESTIA_CMD . "v-invoke-plugin quickstart_copy_now " . $rc_key . " > /dev/null 2>/dev/null & echo $!") );
-    exit();
 
-    // // Write copy details to temp file
-    // global $hcpp;
-    // $copy_details = [
-    //     "orig_domain" => $domain,
-    //     "orig_user" => $user,
-    //     "orig_aliases" = 
-    // ];
-    // $copy_folder = "/home/$user/web/$domain";
-    // $_REQUEST['import_folder'] = $import_folder;
-    // $_REQUEST['user'] = $_SESSION['user'];
-    // $request_file = '/tmp/devstia_import_' . $import_key . '.json';
-    // file_put_contents( $request_file, json_encode($_REQUEST, JSON_PRETTY_PRINT) );
-    
-    // // Start import process asynchonously and get the process id
-    // $import_pid = trim( shell_exec(HESTIA_CMD . "v-invoke-plugin quickstart_import_now " . $import_key . " > /dev/null 2>/dev/null & echo $!") );
-    // $_SESSION[$import_key . '_pid'] = $import_pid;
+    // Write the pid to a unique pid temp file
+    file_put_contents( '/tmp/devstia_copy_' . $rc_key . '.pid', $copy_pid );
 ?>
 <div class="toolbar" style="z-index:100;position:relative;">
     <div class="toolbar-inner">
@@ -97,7 +81,7 @@
             // $('#back').on('click', (e) => {
             //     e.preventDefault();
             //     $.ajax({
-            //         url: '../../pluginable.php?load=quickstart&action=import_cancel&import_key=<?php echo $import_key; ?>',
+            //         url: '../../pluginable.php?load=quickstart&action=import_cancel&job_id=<?php echo $job_id; ?>',
             //         type: 'GET',
             //         success: function( data ) {
             //             $('#status').html( 'Import cancelled. Click continue.');
@@ -112,7 +96,7 @@
             // Check the import key every 8 seconds
             var import_int = setInterval( () => {
                 $.ajax({
-                    url: '../../pluginable.php?load=quickstart&action=import_result&import_key=<?php echo $import_key; ?>',
+                    url: '../../pluginable.php?load=quickstart&action=import_result&job_id=<?php echo $job_id; ?>',
                     type: 'GET',
                     success: function( data ) {
                         console.log(data);
@@ -160,7 +144,7 @@
             //                 }
             //             }
             //             $('#continue-button').removeClass('disabled');
-            //             $('#continue-button').attr('href', '?quickstart=import_now&import_key=<?php echo $import_key; ?>');
+            //             $('#continue-button').attr('href', '?quickstart=import_now&job_id=<?php echo $job_id; ?>');
             //             $('.spinner-overlay').removeClass('active');
             //             clearInterval( import_int );
             //         }

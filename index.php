@@ -12,23 +12,23 @@ if (false == isset($_GET['action'])) return;
 // Process export actions
 if (in_array( $_GET['action'], ['export_status', 'export_cancel', 'download'] )) {
 
-    // Validate export_key
-    if (false == (isset($_GET['export_key']) && isset($_SESSION['export_key']))) return;
-    if ($_GET['export_key'] != $_SESSION['export_key']) return;
-    $export_key = $_GET['export_key'];
-    if (false == isset($_SESSION[$export_key . '_pid'])) return;
-    $export_id = $_SESSION[$export_key . '_pid'];
+    // Validate job_id
+    if (false == (isset($_GET['job_id']) && isset($_SESSION['job_id']))) return;
+    if ($_GET['job_id'] != $_SESSION['job_id']) return;
+    $job_id = $_GET['job_id'];
+    if (false == isset($_SESSION[$job_id . '_pid'])) return;
+    $job_id = $_SESSION[$job_id . '_pid'];
 
     // Check export_pid status
     if ($_GET['action'] == 'export_status') {
-        echo shell_exec('/usr/local/hestia/bin/v-invoke-plugin quickstart_export_status ' . $export_id);
+        echo shell_exec('/usr/local/hestia/bin/v-invoke-plugin quickstart_export_status ' . $job_id);
     }
 
     // Cancel the export by killing the process
     if ( $_GET['action'] == 'export_cancel' ) {
-        echo shell_exec('/usr/local/hestia/bin/v-invoke-plugin quickstart_export_cancel ' . $export_id);
-        unset($_SESSION['export_key']);
-        unset($_SESSION[$export_key . '_pid']);
+        echo shell_exec('/usr/local/hestia/bin/v-invoke-plugin quickstart_export_cancel ' . $job_id);
+        unset($_SESSION['job_id']);
+        unset($_SESSION[$job_id . '_pid']);
     }
 
     // Process file download
@@ -64,11 +64,11 @@ if (in_array( $_GET['action'], ['import_cancel', 'import_status', 'import_result
     // Process file upload
     if ( $_GET['action'] == 'upload' ) {
 
-        // Validate import_key required to process uploads
-        if (false == (isset($_GET['import_key']) && isset($_SESSION['import_key']))) return;
-        if ($_GET['import_key'] != $_SESSION['import_key']) return;
-        if (false == isset($_SESSION['import_key'])) return;
-        $import_key = $_SESSION['import_key'];
+        // Validate job_id required to process uploads
+        if (false == (isset($_GET['job_id']) && isset($_SESSION['job_id']))) return;
+        if ($_GET['job_id'] != $_SESSION['job_id']) return;
+        if (false == isset($_SESSION['job_id'])) return;
+        $job_id = $_SESSION['job_id'];
 
         // Generate response
         $response = [
@@ -90,36 +90,36 @@ if (in_array( $_GET['action'], ['import_cancel', 'import_status', 'import_result
             global $hcpp;
             $ext = $hcpp->delLeftMost( $_FILES['file']['name'], '_' );
             $ext = $hcpp->delLeftMost( $ext, '.' );
-            $name = "/tmp/devstia_import_" . $_SESSION['import_key'] . '.' . $ext;
+            $name = "/tmp/devstia_import_" . $_SESSION['job_id'] . '.' . $ext;
             move_uploaded_file($tmp_name, $name);
-            $_SESSION[$import_key . '_file'] = $name;
+            $_SESSION[$job_id . '_file'] = $name;
             $response['status'] = 'uploaded';
             $response['message'] = 'File uploaded. Please click continue.';
         }
         echo json_encode( $response );
     }
  
-    // Validate import_pid, $_SESSION['import_key'] not required (multiple imports can be running at once)
-    if (false == isset($_GET['import_key'])) return;
-    $import_key = $_GET['import_key'];
-    if (false == isset($_SESSION[$import_key . '_pid'])) return;
-    $import_pid = $_SESSION[$import_key . '_pid'];
+    // Validate import_pid, $_SESSION['job_id'] not required (multiple imports can be running at once)
+    if (false == isset($_GET['job_id'])) return;
+    $job_id = $_GET['job_id'];
+    if (false == isset($_SESSION[$job_id . '_pid'])) return;
+    $import_pid = $_SESSION[$job_id . '_pid'];
 
     // Check import_pid status
     global $hcpp;
     
     if ( $_GET['action'] == 'import_status' ) {
-        echo shell_exec( '/usr/local/hestia/bin/v-invoke-plugin quickstart_import_status ' . $import_pid . ' ' . $import_key);
+        echo shell_exec( '/usr/local/hestia/bin/v-invoke-plugin quickstart_import_status ' . $import_pid . ' ' . $job_id);
     }
 
     // Check import_result
     if ( $_GET['action'] == 'import_result' ) {
-        echo shell_exec( '/usr/local/hestia/bin/v-invoke-plugin quickstart_import_result ' . $import_pid . ' ' . $import_key);
+        echo shell_exec( '/usr/local/hestia/bin/v-invoke-plugin quickstart_import_result ' . $import_pid . ' ' . $job_id);
     }
 
     // Cancel the import by killing the process
     if ( $_GET['action'] == 'import_cancel' ) {
-        echo shell_exec('/usr/local/hestia/bin/v-invoke-plugin quickstart_import_cancel ' . $import_pid . ' ' . $import_key);
-        unset($_SESSION[$import_key]);
+        echo shell_exec('/usr/local/hestia/bin/v-invoke-plugin quickstart_import_cancel ' . $import_pid . ' ' . $job_id);
+        unset($_SESSION[$job_id]);
     }
 }

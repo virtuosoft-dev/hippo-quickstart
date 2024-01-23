@@ -1,8 +1,12 @@
 <?php require( 'header.php' ); ?>
 <?php
-    global $hcpp;
-    $rc_key = $hcpp->nodeapp->random_chars( 16 );
-    $_SESSION['rc_key'] = $rc_key;
+    // Create a new job
+    $job_id = $hcpp->quickstart->create_job();
+?>
+<?php
+    // global $hcpp;
+    // $rc_key = $hcpp->nodeapp->random_chars( 16 );
+    // $_SESSION['rc_key'] = $rc_key;
 ?>
 <div class="toolbar">
     <div class="toolbar-inner">
@@ -191,7 +195,7 @@
                 } else {
                     $('#continue-button').removeClass('disabled');
                     if ( $('#v_remove_website').prop('checked') ) {
-                        $('#continue-button').attr('href', '?quickstart=remove_details&domain=' + domains.join(',') + '&rc_key=<?php echo $rc_key; ?>');
+                        $('#continue-button').attr('href', '?quickstart=remove_detail&domain=' + domains.join(',') + '&rc_key=<?php echo $rc_key; ?>');
                     } else {
                         $('#continue-button').attr('href', '?quickstart=copy_details&domain=' + domains[0] + '&rc_key=<?php echo $rc_key; ?>');
                     }

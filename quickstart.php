@@ -8,23 +8,205 @@
  * @link https://github.com/virtuosoft-dev/hcpp-quickstart
  * 
  */
-
- if ( ! class_exists( 'Quickstart') ) {
+if ( ! class_exists( 'Quickstart') ) {
     class Quickstart {
+
         /**
          * Constructor, listen for the render events
          */
         public function __construct() {
             global $hcpp;
             $hcpp->quickstart = $this;
+            $hcpp->add_action( 'hcpp_head', [ $this, 'hcpp_head' ] );
             $hcpp->add_action( 'hcpp_invoke_plugin', [ $this, 'hcpp_invoke_plugin' ] );
+            $hcpp->add_action( 'hcpp_rebooted', [ $this, 'hcpp_rebooted' ] );
             $hcpp->add_action( 'hcpp_render_body', [ $this, 'hcpp_render_body' ] );
             $hcpp->add_action( 'hcpp_render_panel', [ $this, 'hcpp_render_panel' ] );
-            $hcpp->add_action( 'hcpp_rebooted', [ $this, 'hcpp_rebooted' ] );
-            $hcpp->add_action( 'hcpp_head', [ $this, 'hcpp_head' ] );
         }
 
-        // Clean up the devstia_*
+        /** 
+         * Create a unique job id, all jobs are prefixed with devstia_job_id for future listing.
+         * @return string The unique job id.
+         */
+        public function create_job() {
+            global $hcpp;
+            $job_id = $hcpp->nodeapp->random_chars( 16 );
+            if ( !isset( $_SESSION['devstia_jobs']) ) $_SESSION['devstia_jobs'] = [];
+            $_SESSION['devstia_jobs'][$job_id] = [];
+            return $job_id; 
+        }
+
+        /**
+         * Check if the given job id is valid.
+         * @param string $job_id The unique job id.
+         */
+        public function is_job_valid( $job_id ) {
+            if ( !isset( $_SESSION['devstia_jobs'][$job_id] ) ) return false;
+            return true;
+        }
+
+        /**
+         * Get the given job data with a reference key.
+         * @param string $job_id The unique job id.
+         * @param string $key The key of the data to get.
+         * @return mixed The data value.
+         */
+        public function get_job_data( $job_id, $key ) {
+            if ( !isset( $_SESSION['devstia_jobs'][$job_id] ) ) return false;
+            if ( !isset( $_SESSION['devstia_jobs'][$job_id][$key] ) ) return false;
+            return $_SESSION['devstia_jobs'][$job_id][$key];
+        }
+
+        /**
+         * Set the given job data with a reference key.
+         * @param string $job_id The unique job id.
+         * @param string $key The key of the data to set.
+         * @param mixed $value The value of the data to set.
+         * @return bool True if successful, false otherwise.
+         */
+        public function set_job_data( $job_id, $key, $value ) {
+            if ( !isset( $_SESSION['devstia_jobs'][$job_id] ) ) return false;
+            $_SESSION['devstia_jobs'][$job_id][$key] = $value;
+            return true;
+        }
+
+        /**
+         * Transfer the given job data to a file with admin privileges; allowing a priviledged
+         * process to get otherwise inaccessible admin session data.
+         * @param string $job_id The unique job id.
+         * @param string $key The key of the data to transfer.
+         * @return bool True if successful, false otherwise.
+         */
+        public function xfer_job_data( $job_id, $key ) {
+            if ( !isset( $_SESSION['devstia_jobs'][$job_id] ) ) return false;
+            if ( !isset( $_SESSION['devstia_jobs'][$job_id][$key] ) ) return false;
+            $value = json_encode( $_SESSION['devstia_jobs'][$job_id][$key], JSON_PRETTY_PRINT );
+            file_put_contents( "/tmp/devstia_$job_id-$key.json", $value );
+            chown( "/tmp/devstia_$job_id-$key.json", 'admin' );
+            chgrp( "/tmp/devstia_$job_id-$key.json", 'admin' );
+            return true;
+        }
+
+        /**
+         * Pickup the given job data from a file and remove it; this allows a priviledged
+         * process to get otherwise inaccessible admin session data.
+         * @param string $job_id The unique job id.
+         * @param string $key The key of the data to pickup.
+         * @return mixed The data value.
+         */
+        public function pickup_job_data( $job_id, $key ) {
+            if ( file_exists( "/tmp/devstia_$job_id-$key.json" ) ) {
+                try {
+                    $value = file_get_contents( "/tmp/devstia_$job_id-$key.json" );
+                    $value = json_decode( $value, true );
+                    unlink( "/tmp/devstia_$job_id-$key.json" );
+                    return $value;
+                } catch (Exception $e) {
+                    return false;
+                }
+            }else{
+                return false;
+            }
+        }
+
+        /**
+         * Export the website to a zip file with the given manifest.
+         * @param array $manifest The manifest of the website to export.
+         */
+        public function export_zip( $manifest ) {
+            
+            // // Create our priviledged command to export the website to a zip file
+            // $this->create_invoke_plugin_fn( 'export_zip', function( $manifest ) {
+            //
+            // } );
+
+
+
+            global $hcpp;
+            $this->set_job_data( $manifest['job_id'], 'manifest', $manifest );
+            $this->xfer_job_data( $manifest['job_id'], 'manifest' );
+
+            // Start the export process asynchonously and get the process id
+            //$export_pid = trim( shell_exec(HESTIA_CMD . "v-invoke-plugin quickstart_export_zip " . $manifest['job_id'] . " > /dev/null 2>/dev/null & echo $!") );
+
+            // Store the process id data for the job, to be used for status checks
+            //$this->set_job_data( $manifest['job_id'], 'export_pid', $export_pid );
+        } 
+
+        /**
+         * Get the site manifest for the given user's website domain. Highly optimized for speed,
+         * scan revelent files for db credentials, and migration details (domain, aliases, 
+         * user path) and return site and database details as an associative array.
+         * 
+         * @param string $user The username of the user.
+         * @param string $domain The domain of the website.
+         * @return array An associative array of the site details.
+         */
+        public function get_manifest( $user, $domain ) {
+            global $hcpp;
+            return $hcpp->run( "invoke-plugin quickstart_get_manifest " . $user . " " . $domain . " json" );
+        }
+
+        /**
+         * Get a quickstart process status by unique key.
+         * @param string $key The unique key for the process.
+         * @return array An associative array of the process status.
+         */
+        public function get_status( $unique_key ) {
+            $pid_file = '/tmp/devstia_' . $unique_key . '.pid';
+            $result_file = '/tmp/devstia_' . $unique_key . '.result';
+            $result = [];
+            if ( file_exists( $pid_file ) ) {
+                $pid = file_get_contents( $pid_file );
+                $status = shell_exec('ps -p ' . $pid);
+                if (strpos($status, $pid) === false) {
+                    $result['status'] = 'finished';
+                } else {
+                    $result['status'] = 'running';
+                }
+            }
+            $result['message'] = '';
+            if ( file_exists( $result_file ) ) {
+                $content = file_get_contents( $result_file );
+                $result = json_decode( $content, true );
+            }
+            if ( $result['status'] == 'finished' ) {
+                unlink( $pid_file );
+                unlink( $result_file );
+            }
+            return $result;
+        }
+        
+        /**
+         * Redirect to quickstart on login.
+         */
+        public function hcpp_head( $args ) {
+            if ( !isset( $_GET['alt'] ) ) return $args;
+            $content = $args['content'];
+            if ( strpos( $content, 'LOGIN') === false ) return $args;
+            $_SESSION['request_uri'] = '/list/web/?quickstart=main';
+            return $args;
+        }
+
+        /**
+         * Run trusted elevated commands from the v-invoke-plugin command.
+         */
+        public function hcpp_invoke_plugin( $args ) {
+            $trusted = [
+                'quickstart_get_manifest',
+                'quickstart_export_zip'
+            ];
+            if ( in_array( $args[0], $trusted ) ) {
+                return call_user_func_array([$this, $args[0]], [$args]);
+            }else{
+                return $args;
+            }
+        }
+
+        /**
+         * Clean up all the devstia_* files in /tmp and /home/user/tmp folders
+         * on reboot.
+         */
         public function hcpp_rebooted( $args ) {
 
             // Clean up /tmp/devstia_* files
@@ -44,477 +226,9 @@
             return $args;
         }
 
-        // Run elevated commands from the plugin
-        public function hcpp_invoke_plugin( $args ) {
-            if ( $args[0] == 'quickstart_site_details' ) return $this->quickstart_site_details( $args );
-            if ( $args[0] == 'quickstart_export_zip' ) return $this->quickstart_export_zip( $args );
-            if ( $args[0] == 'quickstart_export_status' ) return $this->quickstart_export_status( $args );
-            if ( $args[0] == 'quickstart_export_cancel' ) return $this->quickstart_export_cancel( $args );
-            if ( $args[0] == 'quickstart_import_status' ) return $this->quickstart_import_status( $args );
-            if ( $args[0] == 'quickstart_import_cancel' ) return $this->quickstart_import_cancel( $args );
-            if ( $args[0] == 'quickstart_import_file' ) return $this->quickstart_import_file( $args );
-            if ( $args[0] == 'quickstart_import_now' ) return $this->quickstart_import_now( $args );
-            if ( $args[0] == 'quickstart_import_result' ) return $this->quickstart_import_result( $args );
-            return $args;
-        }
-
-        // Return the result of the import process
-        public function quickstart_import_result( $args ) {
-            $import_pid = $args[1];
-            $import_key = $args[2];
-            $result_file = "/tmp/devstia_import_$import_key.result";
-            if ( file_exists( $result_file ) ) {
-                $content = file_get_contents( $result_file );
-                unlink( $result_file );
-                echo $content;
-
-                if ( strpos( $content, '"status":"error"' ) !== false || strpos( $content, '"status":"finished"' ) !== false ) {
-
-                    // Clean up
-                    shell_exec('rm -rf /tmp/devstia_import_' . $import_key . '*');
-                }
-            }else{
-                $status = shell_exec('ps -p ' . $import_pid);
-                if (strpos($status, $import_pid) !== false) {
-                    echo json_encode( [ 'status' => 'running', 'message' => 'Please wait. Importing website.' ] );
-                }else{
-                    echo json_encode( [ 'status' => 'error', 'message' => 'Import failed. Please try again.' ] );
-
-                    // Clean up
-                    shell_exec('rm -rf /tmp/devstia_import_' . $import_key . '*');
-                }
-            }
-            return $args;
-        }
- 
-        // Now import the given folder
-        public function quickstart_import_now( $args ) {
-            $import_key = $args[1];
-            $request_file = "/tmp/devstia_import_$import_key.json";
-            $result_file = "/tmp/devstia_import_$import_key.result";
-            if ( !file_exists( $request_file ) ) {
-                $this->report_status( $result_file, 'Request file not found.', 'error' );
-                return $args;
-            }
-            $content = file_get_contents( $request_file );
-            unlink ( $request_file );
-            $request = json_decode( $content, true );
-
-            // Allow plugins to modify the request
-            global $hcpp;
-            $request = $hcpp->do_action( 'quickstart_import_now_request', $request );
-            $import_folder = $request['import_folder'];
-
-            // Get the manifest file
-            $manifest = $import_folder . '/devstia_manifest.json';
-            if ( !file_exists( $manifest ) ) {
-                $this->report_status( $result_file, 'Manifest file not found.', 'error' );
-                return $args;
-            }
-            
-            // Parse the manifest file
-            try {
-                $content = file_get_contents( $manifest );
-                $manifest = json_decode( $content, true );
-                $manifest = $hcpp->do_action( 'quickstart_import_now_manifest', $manifest ); // Allow plugin mods
-                $orig_user = $manifest['user'];
-                $orig_domain = $manifest['domain'];
-                $orig_aliases = $manifest['alias'];
-                $proxy_ext = $manifest['proxy_ext'];
-                $backend = $manifest['backend'];
-            }catch( Exception $e ) {
-                $this->report_status( $result_file, 'Error parsing manifest file.', 'error' );
-                return $args;
-            }
-
-            // Create the domain
-            $this->report_status( $result_file, 'Please wait. Creating domain.' );
-            $new_user = $request['user'];
-            $new_domain = $request['v_domain'];
-            $new_aliases = str_replace( "\r\n", ",", $request['v_aliases'] );
-            $details = $hcpp->run('list-user-ips ' . $new_user . ' json');
-            $first_ip = null;
-            foreach ( $details as $ip => $ip_details ) {
-                $first_ip = $ip;
-                break;
-            }
-            $command = "add-web-domain $new_user $new_domain $first_ip no \"$new_aliases\" $proxy_ext";
-            $result = $hcpp->run( $command );
-            if ( $result != '' ) {
-                $this->report_status( $result_file, $result, 'error' );
-                return $args;
-            }
-
-            // Wait up to 15 seconds for public_html/index.html to be created
-            $dest_folder = '/home/' . $new_user . '/web/' . $new_domain;
-            for ( $i = 0; $i < 15; $i++ ) {
-                if ( file_exists( $dest_folder . '/public_html/index.html' ) ) break;
-                sleep(1);
-            }
-            if ( !is_dir( $dest_folder . '/public_html' ) ) {
-                $this->report_status( $result_file, 'Error timeout awaiting domain creation. ' . $dest_folder, 'error' );
-                return $args;
-            }
-
-            // Copy all subfolders in the import folder
-            $this->report_status( $result_file, 'Please wait. Copying files.' );
-            $folders = array_filter(glob($import_folder . '/*'), 'is_dir');
-            $command = "rm -f $dest_folder/public_html/index.html ; ";
-            foreach( $folders as $folder ) {
-                $subfolder = $hcpp->getRightMost( $folder, '/' );
-                $command .= __DIR__ . '/abcopy ' . $folder . '/ ' . $dest_folder . "/$subfolder/ ; ";
-                $command .= "chown -R $new_user:$new_user " . $dest_folder . "/$subfolder/ ; ";
-                if ( $subfolder == 'public_html' ) {
-                    $command .= "chown $new_user:www-data " . $dest_folder . "/$subfolder/ ; ";
-                }
-            }
-            $command = $hcpp->do_action( 'quickstart_import_copy_files', $command ); // Allow plugin mods
-            shell_exec( $command );
-
-            // Prepare aliases
-            $new_aliases = explode( ',', $new_aliases );
-            $orig_aliases = explode( ',', $orig_aliases );
-            if ( count( $new_aliases ) != count( $orig_aliases ) ) {
-                $this->report_status( $result_file, 'Number of aliases does not match original for substitution.', 'error' );
-                return $args;
-            }
-
-            // Create the databases
-            $orig_dbs = $manifest['databases'];
-            if ( is_array( $orig_dbs ) && !empty( $orig_dbs ) ) {
-                foreach( $orig_dbs as $db ) {
-
-                    // Get the original database details
-                    $orig_dbuser = $db['DBUSER'];
-                    $orig_db = $db['DATABASE'];
-                    $orig_password = $db['DBPASSWORD'];
-                    $orig_type = $db['TYPE'];
-                    $orig_charset = $db['CHARSET'];
-                    $ref_files = $db['ref_files'];
-
-                    // Generate new credentials and new database
-                    $db_name = $hcpp->nodeapp->random_chars(5);
-                    $db_password = $hcpp->nodeapp->random_chars(20);
-                    $command = "add-database $new_user $db_name $db_name $db_password $orig_type localhost $orig_charset";
-                    $db_name = $new_user . '_' . $db_name;
-                    $this->report_status( $result_file, "Please wait. Creating database: $db_name" );
-                    $result = $hcpp->run( $command );
-
-                    // Search and replace credentials in ref_files
-                    foreach( $ref_files as $file ) {
-                        $file = $dest_folder . '/' . $hcpp->delLeftMost( $file, '/' );
-                        try {
-                            $this->search_replace_file( 
-                                $file, 
-                                [$orig_db, $orig_password], 
-                                [$db_name, $db_password] 
-                            );
-                        }catch( Exception $e ) {
-                            $this->report_status( $result_file, $e->getMessage(), 'error' );
-                            return $args;
-                        }
-                    }
-
-                    // Search and replace domain, user path, and aliases in db sql files
-                    $db_sql_file = $dest_folder . '/devstia_databases/' . $db['DATABASE'] . '.sql';
-                    $searches = [$orig_domain, "/home/$orig_user"];
-                    $replaces = [$new_domain, "/home/$new_user"];
-                    $searches = array_merge( $searches, $orig_aliases );
-                    $replaces = array_merge( $replaces, $new_aliases );
-                    try {
-                        $this->search_replace_file( $db_sql_file, $searches, $replaces );
-                    }catch( Exception $e ) {
-                        $this->report_status( $result_file, $e->getMessage(), 'error' );
-                        return $args;
-                    }
-
-                    // Import the database sql file
-                    if ( $orig_type == 'mysql' ) {
-
-                        // Support MySQL
-                        $command = "mysql -h localhost -u $db_name -p$db_password $db_name < $db_sql_file";
-                    }else{
-
-                        // Support PostgreSQL
-                        $command = "export PGPASSWORD=\"$db_password\"; psql -h localhost -U $db_name $db_name $db_sql_file";
-                    }
-                    $command = $hcpp->do_action( 'quickstart_import_now_db', $command ); // Allow plugin mods
-                    $result = shell_exec( $command );
-                    if ( strpos( strtolower( $result ), 'error' != '' ) !== false ){
-                        $this->report_status( $result_file, $result, 'error' );
-                        return $args;
-                    }
-                }
-            }
-
-            // Update smtp.json file
-            $smtp_file = $dest_folder . '/private/smtp.json';
-            if ( file_exists( $smtp_file ) ) {
-                try {
-                    // Get the original file's permissions and ownership
-                    $fileStat = stat( $smtp_file );
-                    $fileMode = $fileStat['mode'];
-                    $fileUid = $fileStat['uid'];
-                    $fileGid = $fileStat['gid'];
-
-                    // Update the file
-                    $content = file_get_contents( $smtp_file );
-                    $content = json_decode( $content, true );
-                    $content['username'] = $new_domain;
-                    $content['password'] = $hcpp->nodeapp->random_chars( 16 );
-                    file_put_contents( $smtp_file, json_encode( $content, JSON_PRETTY_PRINT ) );
-
-                    // Restore the original file's permissions and ownership
-                    chmod( $smtp_file, $fileMode );
-                    chown( $smtp_file, $fileUid );
-                    chgrp( $smtp_file, $fileGid );
-                }catch( Exception $e ) {
-                    $this->report_status( $result_file, $e->getMessage(), 'error' );
-                    return $args;
-                }
-            }
-
-            // Search and replace on base files
-            foreach( $manifest['ref_files'] as $file ) {
-                $file = $dest_folder . '/' . $hcpp->delLeftMost( $file, '/' );
-                if ( !file_exists( $file ) ) continue;
-                try {
-                    $searches = [$orig_domain, "/home/$orig_user"];
-                    $replaces = [$new_domain, "/home/$new_user"];
-                    $searches = array_merge( $searches, $orig_aliases );
-                    $replaces = array_merge( $replaces, $new_aliases );
-                    $this->search_replace_file( 
-                        $file, 
-                        $searches,
-                        $replaces
-                    );
-                }catch( Exception $e ) {
-                    $this->report_status( $result_file, $e->getMessage(), 'error' );
-                    return $args;
-                }
-            }
-
-            // Search and replace export advanced options
-            $export_adv_options = $manifest['export_adv_options'];
-            foreach( $export_adv_options as $option ) {
-
-                // Get original value
-                $value = $option['value'];
-                $label = $option['label'];
-                $ref_files = $option['ref_files'];
-                if ( $label == '' ) continue;
-
-                // Find new value from form
-                $labelVar = 'eao_' . $this->title_to_var_name( $label );
-                $new_value = '';
-                if ( isset( $request[$labelVar] ) ) {
-                    $new_value = $request[$labelVar];
-                }
-
-                // Get default value if multiselect
-                if ( strpos( $value, "|") !== false ) {
-                    $value = $hcpp->delLeftMost( $value, "|");
-                    $value = $hcpp->getLeftMost( $value, "\n");
-                }
-
-                // Search and replace the value in ref. files
-                foreach( $ref_files as $file ) {
-                    $file = $dest_folder . '/' . $hcpp->delLeftMost( $file, '/' );
-                    if ( !file_exists( $file ) ) continue;
-                    if ( $value == $new_value ) continue;
-                    try {
-                        $this->search_replace_file( 
-                            $file, 
-                            [$value], 
-                            [$new_value] 
-                        );
-                    }catch( Exception $e ) {
-                        $this->report_status( $result_file, $e->getMessage(), 'error' );
-                        return $args;
-                    }
-                }
-            }
-            shell_exec( 'rm -rf ' . $dest_folder . '/devstia_databases' );
-
-            // Update the web domain backend
-            $hcpp->run( "change-web-domain-backend-tpl $new_user $new_domain $backend" );
-
-            return $args;
-        }
-
-        public function report_status( $result_file, $message, $status = 'running' ) {
-            $result = json_encode( [ 'status' => $status, 'message' => $message ] );
-            unlink( $result_file );
-            file_put_contents( $result_file, $result );
-            chown( $result_file, 'admin' );
-            chgrp( $result_file, 'admin' );
-        }
-
-        // Check the status of the import process
-        public function quickstart_import_status( $args ) {
-            $import_pid = $args[1];
-            $import_key = $args[2];
-            $status = shell_exec('ps -p ' . $import_pid);
-            if (strpos($status, $import_pid) === false) {
-
-                // Import is finished, check for manifest
-                $manifest = '/tmp/devstia_import_' . $import_key . '/devstia_manifest.json';
-                if ( file_exists( $manifest ) ) {
-                    try {
-                        $content = file_get_contents( $manifest );
-                        $manifest = json_decode( $content, true );
-                    } catch( Exception $e ) {
-                        echo json_encode( [ 'status' => 'error', 'message' => 'Error parsing manifest file.' ] );
-                    }
-                    $message = 'Fill in options.';
-                    if ( is_dir('/home/devstia') ) {
-                        $message .= ' <i>Devstia Preview should use a <b>.dev.pw</b> TLD.</i>';
-                    }
-                    echo json_encode( [ 
-                        'status' => 'finished', 
-                        'message' => $message, 
-                        'domain' => $manifest['domain'], 
-                        'alias' => $manifest['alias'],
-                        'export_adv_options' => $manifest['export_adv_options'],
-                    ] );
-                }else{
-                    echo json_encode( [ 
-                        'status' => 'error',
-                        'message' => 'Import failed. Please try again.'
-                    ] );
-                }
-            } else {
-                // Import is still running
-                echo json_encode( [ 'status' => 'running', 'message' => 'Please wait. Decompressing and analyzing files.' ] );
-            }
-            return $args;
-        }
-
-        // Import the website archive
-        public function quickstart_import_file( $args ) {
-            global $hcpp;
-            $import_file = $args[1];
-            $import_folder = $hcpp->getLeftMost( $import_file, '.' );
-            if ( file_exists( $import_file ) ) {
-                $command = 'unzip -o -q ' . $import_file . ' -d ' . $import_folder . ' ';
-                $command .= '&& rm -rf ' . $import_file . ' ';
-                $command .= '&& chown -R admin:admin ' . $import_folder;
-                $command = $hcpp->do_action( 'quickstart_import_file_command', $command );
-                shell_exec( $command );
-            }
-            return $args;
-        }
-
-        // Cancel the import process by killing the process, clean up files
-        public function quickstart_import_cancel( $args ) {
-            $import_pid = $args[1];
-            $import_key = $args[2];
-            shell_exec('kill -9 ' . $import_pid . ' ; rm -rf /tmp/devstia_import_' . $import_key . '*');
-            echo json_encode( [ 'status' => 'cancelled' ] );
-            return $args;
-        }
-
-        // Cancel the export process by killing the process
-        public function quickstart_export_cancel( $args ) {
-            $export_pid = $args[1];
-            shell_exec('kill -9 ' . $export_pid);
-            echo json_encode( [ 'status' => 'cancelled' ] );
-            return $args;
-        }
-
-        // Check the status of the export process
-        public function quickstart_export_status( $args ) {
-            $export_pid = $args[1];
-            $status = shell_exec('ps -p ' . $export_pid);
-            if (strpos($status, $export_pid) === false) {
-                // Export is finished
-                echo json_encode( [ 'status' => 'finished' ] );
-            } else {
-                // Export is still running
-                echo json_encode( [ 'status' => 'running' ] );
-            }
-            return $args;
-        }
-        
-        // Get site details for the given user and domain
-        public function quickstart_site_details( $args ) {
-            $user = $args[1];
-            $domain = $args[2];
-
-            $details = $this->get_site_details( $user, $domain );
-
-            // Output the found databases and migrations
-            echo json_encode( $details, JSON_PRETTY_PRINT );
-            return $args;
-        }
-
-        // Start the export process
-        public function quickstart_export_zip( $args ) {
-
-            // Move the manifest file to the user tmp folder
-            global $hcpp;
-            $json_file = $args[1];
-            $content = file_get_contents( '/tmp/' . $json_file );
-            $manifest = json_decode( $content, true );
-            unlink( '/tmp/' . $json_file );
-            $user = $manifest['user'];
-            $domain = $manifest['domain'];
-            $export_options = $manifest['export_options'];
-            $export_adv_options = $manifest['export_adv_options'];
-            $export_folder = '/home/' . $user . '/tmp/' . $hcpp->delRightMost( $json_file, '.json' );
-            if ( !is_dir( $export_folder ) ) mkdir( $export_folder, true );
-            file_put_contents( $export_folder . '/devstia_manifest.json', $content );
-            $devstia_databases_folder = $export_folder . '/devstia_databases';
-
-            // Dump databases to user tmp folder
-            mkdir( $devstia_databases_folder, true );
-            chmod( $devstia_databases_folder, 0751);
-            foreach( $manifest['databases'] as $database ) {
-                $db = $database['DATABASE'];
-                $hcpp->run( "dump-database $user $db > \"$devstia_databases_folder/$db.sql\"" );
-            }
-
-            $public_html = $hcpp->run( "list-web-domain " . $user . " '" . $domain . "' json " );
-            if ( $public_html == NULL ) return $args;
-            $public_html = $public_html[$domain]['DOCUMENT_ROOT'];
-            $nodeapp = str_replace( '/public_html/', '/nodeapp/', $public_html );
-            $private = str_replace( '/public_html/', '/private/', $public_html );
-            $cgi_bin = str_replace( '/public_html/', '/cgi-bin/', $public_html );
-            $document_errors = str_replace( '/public_html/', '/document_errors/', $public_html );
-
-            // Copy website folders to user tmp folder, accounting for export options
-            $abcopy = __DIR__ . '/abcopy';
-            $exvc = ';';
-            if ( strpos($export_options, 'exvc') !== false ) $exvc = ' true;';
-            $command = '';
-            if ( strpos($export_options, 'public_html') !== false ) $command .= "$abcopy $public_html $export_folder/public_html" . $exvc;
-            if ( strpos($export_options, 'nodeapp') !== false ) $command .= "$abcopy $nodeapp $export_folder/nodeapp" . $exvc;
-            if ( strpos($export_options, 'private') !== false ) $command .= "$abcopy $private $export_folder/private" . $exvc;
-            if ( strpos($export_options, 'cgi_bin') !== false ) $command .= "$abcopy $cgi_bin $export_folder/cgi-bin" . $exvc;
-            if ( strpos($export_options, 'document_errors') !== false ) $command .= "$abcopy $document_errors $export_folder/document_errors" . $exvc;
-
-            // Reset ownership, zip up contents, move to exports, and clean up
-            $zip_file = "/home/$user/web/exports/" . $manifest['zip_file'];
-            $command .= "chown -R $user:$user $export_folder && cd $export_folder ";
-            $command .= "&& zip -r $export_folder.zip . && cd .. && rm -rf $export_folder ";
-            $command .= "&& mkdir -p /home/$user/web/exports ";
-            $command .= "&& mv $export_folder.zip $zip_file ";
-            $command .= "&& chown -R $user:$user /home/$user/web/exports ";
-            $command = $hcpp->do_action( 'quickstart_export_zip', $command ); // Allow plugin mods
-            shell_exec( $command );
-            return $args;
-        }
-        
-        // Redirect to quickstart on login
-        public function hcpp_head( $args ) {
-            if ( !isset( $_GET['alt'] ) ) return $args;
-            $content = $args['content'];
-            if ( strpos( $content, 'LOGIN') === false ) return $args;
-            $_SESSION['request_uri'] = '/list/web/?quickstart=main';
-            return $args;
-        }
-
-        // Render the Quickstart body
+        /**
+         * Render the Quickstart pages in the body.
+         */
         public function hcpp_render_body( $args ) {
             if ( !isset( $_GET['quickstart'] ) ) return $args;
             $authorized_pages = [
@@ -566,7 +280,9 @@
             return $args;
         }
 
-        // Render the Quickstart tab
+        /**
+         * Render the quickstart panel tab.
+         */
         public function hcpp_render_panel( $args ) {
             $content = $args['content'];
             if ( !str_contains( $content, '<!-- Web tab -->' ) ) return $args;
@@ -601,15 +317,76 @@
         }
 
         /**
-         * Get the site details for the given user's website domain. Highly optimized for speed,
-         * scan revelent files for db credentials, and migration details (domain, aliases, 
-         * user path) and return details as an associative array.
-         * 
-         * @param string $user The username of the user.
-         * @param string $domain The domain of the website.
-         * @return array An associative array of the site details.
+         * Our trusted elevated command to export a website to a zip file; used by $this->export_zip().
          */
-        public function get_site_details( $user, $domain ) {
+        public function quickstart_export_zip( $args ) {
+            $job_id = $args[1];
+            $manifest = $this->pickup_job_data( $job_id, 'manifest' );
+            if ( $manifest == false ) return $args;
+            
+            global $hcpp;
+            $user = $manifest['user'];
+            $domain = $manifest['domain'];
+            $export_options = $manifest['export_options'];
+            $export_adv_options = $manifest['export_adv_options'];
+            $export_folder = '/home/' . $user . '/tmp/devstia_export_' . $job_id;
+            if ( !is_dir( $export_folder ) ) mkdir( $export_folder, true );
+            file_put_contents( $export_folder . '/devstia_manifest.json', json_encode( $manifest, JSON_PRETTY_PRINT) );
+            $devstia_databases_folder = $export_folder . '/devstia_databases';
+
+            // Dump databases to user tmp folder
+            mkdir( $devstia_databases_folder, true );
+            chmod( $devstia_databases_folder, 0751);
+            foreach( $manifest['databases'] as $database ) {
+                 $db = $database['DATABASE'];
+                 $hcpp->run( "dump-database $user $db > \"$devstia_databases_folder/$db.sql\"" );
+            }
+            $public_html = "/home/$user/web/$domain/public_html";
+            $nodeapp = "/home/$user/web/$domain/nodeapp";
+            $private = "/home/$user/web/$domain/private";
+            $cgi_bin = "/home/$user/web/cgi-bin";
+            $document_errors = "/home/$user/web/$domain/document_errors";
+
+            // Copy website folders to user tmp folder, accounting for export options
+            $abcopy = __DIR__ . '/abcopy';
+            $exvc = ';';
+            if ( strpos($export_options, 'exvc') !== false ) $exvc = ' true;';
+            $command = '';
+            if ( strpos($export_options, 'public_html') !== false && is_dir( $public_html) ) {
+                $command .= "$abcopy $public_html $export_folder/public_html" . $exvc;
+            }
+            if ( strpos($export_options, 'nodeapp') !== false &&  is_dir( $nodeapp ) ) {
+                $command .= "$abcopy $nodeapp $export_folder/nodeapp" . $exvc;
+            } 
+            if ( strpos($export_options, 'private') !== false && is_dir( $private ) ) {
+                $command .= "$abcopy $private $export_folder/private" . $exvc;
+            }
+            if ( strpos($export_options, 'cgi_bin') !== false && is_dir( $cgi_bin ) ) {
+                $command .= "$abcopy $cgi_bin $export_folder/cgi-bin" . $exvc;
+            }
+            if ( strpos($export_options, 'document_errors') !== false && is_dir( $document_errors ) ) {
+                $command .= "$abcopy $document_errors $export_folder/document_errors" . $exvc;
+            }
+
+            // Reset ownership, zip up contents, move to exports, and clean up
+            $zip_file = "/home/$user/web/exports/" . $manifest['zip_file'];
+            $command .= "chown -R $user:$user $export_folder && cd $export_folder ";
+            $command .= "&& zip -r $export_folder.zip . && cd .. && rm -rf $export_folder ";
+            $command .= "&& mkdir -p /home/$user/web/exports ";
+            $command .= "&& mv $export_folder.zip $zip_file ";
+            $command .= "&& chown -R $user:$user /home/$user/web/exports ";
+            $command = $hcpp->do_action( 'quickstart_export_zip', $command ); // Allow plugin mods
+            shell_exec( $command );
+            return $args;
+        }
+
+        /**
+         * Our trusted elevated command to get site manifest; used by $this->get_manifest().
+         * @param array $args The arguments passed to the command.
+         */
+        public function quickstart_get_manifest( $args ) {
+            $user = $args[1];
+            $domain = $args[2];
 
             // Get a list of databases for the given user
             global $hcpp;
@@ -621,12 +398,19 @@
 
             // Get a list of folders to scan for credentials
             $web_domain = $hcpp->run( "list-web-domain " . $user . " '" . $domain . "' json " );
-            if ( $web_domain == NULL ) return [];
+            if ( $web_domain == NULL ) {
+                echo json_encode( [ 'error' => 'Domain not found' ] );
+                exit();
+            }
             $public_html = $web_domain[$domain]['DOCUMENT_ROOT'];
             $nodeapp = str_replace( '/public_html/', '/nodeapp/', $public_html );
 
             // Gather web domain items for migration; mentions of domain, aliases, or user folder
             $aliases = $web_domain[$domain]['ALIAS'];
+            $backend = $web_domain[$domain]['BACKEND'];
+            $proxy = $web_domain[$domain]['PROXY'];
+            $proxy_ext = $web_domain[$domain]['PROXY_EXT'];
+            $template = $web_domain[$domain]['TPL'];
             $aliases = explode( ',', $aliases );
             $migrate_strings = [
                 "/home/$user", 
@@ -691,11 +475,11 @@
                 $content = file_get_contents( $file );
                 $index = 0;
 
-                // Check for mentions of database, domain, aliases, 
+                // Check for mentions of database, domain, aliases
                 foreach( $databases as $database ) {
                     if ( !isset( $database['ref_files'] ) ) $database['ref_files'] = [];
                     if ( strpos( $content, $database['DATABASE'] ) !== false ) {
-                        $database['ref_files'][] = $file;// $hcpp->delLeftMost( $file, $domain );
+                        $database['ref_files'][] = $file;
                     }
                     $databases[$index] = $database;
                     $index++;
@@ -717,7 +501,7 @@
             }
 
             // Analyze dbs that have assoc. files, and extract the password for each database
-            $found_dbs = [];
+            $db_details = [];
             foreach( $databases as $database ) {
                 if ( !isset( $database['ref_files'] ) || count( $database['ref_files'] ) == 0 ) continue;
 
@@ -761,237 +545,49 @@
                     $content = $hcpp->delLeftMost( $content, $qchar );
                     $password = $hcpp->getLeftMost( $content, $qchar );
                     $database['DBPASSWORD'] = $password;
-                    $found_dbs[] = $database;
+                    $db_details[] = $database;
                     continue;
                 }
             }
 
-            // Append migrate files to the found_dbs array
-            $found_dbs[] = [ 
-                'domain' => $domain,
-                'aliases' => $aliases,
-                'ref_files' => $migrate_ref_files 
-            ];
-
             // Make ref_files relative paths
-            foreach( $found_dbs as $key => $db ) {
+            foreach( $db_details as $key => $db ) {
                 foreach( $db['ref_files'] as $key2 => $file ) {
-                    $found_dbs[$key]['ref_files'][$key2] = "." . $hcpp->delLeftMost( $file, $domain );
+                    $db_details[$key]['ref_files'][$key2] = "." . $hcpp->delLeftMost( $file, $domain );
                 }
             }
+            foreach( $migrate_ref_files as $key => $file ) {
+                $migrate_ref_files[$key] = "." . $hcpp->delLeftMost( $file, $domain );
+            }
 
-            // Output the found databases and migrations
-            return $found_dbs;
+            // Output the site and database details
+            $site_details = [ 
+                'domain' => $domain,
+                'aliases' => $aliases,
+                'backend' => $backend,
+                'proxy' => $proxy,
+                'proxy_ext' => $proxy_ext,
+                'template' => $template,
+                'ref_files' => $migrate_ref_files,
+                'databases' => $db_details
+            ];
+            echo json_encode( $site_details );
+            return $args;
         }
 
         /**
-         * Search and replace the given string in the given source text file, with special support
-         * for PHP serialized strings in MySQL's "quickdump" file format, and the search for escaped
-         * characters in the strings.
-         * 
-         * @param string $file The path and filename to the file to modify.
-         * @param string|string[] $search The string or array of strings to search for.
-         * @param string|string[] $replace The string or array of strings to replace with.
+         * Report a quickstart process status by unique key.
+         * @param string $key The unique key for the process.
+         * @param string $message The message to report.
+         * @param string $status The status to report.
          */
-        // Search and replace the given string in the given SQL file, assuming it's a quickdump file
-        public function search_replace_file( $file, $search, $replace ) {
-
-            // Check parameters
-            if ( !file_exists( $file ) ) {
-                throw new Exception( "File '$file' does not exist." );
-            }
-            if ( !is_string( $search ) && !is_array( $search ) ) {
-                throw new Exception( "Parameter 'search' must be a string or array." );
-            }
-            if ( !is_string( $replace ) && !is_array( $replace ) ) {
-                throw new Exception( "Parameter 'replace' must be a string or array." );
-            }
-            if ( is_string( $search ) ) {
-                $search = [ $search ];
-            }
-            if ( is_string( $replace ) ) {
-                $replace = [ $replace ];
-            }
-            if ( count( $search ) != count( $replace ) ) {
-                throw new Exception( "Parameters 'search' and 'replace' must have the same number of elements." );
-            }
-
-            // Duplicate search and replace strings with escaped versions if necessary
-            $searchEscaped = [];
-            $replaceEscaped = [];
-            for ($i = 0; $i < count($search); $i++) {
-                $searchE = addcslashes($search[$i], "\/\n\r\0");
-                
-                // Check if already in array
-                if ( in_array( $searchE, $search ) ) continue;
-                $searchEscaped[] = $searchE;
-                $replaceEscaped[] = addcslashes($replace[$i], "\/\n\r\0");
-            }
-            $search = array_merge( $search, $searchEscaped );
-            $replace = array_merge( $replace, $replaceEscaped );
-
-            // Load the file and replace the strings
-            $handle = fopen( $file, 'r' );
-            $tempFile = $file . '.tmp';
-            $writeStream = fopen( $tempFile, 'w' );
-            $regex1 = "/('.*?'|[^',\s]+)(?=\s*,|\s*;|\s*$)/";
-            global $regex2;
-            $regex2 = "/s:(\d+):\"(.*?)\";/ms";
-            while ( ( $line = fgets( $handle ) ) !== false ) {
-                $origLine = $line;
-                $line = trim( $line );
-                $bModifed = false;
-                for ( $i = 0; $i < count( $search ); $i++ ) {
-                    $searchString = $search[$i];
-                    $replaceString = $replace[$i];
-                    if ( strpos( $line, $searchString ) !== false && $searchString != $replaceString ) {
-
-                        // Sense Quickdump format
-                        if (strpos($line, "(") === 0 && (substr($line, -2) === ")," || substr($line, -2) === ");")) {
-                            $startLine = substr( $line, 0, 1 );
-                            $endLine = substr( $line, -2 );
-                            $line = substr( $line, 1, -2 );
-                            $line = str_replace("\\0", "~0Placeholder", $line );
-                            $matches = [];
-                            preg_match_all( $regex1, $line, $matches );
-                            $items = $matches[0];
-                            $line = implode( '', [$startLine, implode( ",", array_map( function ( $item ) use ( $searchString, $replaceString ) {
-                                if (strpos( $item, "'" ) === 0 && strrpos( $item, "'" ) === strlen( $item ) - 1 ) {
-                                    $item = substr( $item, 1, -1 );
-                                    $item = str_replace( $searchString, $replaceString, $item );
-
-                                    // Sense serialized strings
-                                    if ( $this->is_serialized( $item ) ) {
-
-                                        // Recalculate the length of the serialized strings
-                                        $item = json_decode(json_encode( $item ) );
-                                        $item = str_replace( "\\", "", $item );
-                                        $item = str_replace( "~0Placeholder", "\0", $item );
-                                        global $regex2;
-                                        $item = preg_replace_callback( $regex2, function ( $matches ) {
-                                            return 's:' . strlen( $matches[2] ) . ':"' . $matches[2] . '";';
-                                        }, $item);
-                                        $item = addslashes( $item );
-                                    }else{
-                                        $item = str_replace( "\0", "~0Placeholder", $item );
-                                    }
-                                    return implode( '', ["'" , $item , "'"] );
-                                } else if ( $item === 'null' ) {
-                                    return null;
-                                } else if ( is_numeric( $item ) ) {
-                                    return (float)$item;
-                                } else {
-                                    return $item;
-                                }
-                            }, $items ) ), $endLine] );
-                        }else{
-                            $line = str_replace( $searchString, $replaceString, $line );
-                        }
-                        $bModifed = true;
-                    }
-                }
-                if (false === $bModifed) {
-                    $line = $origLine;
-                }
-
-                // Ensure the line ends with a newline
-                if ( substr( $line, -1 ) != "\n" ) {
-                    $line .= "\n";
-                }
-                fwrite( $writeStream, $line );
-            }
-            fclose( $handle );
-            fclose( $writeStream );
-
-            // Check for multi-line block in search and replace them in
-            // the temp file as a whole because line-by-line won't work.
-            for ( $i = 0; $i < count( $search ); $i++ ) {
-                $searchString = $search[$i];
-                $replaceString = $replace[$i];
-                if ( strpos( $searchString, "\n" ) !== false ) {
-                    $content = file_get_contents( $tempFile );
-                    $content = str_replace( $searchString, $replaceString, $content );
-                    file_put_contents( $tempFile, $content );
-                }
-            }
-
-            // Get the original file's permissions and ownership
-            $fileStat = stat( $file );
-            $fileMode = $fileStat['mode'];
-            $fileUid = $fileStat['uid'];
-            $fileGid = $fileStat['gid'];
-
-            // Replace the original file with the temp file
-            rename( $tempFile, $file );
-
-            // Restore the original file's permissions and ownership
-            chmod( $file, $fileMode );
-            chown( $file, $fileUid );
-            chgrp( $file, $fileGid );
-        }
-
-        // Check if a string is serialized
-        public function is_serialized( $data, $strict = true ) {
-            if (strlen( $data) < 4 ) {
-                return false;
-            }
-            if ( $data[1] !== ':' ) {
-                return false;
-            }
-            if ( $data === 'N;' ) {
-                return true;
-            }
-            if ( $strict) {
-                $lastc = $data[strlen( $data) - 1];
-                if ( $lastc !== ';' && $lastc !== '}' ) {
-                    return false;
-                }
-            } else {
-                $semicolon = strpos( $data, ';' );
-                $brace = strpos( $data, '}' );
-                // Either ; or } must exist.
-                if ( $semicolon === false && $brace === false ) {
-                    return false;
-                }
-                // But neither must be in the first X characters.
-                if ( $semicolon !== false && $semicolon < 3 ) {
-                    return false;
-                }
-                if ( $brace !== false && $brace < 4 ) {
-                    return false;
-                }
-            }
-            $token = $data[0];
-            switch ( $token ) {
-                case 's':
-                    if ( $strict ) {
-                        if ( $data[strlen( $data) - 2] !== '"' ) {
-                            return false;
-                        }
-                    } else if (!strpos( $data, '"' ) ) {
-                        return false;
-                    }
-                    // Or else fall through.
-                case 'a':
-                case 'O':
-                case 'E':
-                    return (bool)preg_match( "/^" . $token . ":[0-9]+:/", $data );
-                case 'b':
-                case 'i':
-                case 'd':
-                    $end = $strict ? '$' : '';
-                    return (bool)preg_match( "/^" . $token . ":[0-9.E+-]+;" . $end . "/", $data );
-            }
-            return false;
-        }
-
-        // Convert a title to a valid variable name
-        public function title_to_var_name( $str ) {
-            $str = strtolower($str); // Convert all characters to lowercase
-            $str = preg_replace('/[^a-z0-9\s]/', '', $str); // Remove all non-alphanumeric characters except spaces
-            $str = preg_replace('/\s+/', '_', $str); // Replace one or more spaces with underscores
-            $str = preg_replace_callback('/_([a-z])/', function ($match) { return strtoupper($match[1]); }, $str); // Convert underscores to camelCase
-            return $str;
+        public function report_status( $job_id, $message, $status = 'running' ) {
+            $result_file = '/tmp/devstia_' . $job_id . '.result';
+            $result = json_encode( [ 'status' => $status, 'message' => $message ] );
+            unlink( $result_file );
+            file_put_contents( $result_file, $result );
+            chown( $result_file, 'admin' );
+            chgrp( $result_file, 'admin' );
         }
     }
     new Quickstart();

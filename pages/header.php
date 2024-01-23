@@ -148,5 +148,6 @@
 </script>
 <?php
     $page = ob_get_clean();
+    global $hcpp;
     echo $hcpp->do_action('quickstart_header', $page);
 ?>

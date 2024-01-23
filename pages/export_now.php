@@ -1,57 +1,28 @@
 <?php require( 'header.php' ); ?>
 <?php
-    // Omit databases that are not selected
-    global $hcpp;
-    $db_details = $_SESSION['db_details'];
-    $domain = $_GET['domain'];
-    $user = $_SESSION['user'];
-    $dbs = [];
-    $web_detail = $hcpp->run( "v-list-web-domain $user $domain json" )[$domain];
-    $main_ref_files = [];
-    foreach( $db_details as $db => $details ) {
-        if ( !isset( $details['DATABASE'] ) ) {
-            $main_ref_files = $details['ref_files'];
-            continue;
-        }
-        if ( in_array( $details['DATABASE'], explode( ",", $_GET['dbs'] ) ) ) {
-            $dbs[] = $details;
-
-            // Cull user folder from ref_files
-            foreach( $dbs as $key => $db ) {
-                foreach( $db['ref_files'] as $key2 => $file ) {
-                    if ( substr( $file, 0, 1 ) == '.' ) continue;
-                    $dbs[$key]['ref_files'][$key2] = $file;
-                }
-            }
-        }
+    // Validate the job_id
+    $job_id = $_GET['job_id'];
+    if ( $hcpp->quickstart->is_job_valid( $job_id ) === false ) {
+        header( 'Location: ?quickstart=main' );
+        exit;
     }
 
-    // Create a manifest file for the export
-    $dtstamp = date( 'Y-m-d-His' );
-    $json_file = 'devstia_export_' . $dtstamp . '.json';
-    $zip_file = $domain . '_' . $dtstamp . '.zip';
-    $devstia_manifest = [
-        'alias' => $web_detail['ALIAS'],
-        'backend' => $web_detail['BACKEND'],
-        'databases' => $dbs,
-        'domain' => $domain,
-        'proxy' => $web_detail['PROXY'],
-        'proxy_ext' => $web_detail['PROXY_EXT'],
-        'template' => $web_detail['TPL'],
-        'user' => $user,
-        'zip_file' => $zip_file,
-        'ref_files' => $main_ref_files,
-        'export_options' => $_POST['export_options'] ?? '',
-        'export_adv_options' => json_decode( $_POST['export_adv_options'] ?? ''),
-    ];
-    $_SESSION['devstia_manifest'] = $devstia_manifest;
-    file_put_contents( '/tmp/' . $json_file, json_encode( $devstia_manifest, JSON_PRETTY_PRINT ) );
-
-    // Start export process asynchonously and get the process id
-    $export_pid = trim( shell_exec(HESTIA_CMD . "v-invoke-plugin quickstart_export_zip " . $json_file . " > /dev/null 2>/dev/null & echo $!") );
-    $export_key = $hcpp->nodeapp->random_chars( 16 );
-    $_SESSION['export_key'] = $export_key;
-    $_SESSION[$export_key . '_pid'] = $export_pid;
+    // Get the manifest
+    $manifest = $hcpp->quickstart->get_job_data( $job_id, 'manifest' );
+    if ( $manifest === false ) {
+        header( 'Location: ?quickstart=main' );
+        exit;
+    }
+    $manifest['user'] = $_SESSION['user'];
+    $manifest['job_id'] = $job_id;
+    $manifest['zip_file'] = $manifest['domain'] . '_' . date( 'Y-m-d-His' ) . '.zip';
+    $manifest['export_options'] = $_POST['export_options'] ?? '';
+    $manifest['export_adv_options'] = json_decode( $_POST['export_adv_options'] ?? '');
+    
+    // Run the export process
+    echo "<pre>" . print_r( json_encode( $manifest, JSON_PRETTY_PRINT), true ) . "</pre>";
+    $hcpp->quickstart->export_zip( $manifest );
+    exit();
 ?>
 <div class="toolbar" style="z-index:100;position:relative;">
     <div class="toolbar-inner">
@@ -69,7 +40,7 @@
 </div>
 <div class="body-reset container">
     <div class="quickstart qs_export_now">
-        <h1>Export <?php echo $domain; ?></h1>
+        <h1>Export <?php echo $manifest['domain']; ?></h1>
         <legend id="status">Please wait. Copying and compressing files.</legend>
         <div id="error" style="display: none;"></div>
     </div>
@@ -82,7 +53,7 @@
             $('#back').on('click', (e) => {
                 e.preventDefault();
                 $.ajax({
-                    url: '../../pluginable.php?load=quickstart&action=export_cancel&export_key=<?php echo $export_key; ?>',
+                    url: '../../pluginable.php?load=quickstart&action=export_cancel&job_id=<?php echo $job_id; ?>',
                     type: 'GET',
                     success: function( data ) {
                         $('#error').html( '<p>Export cancelled.</p>');
@@ -95,11 +66,11 @@
                 });
             });
 
-            // Check the export_key every 8 seconds
-            var export_key = '<?php echo $export_key; ?>';
+            // Check the job_id every 8 seconds
+            var job_id = '<?php echo $job_id; ?>';
             var export_int = setInterval( () => {
                 $.ajax({
-                    url: '../../pluginable.php?load=quickstart&action=export_status&export_key=' + export_key,
+                    url: '../../pluginable.php?load=quickstart&action=export_status&job_id=' + job_id,
                     type: 'GET',
                     success: function( data ) {
                         try {
@@ -112,7 +83,7 @@
                         if ( data.status == 'finished' ) {
                             $('#status').html(`<p>Finished! You can download the exported archive at:</p>
                             <div style="padding:10px;">
-                                <strong><a href="../../pluginable.php?load=quickstart&action=download&export_key=<?php echo $export_key; ?>">
+                                <strong><a href="../../pluginable.php?load=quickstart&action=download&job_id=<?php echo $job_id; ?>">
                                 <?php
                                     $zip_file = $json_file;
                                     $zip_file = $hcpp->delRightMost( $zip_file, '.json' ) . '.zip';

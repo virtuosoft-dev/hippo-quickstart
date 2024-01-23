@@ -2,24 +2,24 @@
 <?php
 
     // Validate import key
-    if (false == (isset($_GET['import_key']) && isset($_SESSION['import_key']))) return;
-    if ($_GET['import_key'] != $_SESSION['import_key']) return;
-    $import_key = $_GET['import_key'];
-    if (false == isset($_SESSION[$import_key . '_file'])) return;
-    $import_file = $_SESSION[$import_key . '_file'];
-    unset ($_SESSION['import_key' . '_file']);
+    if (false == (isset($_GET['job_id']) && isset($_SESSION['job_id']))) return;
+    if ($_GET['job_id'] != $_SESSION['job_id']) return;
+    $job_id = $_GET['job_id'];
+    if (false == isset($_SESSION[$job_id . '_file'])) return;
+    $import_file = $_SESSION[$job_id . '_file'];
+    unset ($_SESSION['job_id' . '_file']);
 
     // Write request with import file to temp file
     global $hcpp;
     $import_folder = $hcpp->getLeftMost( $import_file, '.' );
     $_REQUEST['import_folder'] = $import_folder;
     $_REQUEST['user'] = $_SESSION['user'];
-    $request_file = '/tmp/devstia_import_' . $import_key . '.json';
+    $request_file = '/tmp/devstia_import_' . $job_id . '.json';
     file_put_contents( $request_file, json_encode($_REQUEST, JSON_PRETTY_PRINT) );
     
     // Start import process asynchonously and get the process id
-    $import_pid = trim( shell_exec(HESTIA_CMD . "v-invoke-plugin quickstart_import_now " . $import_key . " > /dev/null 2>/dev/null & echo $!") );
-    $_SESSION[$import_key . '_pid'] = $import_pid;
+    $import_pid = trim( shell_exec(HESTIA_CMD . "v-invoke-plugin quickstart_import_now " . $job_id . " > /dev/null 2>/dev/null & echo $!") );
+    $_SESSION[$job_id . '_pid'] = $import_pid;
 ?>
 <div class="toolbar" style="z-index:100;position:relative;">
     <div class="toolbar-inner">
@@ -54,7 +54,7 @@
             // $('#back').on('click', (e) => {
             //     e.preventDefault();
             //     $.ajax({
-            //         url: '../../pluginable.php?load=quickstart&action=import_cancel&import_key=<?php echo $import_key; ?>',
+            //         url: '../../pluginable.php?load=quickstart&action=import_cancel&job_id=<?php echo $job_id; ?>',
             //         type: 'GET',
             //         success: function( data ) {
             //             $('#status').html( 'Import cancelled. Click continue.');
@@ -69,7 +69,7 @@
             // Check the import key every 8 seconds
             var import_int = setInterval( () => {
                 $.ajax({
-                    url: '../../pluginable.php?load=quickstart&action=import_result&import_key=<?php echo $import_key; ?>',
+                    url: '../../pluginable.php?load=quickstart&action=import_result&job_id=<?php echo $job_id; ?>',
                     type: 'GET',
                     success: function( data ) {
                         console.log(data);
@@ -117,7 +117,7 @@
             //                 }
             //             }
             //             $('#continue-button').removeClass('disabled');
-            //             $('#continue-button').attr('href', '?quickstart=import_now&import_key=<?php echo $import_key; ?>');
+            //             $('#continue-button').attr('href', '?quickstart=import_now&job_id=<?php echo $job_id; ?>');
             //             $('.spinner-overlay').removeClass('active');
             //             clearInterval( import_int );
             //         }

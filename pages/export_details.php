@@ -1,22 +1,21 @@
 <?php require( 'header.php' ); ?>
 <?php
-    // Sanitize domain
-    $domain = $_GET['domain'];
-    $domain = preg_replace('/[^a-zA-Z0-9\.\-]/', '', $domain);
-    $user = $_SESSION['user'];
-    exec(HESTIA_CMD . "v-invoke-plugin quickstart_site_details " . $user . " " . $domain, $output, $return_var);
-    $db_details = json_decode(implode("", $output), true);
-    $_SESSION['db_details'] = $db_details;
+    // Create a new job
+    $job_id = $hcpp->quickstart->create_job();
+
+    // Get site details
+    $manifest = $hcpp->quickstart->get_manifest( $_SESSION['user'], $_GET['domain'] );
+    $hcpp->quickstart->set_job_data( $job_id, 'manifest', $manifest );
 ?>
 <div class="toolbar">
     <div class="toolbar-inner">
         <div class="toolbar-buttons">
-            <a href="?quickstart=export&domain=<?php echo $domain; ?>" class="button button-secondary button-back js-button-back" id="back">
+            <a href="?quickstart=export&domain=<?php echo $_GET['domain']; ?>" class="button button-secondary button-back js-button-back" id="back">
                 <i tabindex="300" class="fas fa-arrow-left icon-blue"></i>Back			
             </a>
         </div>
         <div class="toolbar-buttons">
-            <a href="?quickstart=export_now" class="button" id="continue-button">
+            <a href="#" class="button" id="continue-button">
                 <i tabindex="200" class="fas fa-arrow-right icon-blue"></i>Continue
             </a>         
         </div>
@@ -25,7 +24,7 @@
 <div class="body-reset container">
     <div class="quickstart qs_details">
         <h1>Database Details</h1>
-        <legend>The following databases were referenced in files for <?php echo $domain ?>.<br>These will be included in your export. Uncheck to omit them.</legend>
+        <legend>The following databases were referenced in files for <?php echo $_GET['domain'] ?>.<br>These will be included in your export. Uncheck to omit them.</legend>
         <div class="export-list">
             <div class="units-table js-units-container">
                 <div class="units-table-header">
@@ -39,8 +38,7 @@
                 <?php
                     // Loop through each database and display details
                     $item = 1;
-                    foreach ( $db_details as $db => $details ) {
-                        if ( !isset( $details['DATABASE'] ) ) continue;
+                    foreach ( $manifest['databases'] as $details ) {
                 ?>
                 <div class="units-table-row">
                     <div class="units-table-cell">
@@ -87,7 +85,7 @@
                 </div>
                 <?php
                         $item++;
-                    } // end foreach( $db_details as $db => $details )
+                    } // end foreach ( $manifest['databases'] as $details )
                 ?>
             </div>
         </div>
@@ -114,7 +112,7 @@
                     }
                 });
                 dbs = dbs.join(',');
-                $('#continue-button').attr('href', '?quickstart=export_options&domain=<?php echo $domain; ?>&dbs=' + dbs);
+                $('#continue-button').attr('href', '?quickstart=export_options&dbs=' + dbs + '&job_id=<?php echo $job_id; ?>');
             }
             checkDbs();
         });

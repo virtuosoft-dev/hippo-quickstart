@@ -1,8 +1,7 @@
 <?php require( 'header.php' ); ?>
 <?php
-    global $hcpp;
-    $import_key = $hcpp->nodeapp->random_chars( 16 );
-    $_SESSION['import_key'] = $import_key;
+    // Create a new job
+    $job_id = $hcpp->quickstart->create_job();
 ?>
 <div class="toolbar">
     <div class="toolbar-inner">
@@ -83,7 +82,7 @@
                 var formData = new FormData();
                 formData.append('file', file);
                 $.ajax({
-                    url: '../../pluginable.php?load=quickstart&action=upload&import_key=<?php echo $import_key; ?>',
+                    url: '../../pluginable.php?load=quickstart&action=upload&job_id=<?php echo $job_id; ?>',
                     type: 'POST',
                     data: formData,
                     processData: false,
@@ -106,8 +105,8 @@
                         }
                         if (data.status == 'uploaded') {
                             $('#dropZone').html('<i class="fas fa-file-archive"></i><br>' + data.message + '</span>');
-                            $('#continue-button').attr('href', '?quickstart=import_options&import_key=<?php echo $import_key; ?>');
-                            $('#back').attr('href', '?quickstart=import_export&import_key=<?php echo $import_key; ?>');
+                            $('#continue-button').attr('href', '?quickstart=import_options&job_id=<?php echo $job_id; ?>');
+                            $('#back').attr('href', '?quickstart=import_export&job_id=<?php echo $job_id; ?>');
                             $('#continue-button').removeClass('disabled');
                         }else{
                             $('#dropZone').html('<i class="fas fa-exclamation-triangle" style="color:orange;"></i><br>' + data.message + '</span>');

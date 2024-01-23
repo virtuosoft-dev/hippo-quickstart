@@ -2,16 +2,16 @@
 <?php
 
     // Validate import key
-    if (false == (isset($_GET['import_key']) && isset($_SESSION['import_key']))) return;
-    if ($_GET['import_key'] != $_SESSION['import_key']) return;
-    $import_key = $_GET['import_key'];
-    if (false == isset($_SESSION[$import_key . '_file'])) return;
-    $import_file = $_SESSION[$import_key . '_file'];
+    if (false == (isset($_GET['job_id']) && isset($_SESSION['job_id']))) return;
+    if ($_GET['job_id'] != $_SESSION['job_id']) return;
+    $job_id = $_GET['job_id'];
+    if (false == isset($_SESSION[$job_id . '_file'])) return;
+    $import_file = $_SESSION[$job_id . '_file'];
 
     // Start import file processing asynchronously and get the process id
     global $hcpp;
     $import_pid = trim( shell_exec(HESTIA_CMD . "v-invoke-plugin quickstart_import_file " . $import_file . " > /dev/null 2>/dev/null & echo $!") );
-    $_SESSION[$import_key . '_pid'] = $import_pid;
+    $_SESSION[$job_id . '_pid'] = $import_pid;
 ?>
 <div class="toolbar" style="z-index:100;position:relative;">
     <div class="toolbar-inner">
@@ -42,7 +42,7 @@
             $('#back').on('click', (e) => {
                 e.preventDefault();
                 $.ajax({
-                    url: '../../pluginable.php?load=quickstart&action=import_cancel&import_key=<?php echo $import_key; ?>',
+                    url: '../../pluginable.php?load=quickstart&action=import_cancel&job_id=<?php echo $job_id; ?>',
                     type: 'GET',
                     success: function( data ) {
                         $('#status').html( 'Import cancelled. Click continue.');
@@ -67,7 +67,7 @@
             // Check the import key every 8 seconds
             var import_int = setInterval( () => {
                 $.ajax({
-                    url: '../../pluginable.php?load=quickstart&action=import_status&import_key=<?php echo $import_key; ?>',
+                    url: '../../pluginable.php?load=quickstart&action=import_status&job_id=<?php echo $job_id; ?>',
                     type: 'GET',
                     success: function( data ) {
                         try {
@@ -82,7 +82,7 @@
 
                             // Create form to customize domain/aliases 
                             const domain = data.domain;
-                            let html = `<form id="import_now" method="POST" action="?quickstart=import_now&import_key=<?php echo $import_key; ?>">
+                            let html = `<form id="import_now" method="POST" action="?quickstart=import_now&job_id=<?php echo $job_id; ?>">
                                         <div class="u-mb10">
                                             <label for="v_domain" class="form-label">Domain</label>
                                             <input type="text" class="form-control" name="v_domain" id="v_domain" value="${domain}" required="">

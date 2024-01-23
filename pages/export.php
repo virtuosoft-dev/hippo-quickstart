@@ -24,7 +24,7 @@
                         <div class="toolbar-search">
                             <form method="get">
                                 <input type="hidden" name="quickstart" value="export">
-                                <input type="search" class="form-control js-search-input" name="q" value="<?php echo $_GET['q'];?>" title="Search">
+                                <input type="search" class="form-control js-search-input" name="q" value="<?php if ( isset($_GET['q']) ) echo $_GET['q'];?>" title="Search">
                                 <button type="submit" class="toolbar-input-submit" title="Search">
                                     <i class="fas fa-magnifying-glass"></i>
                                 </button>
@@ -40,13 +40,10 @@
                     <div class="units-table-cell"></div>
                     <div class="units-table-cell u-text-center">Disk</div>
                 </div>
-
                 <?php
-                    $user = $_SESSION['user'];
-                    exec(HESTIA_CMD . "v-list-web-domains " . $user . " 'json'", $output, $return_var);
-                    $websites = json_decode(implode("", $output), true);
-
+                    
                     // Loop through each website and display details
+                    $websites = $hcpp->run( 'list-web-domains ' . $_SESSION['user'] . ' json' );
                     $item = 1;
                     foreach( $websites as $domain => $details ) {
                         if ( !empty($_GET['q']) && strpos($domain, $_GET['q']) === false ) continue;

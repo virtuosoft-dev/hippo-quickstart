@@ -1,14 +1,46 @@
 <?php require( 'header.php' ); ?>
 <?php
-    $db_details = $_SESSION['db_details'];
-    $domain = $_GET['domain'];
-    $dbs = $_GET['dbs'];
+    // Validate the job_id
+    $job_id = $_GET['job_id'];
+    if ( $hcpp->quickstart->is_job_valid( $job_id ) === false ) {
+        header( 'Location: ?quickstart=main' );
+        exit;
+    }
+
+    // Get the manifest
+    $manifest = $hcpp->quickstart->get_job_data( $job_id, 'manifest' );
+    if ( $manifest === false ) {
+        header( 'Location: ?quickstart=main' );
+        exit;
+    }
+
+    // Get the selected databases
+    $dbs = [];
+    if ( !isset( $_GET['dbs'] ) ) {
+        header( 'Location: ?quickstart=main' );
+        exit;
+    }else{
+        $dbs = $_GET['dbs'];
+    }
+
+    // Cull unselected databases from the manifest
+    $db_details = $manifest['databases'];
+    $db_selected = [];
+    foreach ( $db_details as $db ) {
+        if ( strpos( $dbs, $db['DATABASE'] ) === false ) {
+            continue;
+        }
+        $db_selected[] = $db;
+    }
+    $manifest['databases'] = $db_selected;
+    $hcpp->set_job_data( $job_id, 'manifest', $manifest );
+    $domain = $manifest['domain'];
 ?>
-<form id="export-options-form" method="post" action="?quickstart=export_now&domain=<?php echo $domain; ?>&dbs=<?php echo $dbs; ?>">
+<form id="export-options-form" method="post" action="?quickstart=export_now&domain=<?php echo $domain; ?>&dbs=<?php echo $dbs; ?>&job_id=<?php echo $job_id; ?>">
     <div class="toolbar">
         <div class="toolbar-inner">
             <div class="toolbar-buttons">
-                <a href="?quickstart=export_details&domain=<?php echo $domain; ?>&dbs=<?php echo $dbs; ?>" class="button button-secondary button-back js-button-back" id="back">
+                <a href="?quickstart=export_details&domain=<?php echo $domain; ?>&dbs=<?php echo $dbs; ?>&job_id=<?php echo $job_id; ?>" class="button button-secondary button-back js-button-back" id="back">
                     <i tabindex="300" class="fas fa-arrow-left icon-blue"></i>Back			
                 </a>
             </div>
