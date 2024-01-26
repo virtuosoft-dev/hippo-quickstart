@@ -12,6 +12,19 @@ if ( ! class_exists( 'Quickstart') ) {
     class Quickstart {
 
         /**
+         * Cancel the job process by job id and clean up data.
+         * @param array $job_id The job id of the process to cancel.
+         */
+        public function cancel_job( $job_id ) {
+            $pid = $this->get_job_data( $job_id, 'pid' );
+            global $hcpp;
+            $hcpp->run( "invoke-plugin quickstart_cancel_job $job_id $pid" );
+            if ( isset( $_SESSION['devstia_jobs'][$job_id] ) ) {
+                unset( $_SESSION['devstia_jobs'][$job_id] );
+            }
+        }
+
+        /**
          * Constructor, listen for the render events
          */
         public function __construct() {
@@ -22,6 +35,15 @@ if ( ! class_exists( 'Quickstart') ) {
             $hcpp->add_action( 'hcpp_rebooted', [ $this, 'hcpp_rebooted' ] );
             $hcpp->add_action( 'hcpp_render_body', [ $this, 'hcpp_render_body' ] );
             $hcpp->add_action( 'hcpp_render_panel', [ $this, 'hcpp_render_panel' ] );
+        }
+
+        /**
+         * Cleanup the given job data from the session and file system.
+         * @param string $job_id The unique job id.
+         */
+        public function cleanup_job_data( $job_id ) {
+            $command = "rm -rf /tmp/devstia_$job_id*";
+            shell_exec( $command );
         }
 
         /** 
@@ -71,67 +93,43 @@ if ( ! class_exists( 'Quickstart') ) {
         }
 
         /**
-         * Transfer the given job data to a file with admin privileges; allowing a priviledged
-         * process to get otherwise inaccessible admin session data.
-         * @param string $job_id The unique job id.
-         * @param string $key The key of the data to transfer.
-         * @return bool True if successful, false otherwise.
-         */
-        public function xfer_job_data( $job_id, $key ) {
-            if ( !isset( $_SESSION['devstia_jobs'][$job_id] ) ) return false;
-            if ( !isset( $_SESSION['devstia_jobs'][$job_id][$key] ) ) return false;
-            $value = json_encode( $_SESSION['devstia_jobs'][$job_id][$key], JSON_PRETTY_PRINT );
-            file_put_contents( "/tmp/devstia_$job_id-$key.json", $value );
-            chown( "/tmp/devstia_$job_id-$key.json", 'admin' );
-            chgrp( "/tmp/devstia_$job_id-$key.json", 'admin' );
-            return true;
-        }
-
-        /**
-         * Pickup the given job data from a file and remove it; this allows a priviledged
-         * process to get otherwise inaccessible admin session data.
-         * @param string $job_id The unique job id.
-         * @param string $key The key of the data to pickup.
-         * @return mixed The data value.
-         */
-        public function pickup_job_data( $job_id, $key ) {
-            if ( file_exists( "/tmp/devstia_$job_id-$key.json" ) ) {
-                try {
-                    $value = file_get_contents( "/tmp/devstia_$job_id-$key.json" );
-                    $value = json_decode( $value, true );
-                    unlink( "/tmp/devstia_$job_id-$key.json" );
-                    return $value;
-                } catch (Exception $e) {
-                    return false;
-                }
-            }else{
-                return false;
-            }
-        }
-
-        /**
          * Export the website to a zip file with the given manifest.
          * @param array $manifest The manifest of the website to export.
          */
         public function export_zip( $manifest ) {
-            
-            // // Create our priviledged command to export the website to a zip file
-            // $this->create_invoke_plugin_fn( 'export_zip', function( $manifest ) {
-            //
-            // } );
 
-
-
-            global $hcpp;
+            // Transfer the manifest so we can pick it up in our privileged process
             $this->set_job_data( $manifest['job_id'], 'manifest', $manifest );
             $this->xfer_job_data( $manifest['job_id'], 'manifest' );
 
             // Start the export process asynchonously and get the process id
-            //$export_pid = trim( shell_exec(HESTIA_CMD . "v-invoke-plugin quickstart_export_zip " . $manifest['job_id'] . " > /dev/null 2>/dev/null & echo $!") );
+            $pid = trim( shell_exec( HESTIA_CMD . "v-invoke-plugin quickstart_export_zip " . $manifest['job_id'] . " > /dev/null 2>/dev/null & echo $!" ) );
 
             // Store the process id data for the job, to be used for status checks
-            //$this->set_job_data( $manifest['job_id'], 'export_pid', $export_pid );
-        } 
+            $this->set_job_data( $manifest['job_id'], 'pid', $pid );
+        }
+        
+        /**
+         * Decompress the website asynchonously with the given job id
+         */
+        public function import_file( $job_id ) {
+            global $hcpp;
+            $this->xfer_job_data( $job_id, 'import_file' );
+            $pid = trim( shell_exec( HESTIA_CMD . "v-invoke-plugin quickstart_import_file " . $job_id . " > /dev/null 2>/dev/null & echo $!" ) );
+            $this->set_job_data( $job_id, 'pid', $pid );
+        }
+
+        /**
+         * Import the website with user options asynchonously with the given job id
+         */
+        public function import_now( $job_id ) {
+            global $hcpp;
+            $_REQUEST['user'] = $_SESSION['user'];
+            $this->set_job_data( $job_id, 'request', $_REQUEST );
+            $this->xfer_job_data( $job_id, 'request' );
+            $pid = trim( shell_exec( HESTIA_CMD . "v-invoke-plugin quickstart_import_now " . $job_id . " > /dev/null 2>/dev/null & echo $!" ) );
+            $this->set_job_data( $job_id, 'pid', $pid );
+        }
 
         /**
          * Get the site manifest for the given user's website domain. Highly optimized for speed,
@@ -148,37 +146,37 @@ if ( ! class_exists( 'Quickstart') ) {
         }
 
         /**
-         * Get a quickstart process status by unique key.
-         * @param string $key The unique key for the process.
+         * Get a quickstart process status by job id.
+         * @param string $job_id The job id for the process.
          * @return array An associative array of the process status.
          */
-        public function get_status( $unique_key ) {
-            $pid_file = '/tmp/devstia_' . $unique_key . '.pid';
-            $result_file = '/tmp/devstia_' . $unique_key . '.result';
-            $result = [];
-            if ( file_exists( $pid_file ) ) {
-                $pid = file_get_contents( $pid_file );
-                $status = shell_exec('ps -p ' . $pid);
-                if (strpos($status, $pid) === false) {
-                    $result['status'] = 'finished';
-                } else {
-                    $result['status'] = 'running';
+        public function get_status( $job_id ) {
+
+            // Return last result status
+            $result = $this->pickup_job_data( $job_id, 'result' );
+            if ($result !== false) {
+                return $result;
+            }
+
+            // Check for running process
+            $pid = $this->get_job_data( $job_id, 'pid' );
+            if ( $pid === false ) {
+                return [ 'status' => 'error', 'message' => 'PID is uknown.' ];
+            }else{
+                
+                // Check if pid exists
+                $result = shell_exec( "ps -p $pid" );
+                if ( strpos( $result, $pid ) === false ) {
+                    return [ 'status' => 'finished', 'message' => '' ];
+                }else{
+                    return [ 'status' => 'running', 'message' => '' ];
                 }
             }
-            $result['message'] = '';
-            if ( file_exists( $result_file ) ) {
-                $content = file_get_contents( $result_file );
-                $result = json_decode( $content, true );
-            }
-            if ( $result['status'] == 'finished' ) {
-                unlink( $pid_file );
-                unlink( $result_file );
-            }
-            return $result;
         }
-        
+
         /**
          * Redirect to quickstart on login.
+         * @param array $args The arguments passed to the command.
          */
         public function hcpp_head( $args ) {
             if ( !isset( $_GET['alt'] ) ) return $args;
@@ -190,11 +188,15 @@ if ( ! class_exists( 'Quickstart') ) {
 
         /**
          * Run trusted elevated commands from the v-invoke-plugin command.
+         * @param array $args The arguments passed to the command.
          */
         public function hcpp_invoke_plugin( $args ) {
             $trusted = [
                 'quickstart_get_manifest',
-                'quickstart_export_zip'
+                'quickstart_export_zip',
+                'quickstart_cancel_job',
+                'quickstart_import_file',
+                'quickstart_import_now'
             ];
             if ( in_array( $args[0], $trusted ) ) {
                 return call_user_func_array([$this, $args[0]], [$args]);
@@ -206,17 +208,18 @@ if ( ! class_exists( 'Quickstart') ) {
         /**
          * Clean up all the devstia_* files in /tmp and /home/user/tmp folders
          * on reboot.
+         * @param array $args The arguments passed to the command.
          */
         public function hcpp_rebooted( $args ) {
 
             // Clean up /tmp/devstia_* files
             shell_exec('rm -rf /tmp/devstia_*');
 
-            // Cycle through all users and remove /home/user/tmp/devstia_export_* folders
+            // Cycle through all users and remove /home/user/tmp/devstia_* folders
             global $hcpp;
             $users = $hcpp->run( "list-users json" );
             foreach( $users as $user => $details) {
-                $command = "find /home/$user/tmp -maxdepth 1 -type d | egrep 'devstia_export_'";
+                $command = "find /home/$user/tmp -maxdepth 1 -type d | egrep 'devstia_'";
                 $folders = array_filter(explode("\n", shell_exec($command)));
                 foreach( $folders as $folder ) {
                     $command = "rm -rf $folder";
@@ -228,6 +231,7 @@ if ( ! class_exists( 'Quickstart') ) {
 
         /**
          * Render the Quickstart pages in the body.
+         * @param array $args The arguments passed to the command.
          */
         public function hcpp_render_body( $args ) {
             if ( !isset( $_GET['quickstart'] ) ) return $args;
@@ -282,6 +286,7 @@ if ( ! class_exists( 'Quickstart') ) {
 
         /**
          * Render the quickstart panel tab.
+         * @param array $args The arguments passed to the command.
          */
         public function hcpp_render_panel( $args ) {
             $content = $args['content'];
@@ -317,6 +322,115 @@ if ( ! class_exists( 'Quickstart') ) {
         }
 
         /**
+         * Check if the given data is serialized.
+         * @param string $data The data to check.
+         * @return bool True if serialized, false otherwise.
+         */
+        public function is_serialized( $data, $strict = true ) {
+            if (strlen( $data) < 4 ) {
+                return false;
+            }
+            if ( $data[1] !== ':' ) {
+                return false;
+            }
+            if ( $data === 'N;' ) {
+                return true;
+            }
+            if ( $strict) {
+                $lastc = $data[strlen( $data) - 1];
+                if ( $lastc !== ';' && $lastc !== '}' ) {
+                    return false;
+                }
+            } else {
+                $semicolon = strpos( $data, ';' );
+                $brace = strpos( $data, '}' );
+                // Either ; or } must exist.
+                if ( $semicolon === false && $brace === false ) {
+                    return false;
+                }
+                // But neither must be in the first X characters.
+                if ( $semicolon !== false && $semicolon < 3 ) {
+                    return false;
+                }
+                if ( $brace !== false && $brace < 4 ) {
+                    return false;
+                }
+            }
+            $token = $data[0];
+            switch ( $token ) {
+                case 's':
+                    if ( $strict ) {
+                        if ( $data[strlen( $data) - 2] !== '"' ) {
+                            return false;
+                        }
+                    } else if (!strpos( $data, '"' ) ) {
+                        return false;
+                    }
+                    // Or else fall through.
+                case 'a':
+                case 'O':
+                case 'E':
+                    return (bool)preg_match( "/^" . $token . ":[0-9]+:/", $data );
+                case 'b':
+                case 'i':
+                case 'd':
+                    $end = $strict ? '$' : '';
+                    return (bool)preg_match( "/^" . $token . ":[0-9.E+-]+;" . $end . "/", $data );
+            }
+            return false;
+        }
+
+        /**
+         * Pickup the given job data from a file and remove it; this allows a priviledged
+         * process to get otherwise inaccessible admin session data.
+         * @param string $job_id The unique job id.
+         * @param string $key The key of the data to pickup.
+         * @return mixed The data value.
+         */
+        public function pickup_job_data( $job_id, $key ) {
+            $value = $this->peek_job_data( $job_id, $key );
+            $file = "/tmp/devstia_$job_id-$key.json";
+            if ( file_exists( $file ) ) {
+                unlink( $file );
+            }
+            return $value;
+        }
+
+        /**
+         * Return the given job data from a file; this allows a priviledged
+         * process to get otherwise inaccessible admin session data.
+         * @param string $job_id The unique job id.
+         * @param string $key The key of the data to pickup.
+         * @return mixed The data value.
+         */
+        public function peek_job_data( $job_id, $key ) {
+            if ( file_exists( "/tmp/devstia_$job_id-$key.json" ) ) {
+                try {
+                    $value = file_get_contents( "/tmp/devstia_$job_id-$key.json" );
+                    $value = json_decode( $value, true );
+                    return $value;
+                } catch (Exception $e) {
+                    return false;
+                }
+            }else{
+                return false;
+            }
+        }
+
+        /**
+         * Our trusted elevated command to cancel a job; used by $this->cancel_job().
+         * @param array $args The arguments passed to the command.
+         */
+        public function quickstart_cancel_job( $args ) {
+            $job_id = $args[1];
+            $pid = $args[2];
+            $this->report_status( $job_id, 'Export cancelled.' );
+            $this->cleanup_job_data( $job_id );
+            shell_exec( "kill -9 $pid" );
+            return $args;
+        }
+
+        /**
          * Our trusted elevated command to export a website to a zip file; used by $this->export_zip().
          */
         public function quickstart_export_zip( $args ) {
@@ -328,7 +442,6 @@ if ( ! class_exists( 'Quickstart') ) {
             $user = $manifest['user'];
             $domain = $manifest['domain'];
             $export_options = $manifest['export_options'];
-            $export_adv_options = $manifest['export_adv_options'];
             $export_folder = '/home/' . $user . '/tmp/devstia_export_' . $job_id;
             if ( !is_dir( $export_folder ) ) mkdir( $export_folder, true );
             file_put_contents( $export_folder . '/devstia_manifest.json', json_encode( $manifest, JSON_PRETTY_PRINT) );
@@ -377,6 +490,316 @@ if ( ! class_exists( 'Quickstart') ) {
             $command .= "&& chown -R $user:$user /home/$user/web/exports ";
             $command = $hcpp->do_action( 'quickstart_export_zip', $command ); // Allow plugin mods
             shell_exec( $command );
+            return $args;
+        }
+
+        /**
+         * Our trusted elevated command to decompress a website archive asynchonously; used by $this->import_file().
+         */
+        public function quickstart_import_file( $args ) {
+            global $hcpp;
+            $job_id = $args[1];
+            $import_file = $this->pickup_job_data( $job_id, 'import_file' );
+            $import_folder = $hcpp->getLeftMost( $import_file, '.' );
+            if ( file_exists( $import_file ) ) {
+                $command = 'unzip -o -q ' . $import_file . ' -d ' . $import_folder . ' ';
+                $command .= '&& rm -rf ' . $import_file . ' ';
+                $command .= '&& chown -R admin:admin ' . $import_folder;
+                $command = $hcpp->do_action( 'quickstart_import_file_command', $command );
+                shell_exec( $command );
+            }
+            return $args;
+        }
+
+        /**
+         * Our trusted elevated command to import a website with user options asynchonously; used by $this->import_now().
+         */
+        public function quickstart_import_now( $args ) {
+            global $hcpp;
+            $job_id = $args[1];
+            $request = $this->pickup_job_data( $job_id, 'request' );
+
+            // Load manifest
+            $manifest_file = "/tmp/devstia_$job_id-import/devstia_manifest.json";
+            if ( ! file_exists( $manifest_file ) ) {
+                $this->report_status( $job_id, 'Error: Manifest file not found.', 'error' );
+                return $args;
+            }
+            try {
+                $manifest = json_decode( file_get_contents( $manifest_file ), true );
+            }catch( Exception $e ) {
+                $this->report_status( $job_id, 'Error: Manifest file could not be parsed.', 'error' );
+                return $args;
+            }            
+            $request = $hcpp->do_action( 'quickstart_import_now_request', $request ); // Allow plugins to modify
+            
+            // Get original website details from manifest
+            $orig_user = $manifest['user'];
+            $orig_domain = $manifest['domain'];
+            $orig_aliases = $manifest['aliases'];
+            $proxy_ext = $manifest['proxy_ext'];
+            $backend = $manifest['backend'];
+
+            // Gather new website details from request
+            $new_user = $request['user'];
+            $new_domain = strtolower( $request['v_domain'] );
+            $new_aliases = strtolower( trim( str_replace( "\r\n", ",", $request['v_aliases'] ) ) );
+            if ( count( explode( ',', $new_aliases ) ) != count( $orig_aliases ) ) {
+                $this->report_status( $job_id, 'Number of aliases does not match original for substitution.', 'error' );
+                return $args;
+            }            
+
+            // Create the new website domain with new aliases
+            $this->report_status( $job_id, 'Please wait. Creating domain.' );
+            $details = $hcpp->run('list-user-ips ' . $new_user . ' json');
+            $first_ip = null;
+            foreach ( $details as $ip => $ip_details ) {
+                $first_ip = $ip;
+                break;
+            }
+            $command = "add-web-domain $new_user $new_domain $first_ip no \"$new_aliases\" $proxy_ext";
+            $result = $hcpp->run( $command );
+            if ( $result != '' ) {
+                $this->report_status( $job_id, $result, 'error' );
+                return $args;
+            }
+            $new_aliases = explode( ',', $new_aliases );
+
+            // Wait up to 60 seconds for public_html/index.html to be created
+            $dest_folder = '/home/' . $new_user . '/web/' . $new_domain;
+            for ( $i = 0; $i < 60; $i++ ) {
+                if ( file_exists( $dest_folder . '/public_html/index.html' ) ) break;
+                sleep(1);
+            }
+            if ( !is_dir( $dest_folder . '/public_html' ) ) {
+                $this->report_status( $job_id, 'Error timeout awaiting domain creation. ' . $dest_folder, 'error' );
+                return $args;
+            }
+
+            // Copy all subfolders in the import folder
+            $import_folder = "/tmp/devstia_$job_id-import";
+            $this->report_status( $job_id, 'Please wait. Copying files.' );
+            $folders = array_filter( glob( $import_folder . '/*' ), 'is_dir' );
+            $command = "rm -f $dest_folder/public_html/index.html ; ";
+            foreach( $folders as $folder ) {
+                $subfolder = $hcpp->getRightMost( $folder, '/' );
+                $command .= __DIR__ . '/abcopy ' . $folder . '/ ' . $dest_folder . "/$subfolder/ ; ";
+                $command .= "chown -R $new_user:$new_user " . $dest_folder . "/$subfolder/ ; ";
+                if ( $subfolder == 'public_html' ) {
+                    $command .= "chown $new_user:www-data " . $dest_folder . "/$subfolder/ ; ";
+                }
+            }
+            $command = $hcpp->do_action( 'quickstart_import_copy_files', $command ); // Allow plugin mods
+            shell_exec( $command );
+
+            // Create the databases
+            $orig_dbs = $manifest['databases'];
+            if ( is_array( $orig_dbs ) && !empty( $orig_dbs ) ) {
+                foreach( $orig_dbs as $db ) {
+
+                    // Get the original database details
+                    $orig_db = $db['DATABASE'];
+                    $orig_password = $db['DBPASSWORD'];
+                    $orig_type = $db['TYPE'];
+                    $orig_charset = $db['CHARSET'];
+                    $ref_files = $db['ref_files'];
+
+                    // Generate new credentials and new database
+                    $db_name = $hcpp->nodeapp->random_chars(5);
+                    $db_password = $hcpp->nodeapp->random_chars(20);
+                    $command = "add-database $new_user $db_name $db_name $db_password $orig_type localhost $orig_charset";
+                    $db_name = $new_user . '_' . $db_name;
+                    $this->report_status( $job_id, "Please wait. Creating database: $db_name" );
+                    $result = $hcpp->run( $command );
+
+                    // Search and replace credentials in ref_files
+                    foreach( $ref_files as $file ) {
+                        $file = $dest_folder . '/' . $hcpp->delLeftMost( $file, '/' );
+                        try {
+                            $this->search_replace_file( 
+                                $file, 
+                                [$orig_db, $orig_password], 
+                                [$db_name, $db_password] 
+                            );
+                        }catch( Exception $e ) {
+                            $this->report_status( $job_id, $e->getMessage(), 'error' );
+                            return $args;
+                        }
+                    }
+
+                    // Search and replace domain, user path, and aliases in db sql files
+                    $db_sql_file = $dest_folder . '/devstia_databases/' . $db['DATABASE'] . '.sql';
+                    $searches = [$orig_domain, "/home/$orig_user"];
+                    $replaces = [$new_domain, "/home/$new_user"];
+                    $searches = array_merge( $searches, $orig_aliases );
+                    $replaces = array_merge( $replaces, $new_aliases );
+                    try {
+                        $this->search_replace_file( $db_sql_file, $searches, $replaces );
+                    }catch( Exception $e ) {
+                        $this->report_status( $job_id, $e->getMessage(), 'error' );
+                        return $args;
+                    }
+
+                    // Import the database sql file
+                    if ( $orig_type == 'mysql' ) {
+
+                        // Support MySQL
+                        $command = "mysql -h localhost -u $db_name -p$db_password $db_name < $db_sql_file";
+                    }else{
+
+                        // Support PostgreSQL
+                        $command = "export PGPASSWORD=\"$db_password\"; psql -h localhost -U $db_name $db_name $db_sql_file";
+                    }
+                    $command = $hcpp->do_action( 'quickstart_import_now_db', $command ); // Allow plugin mods
+                    $result = shell_exec( $command );
+                    if ( strpos( strtolower( $result ), 'error' != '' ) !== false ){
+                        $this->report_status( $job_id, $result, 'error' );
+                        return $args;
+                    }
+                }
+            }
+
+            // Update smtp.json file
+            $smtp_file = $dest_folder . '/private/smtp.json';
+            if ( file_exists( $smtp_file ) ) {
+                try {
+                    // Get the original file's permissions and ownership
+                    $fileStat = stat( $smtp_file );
+                    $fileMode = $fileStat['mode'];
+                    $fileUid = $fileStat['uid'];
+                    $fileGid = $fileStat['gid'];
+
+                    // Update the file
+                    $content = file_get_contents( $smtp_file );
+                    $content = json_decode( $content, true );
+                    $content['username'] = $new_domain;
+                    $content['password'] = $hcpp->nodeapp->random_chars( 16 );
+                    file_put_contents( $smtp_file, json_encode( $content, JSON_PRETTY_PRINT ) );
+
+                    // Restore the original file's permissions and ownership
+                    chmod( $smtp_file, $fileMode );
+                    chown( $smtp_file, $fileUid );
+                    chgrp( $smtp_file, $fileGid );
+                }catch( Exception $e ) {
+                    $this->report_status( $job_id, $e->getMessage(), 'error' );
+                    return $args;
+                }
+            }
+
+            // Search and replace on base files
+            foreach( $manifest['ref_files'] as $file ) {
+                $file = $dest_folder . '/' . $hcpp->delLeftMost( $file, '/' );
+                if ( !file_exists( $file ) ) continue;
+                try {
+                    $searches = [$orig_domain, "/home/$orig_user"];
+                    $replaces = [$new_domain, "/home/$new_user"];
+                    $searches = array_merge( $searches, $orig_aliases );
+                    $replaces = array_merge( $replaces, $new_aliases );
+                    $this->search_replace_file( 
+                        $file, 
+                        $searches,
+                        $replaces
+                    );
+                }catch( Exception $e ) {
+                    $this->report_status( $job_id, $e->getMessage(), 'error' );
+                    return $args;
+                }
+            }
+
+            // Search and replace export advanced options
+            $this->report_status( $job_id, 'Please wait. Updating files.');
+            $export_adv_options = $manifest['export_adv_options'];
+            foreach( $export_adv_options as $option ) {
+
+                // Get original value
+                $value = $option['value'];
+                $label = $option['label'];
+                $ref_files = $option['ref_files'];
+                if ( $label == '' ) continue;
+
+                // Find new value from form
+                $labelVar = 'eao_' . $this->title_to_var_name( $label );
+                $new_value = '';
+                if ( isset( $request[$labelVar] ) ) {
+                    $new_value = $request[$labelVar];
+                }
+
+                // Get default value if multiselect
+                if ( strpos( $value, "|") !== false ) {
+                    $value = $hcpp->delLeftMost( $value, "|");
+                    $value = $hcpp->getLeftMost( $value, "\n");
+                }
+
+                // Search and replace the value in ref. files
+                foreach( $ref_files as $file ) {
+                    $file = $dest_folder . '/' . $hcpp->delLeftMost( $file, '/' );
+                    if ( !file_exists( $file ) ) continue;
+                    if ( $value == $new_value ) continue;
+                    try {
+                        $this->search_replace_file( 
+                            $file, 
+                            [$value], 
+                            [$new_value] 
+                        );
+                    }catch( Exception $e ) {
+                        $this->report_status( $job_id, $e->getMessage(), 'error' );
+                        return $args;
+                    }
+                }
+            }
+
+            // Search and replace export advanced options
+            $export_adv_options = $manifest['export_adv_options'];
+            foreach( $export_adv_options as $option ) {
+
+                // Get original value
+                $value = $option['value'];
+                $label = $option['label'];
+                $ref_files = $option['ref_files'];
+                if ( $label == '' ) continue;
+
+                // Find new value from form
+                $labelVar = 'eao_' . $this->title_to_var_name( $label );
+                $new_value = '';
+                if ( isset( $request[$labelVar] ) ) {
+                    $new_value = $request[$labelVar];
+                }
+
+                // Get default value if multiselect
+                if ( strpos( $value, "|") !== false ) {
+                    $value = $hcpp->delLeftMost( $value, "|");
+                    $value = $hcpp->getLeftMost( $value, "\n");
+                }
+
+                // Search and replace the value in ref. files
+                foreach( $ref_files as $file ) {
+                    $file = $dest_folder . '/' . $hcpp->delLeftMost( $file, '/' );
+                    if ( !file_exists( $file ) ) continue;
+                    if ( $value == $new_value ) continue;
+                    try {
+                        $this->search_replace_file( 
+                            $file, 
+                            [$value], 
+                            [$new_value] 
+                        );
+                    }catch( Exception $e ) {
+                        $this->report_status( $job_id, $e->getMessage(), 'error' );
+                        return $args;
+                    }
+                }
+            }
+            shell_exec( 'rm -rf ' . $dest_folder . '/devstia_databases' );
+
+            // Update the web domain backend
+            $hcpp->run( "change-web-domain-backend-tpl $new_user $new_domain $backend" );
+            $this->cleanup_job_data( $job_id );
+
+            // Report success
+            $message = "Website imported successfully. You can now visit <br/>your website at: ";
+            $message .= "<a href=\"https://$new_domain\" target=\"_blank\"><i tabindex=\"100\" ";
+            $message .= "style=\"font-size:smaller;\" class=\"fas fa-external-link\"></i> $new_domain</a>.";
+            $this->report_status( $job_id, $message, 'finished' );
+
             return $args;
         }
 
@@ -582,12 +1005,193 @@ if ( ! class_exists( 'Quickstart') ) {
          * @param string $status The status to report.
          */
         public function report_status( $job_id, $message, $status = 'running' ) {
-            $result_file = '/tmp/devstia_' . $job_id . '.result';
+            $result_file = '/tmp/devstia_' . $job_id . '-result.json';
             $result = json_encode( [ 'status' => $status, 'message' => $message ] );
-            unlink( $result_file );
-            file_put_contents( $result_file, $result );
-            chown( $result_file, 'admin' );
-            chgrp( $result_file, 'admin' );
+            try {
+                if ( file_exists( $result_file ) ) unlink( $result_file );
+                file_put_contents( $result_file, $result );
+                chown( $result_file, 'admin' );
+                chgrp( $result_file, 'admin' );
+            }catch( Exception $e ) {
+                global $hcpp;
+                $hcpp->log( $e->getMessage() );
+            }
+        }
+
+        /**
+         * Search and replace the given string in the given source text file, with special support
+         * for PHP serialized strings in MySQL's "quickdump" file format, and the search for escaped
+         * characters in the strings.
+         * 
+         * @param string $file The path and filename to the file to modify.
+         * @param string|string[] $search The string or array of strings to search for.
+         * @param string|string[] $replace The string or array of strings to replace with.
+         */
+        // Search and replace the given string in the given SQL file, assuming it's a quickdump file
+        public function search_replace_file( $file, $search, $replace ) {
+
+            // Check parameters
+            if ( !file_exists( $file ) ) {
+                throw new Exception( "File '$file' does not exist." );
+            }
+            if ( !is_string( $search ) && !is_array( $search ) ) {
+                throw new Exception( "Parameter 'search' must be a string or array." );
+            }
+            if ( !is_string( $replace ) && !is_array( $replace ) ) {
+                throw new Exception( "Parameter 'replace' must be a string or array." );
+            }
+            if ( is_string( $search ) ) {
+                $search = [ $search ];
+            }
+            if ( is_string( $replace ) ) {
+                $replace = [ $replace ];
+            }
+            if ( count( $search ) != count( $replace ) ) {
+                throw new Exception( "Parameters 'search' and 'replace' must have the same number of elements." );
+            }
+
+            // Duplicate search and replace strings with escaped versions if necessary
+            $searchEscaped = [];
+            $replaceEscaped = [];
+            for ($i = 0; $i < count($search); $i++) {
+                $searchE = addcslashes($search[$i], "\/\n\r\0");
+                
+                // Check if already in array
+                if ( in_array( $searchE, $search ) ) continue;
+                $searchEscaped[] = $searchE;
+                $replaceEscaped[] = addcslashes($replace[$i], "\/\n\r\0");
+            }
+            $search = array_merge( $search, $searchEscaped );
+            $replace = array_merge( $replace, $replaceEscaped );
+
+            // Load the file and replace the strings
+            $handle = fopen( $file, 'r' );
+            $tempFile = $file . '.tmp';
+            $writeStream = fopen( $tempFile, 'w' );
+            $regex1 = "/('.*?'|[^',\s]+)(?=\s*,|\s*;|\s*$)/";
+            global $regex2;
+            $regex2 = "/s:(\d+):\"(.*?)\";/ms";
+            while ( ( $line = fgets( $handle ) ) !== false ) {
+                $origLine = $line;
+                $line = trim( $line );
+                $bModifed = false;
+                for ( $i = 0; $i < count( $search ); $i++ ) {
+                    $searchString = $search[$i];
+                    $replaceString = $replace[$i];
+                    if ( strpos( $line, $searchString ) !== false && $searchString != $replaceString ) {
+
+                        // Sense Quickdump format
+                        if (strpos($line, "(") === 0 && (substr($line, -2) === ")," || substr($line, -2) === ");")) {
+                            $startLine = substr( $line, 0, 1 );
+                            $endLine = substr( $line, -2 );
+                            $line = substr( $line, 1, -2 );
+                            $line = str_replace("\\0", "~0Placeholder", $line );
+                            $matches = [];
+                            preg_match_all( $regex1, $line, $matches );
+                            $items = $matches[0];
+                            $line = implode( '', [$startLine, implode( ",", array_map( function ( $item ) use ( $searchString, $replaceString ) {
+                                if (strpos( $item, "'" ) === 0 && strrpos( $item, "'" ) === strlen( $item ) - 1 ) {
+                                    $item = substr( $item, 1, -1 );
+                                    $item = str_replace( $searchString, $replaceString, $item );
+
+                                    // Sense serialized strings
+                                    if ( $this->is_serialized( $item ) ) {
+
+                                        // Recalculate the length of the serialized strings
+                                        $item = json_decode(json_encode( $item ) );
+                                        $item = str_replace( "\\", "", $item );
+                                        $item = str_replace( "~0Placeholder", "\0", $item );
+                                        global $regex2;
+                                        $item = preg_replace_callback( $regex2, function ( $matches ) {
+                                            return 's:' . strlen( $matches[2] ) . ':"' . $matches[2] . '";';
+                                        }, $item);
+                                        $item = addslashes( $item );
+                                    }else{
+                                        $item = str_replace( "\0", "~0Placeholder", $item );
+                                    }
+                                    return implode( '', ["'" , $item , "'"] );
+                                } else if ( $item === 'null' ) {
+                                    return null;
+                                } else if ( is_numeric( $item ) ) {
+                                    return (float)$item;
+                                } else {
+                                    return $item;
+                                }
+                            }, $items ) ), $endLine] );
+                        }else{
+                            $line = str_replace( $searchString, $replaceString, $line );
+                        }
+                        $bModifed = true;
+                    }
+                }
+                if (false === $bModifed) {
+                    $line = $origLine;
+                }
+
+                // Ensure the line ends with a newline
+                if ( substr( $line, -1 ) != "\n" ) {
+                    $line .= "\n";
+                }
+                fwrite( $writeStream, $line );
+            }
+            fclose( $handle );
+            fclose( $writeStream );
+
+            // Check for multi-line block in search and replace them in
+            // the temp file as a whole because line-by-line won't work.
+            for ( $i = 0; $i < count( $search ); $i++ ) {
+                $searchString = $search[$i];
+                $replaceString = $replace[$i];
+                if ( strpos( $searchString, "\n" ) !== false ) {
+                    $content = file_get_contents( $tempFile );
+                    $content = str_replace( $searchString, $replaceString, $content );
+                    file_put_contents( $tempFile, $content );
+                }
+            }
+
+            // Get the original file's permissions and ownership
+            $fileStat = stat( $file );
+            $fileMode = $fileStat['mode'];
+            $fileUid = $fileStat['uid'];
+            $fileGid = $fileStat['gid'];
+
+            // Replace the original file with the temp file
+            rename( $tempFile, $file );
+
+            // Restore the original file's permissions and ownership
+            chmod( $file, $fileMode );
+            chown( $file, $fileUid );
+            chgrp( $file, $fileGid );
+        }
+
+        /**
+         * Convert a title to a valid variable name.
+         * @param string $str The title to convert.
+         * @return string The converted variable name.
+         */
+        public function title_to_var_name( $str ) {
+            $str = strtolower($str); // Convert all characters to lowercase
+            $str = preg_replace('/[^a-z0-9\s]/', '', $str); // Remove all non-alphanumeric characters except spaces
+            $str = preg_replace('/\s+/', '_', $str); // Replace one or more spaces with underscores
+            $str = preg_replace_callback('/_([a-z])/', function ($match) { return strtoupper($match[1]); }, $str); // Convert underscores to camelCase
+            return $str;
+        }
+
+        /**
+         * Transfer the given job data to a file with admin privileges; allowing a priviledged
+         * process to get otherwise inaccessible admin session data.
+         * @param string $job_id The unique job id.
+         * @param string $key The key of the data to transfer.
+         * @return bool True if successful, false otherwise.
+         */
+        public function xfer_job_data( $job_id, $key ) {
+            if ( !isset( $_SESSION['devstia_jobs'][$job_id] ) ) return false;
+            if ( !isset( $_SESSION['devstia_jobs'][$job_id][$key] ) ) return false;
+            $value = json_encode( $_SESSION['devstia_jobs'][$job_id][$key], JSON_PRETTY_PRINT );
+            file_put_contents( "/tmp/devstia_$job_id-$key.json", $value );
+            chown( "/tmp/devstia_$job_id-$key.json", 'admin' );
+            chgrp( "/tmp/devstia_$job_id-$key.json", 'admin' );
+            return true;
         }
     }
     new Quickstart();

@@ -20,20 +20,18 @@
     $manifest['export_adv_options'] = json_decode( $_POST['export_adv_options'] ?? '');
     
     // Run the export process
-    echo "<pre>" . print_r( json_encode( $manifest, JSON_PRETTY_PRINT), true ) . "</pre>";
     $hcpp->quickstart->export_zip( $manifest );
-    exit();
 ?>
 <div class="toolbar" style="z-index:100;position:relative;">
     <div class="toolbar-inner">
         <div class="toolbar-buttons">
             <a href="#" class="button button-secondary button-back js-button-back" id="back">
-                <i class="fas fa-stop-circle icon-red"></i>Cancel			
+                <i tabindex="300" class="fas fa-stop-circle icon-red"></i>Cancel			
             </a>
         </div>
         <div class="toolbar-buttons">
             <a href="#" class="button disabled" id="continue-button">
-                <i class="fas fa-flag-checkered icon-blue"></i>Finished
+                <i tabindex="200" class="fas fa-flag-checkered icon-blue"></i>Finished
             </a>         
         </div>
     </div>
@@ -53,7 +51,7 @@
             $('#back').on('click', (e) => {
                 e.preventDefault();
                 $.ajax({
-                    url: '../../pluginable.php?load=quickstart&action=export_cancel&job_id=<?php echo $job_id; ?>',
+                    url: '../../pluginable.php?load=quickstart&action=cancel_job&job_id=<?php echo $job_id; ?>',
                     type: 'GET',
                     success: function( data ) {
                         $('#error').html( '<p>Export cancelled.</p>');
@@ -73,6 +71,7 @@
                     url: '../../pluginable.php?load=quickstart&action=export_status&job_id=' + job_id,
                     type: 'GET',
                     success: function( data ) {
+                        console.log( data );
                         try {
                             data = JSON.parse( data );
                         } catch( e ) {
@@ -85,16 +84,13 @@
                             <div style="padding:10px;">
                                 <strong><a href="../../pluginable.php?load=quickstart&action=download&job_id=<?php echo $job_id; ?>">
                                 <?php
-                                    $zip_file = $json_file;
-                                    $zip_file = $hcpp->delRightMost( $zip_file, '.json' ) . '.zip';
-                                    $zip_file = $domain . $hcpp->delLeftMost( $zip_file, 'devstia_export' );
-                                    echo $zip_file;
+                                    echo $manifest['zip_file'];
                                 ?>
                                 </a></strong>
                             </div>
                             <br>
                             <?php 
-                                if ( $user == 'devstia' ) {
+                                if ( $_SESSION['user'] == 'devstia' ) {
                                     echo "<p><strong>Devstia Preview:</strong></p>";
                                     echo "<p>You can also find the file in your Devstia drive's \"exports\" folder.</p>";
                                 }
@@ -109,13 +105,7 @@
                         clearInterval( export_int );
                     }
                 });
-            }, 8000);
-
-            // Update the continue button href based on selected qsOption
-            $('input[name="qsOption"]').on('change', (e) => {
-                let qsOption = $('input[name="qsOption"]:checked').attr('id');
-                $('#continue-button').attr('href', '?quickstart=' + qsOption);
-            });
+            }, 5000);
             setTimeout( () => {
                 $('.spinner-overlay').addClass('active');
             }, 1000);

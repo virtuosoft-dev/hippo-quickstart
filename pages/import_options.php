@@ -1,17 +1,21 @@
 <?php require( 'header.php' ); ?>
 <?php
-
-    // Validate import key
-    if (false == (isset($_GET['job_id']) && isset($_SESSION['job_id']))) return;
-    if ($_GET['job_id'] != $_SESSION['job_id']) return;
+    // Validate the job_id
     $job_id = $_GET['job_id'];
-    if (false == isset($_SESSION[$job_id . '_file'])) return;
-    $import_file = $_SESSION[$job_id . '_file'];
+    if ( $hcpp->quickstart->is_job_valid( $job_id ) === false ) {
+        header( 'Location: ?quickstart=main' );
+        exit;
+    }
 
-    // Start import file processing asynchronously and get the process id
-    global $hcpp;
-    $import_pid = trim( shell_exec(HESTIA_CMD . "v-invoke-plugin quickstart_import_file " . $import_file . " > /dev/null 2>/dev/null & echo $!") );
-    $_SESSION[$job_id . '_pid'] = $import_pid;
+    // Locate the import file
+    $import_file = $hcpp->quickstart->get_job_data( $job_id, 'import_file' );
+    if ( false == file_exists( $import_file ) ) {
+        header( 'Location: ?quickstart=main' );
+        exit;
+    }
+    
+    // Start import file processing by job id
+    $hcpp->quickstart->import_file( $job_id );
 ?>
 <div class="toolbar" style="z-index:100;position:relative;">
     <div class="toolbar-inner">
@@ -37,12 +41,11 @@
 <script>
     (function($){
         $(function() {
-
             // Cancel the import
             $('#back').on('click', (e) => {
                 e.preventDefault();
                 $.ajax({
-                    url: '../../pluginable.php?load=quickstart&action=import_cancel&job_id=<?php echo $job_id; ?>',
+                    url: '../../pluginable.php?load=quickstart&action=cancel_job&job_id=<?php echo $job_id; ?>',
                     type: 'GET',
                     success: function( data ) {
                         $('#status').html( 'Import cancelled. Click continue.');
@@ -78,17 +81,18 @@
                         }
                         if ( data.status == 'running' ) return;
                         if ( data.status == 'finished' ) {
+                            const manifest = data.manifest;
+                            const domain = manifest.domain;
+                            const aliases = manifest.aliases.join("\n");
                             $('#status').html(data.message);
 
                             // Create form to customize domain/aliases 
-                            const domain = data.domain;
                             let html = `<form id="import_now" method="POST" action="?quickstart=import_now&job_id=<?php echo $job_id; ?>">
                                         <div class="u-mb10">
                                             <label for="v_domain" class="form-label">Domain</label>
                                             <input type="text" class="form-control" name="v_domain" id="v_domain" value="${domain}" required="">
                                         </div>`;
-                            if (data.alias.trim() != '') {
-                                const aliases = data.alias.replace(',', "\n");
+                            if (aliases != '') {
                                 html += `<div class="u-mb10">
                                             <label for="v_aliases" class="form-label">Aliases</label>
                                             <textarea class="form-control" name="v_aliases" id="v_aliases">${aliases}</textarea>
@@ -96,8 +100,8 @@
                             }
                             
                             // Create form for export advanced options
-                            if (data.export_adv_options.length > 0) {
-                                data.export_adv_options.forEach( (option) => {
+                            if (manifest.export_adv_options.length > 0) {
+                                manifest.export_adv_options.forEach( (option) => {
                                     if (option.label == '') {
                                         html += `<div class="u-mb10">` + option.value + `</div>`;
                                         return;
@@ -151,7 +155,7 @@
                         clearInterval( import_int );
                     }
                 });
-            }, 8000);
+            }, 6000);
             setTimeout( () => {
                 $('.spinner-overlay').addClass('active');
             }, 1000);

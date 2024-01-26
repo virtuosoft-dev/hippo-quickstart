@@ -6,7 +6,7 @@
 <div class="toolbar">
     <div class="toolbar-inner">
         <div class="toolbar-buttons">
-            <a href="?quickstart=import_export" class="button button-secondary button-back js-button-back" id="back">
+            <a href="#" class="button button-secondary button-back js-button-back" id="back">
                 <i tabindex="300" class="fas fa-arrow-left icon-blue"></i>Back			
             </a>
         </div>
@@ -69,6 +69,18 @@
                 $(this).removeClass('dragover');
                 var file = e.originalEvent.dataTransfer.files[0];
                 uploadFile(file);
+            });
+
+            // Cancel the export
+            $('#back').on('click', (e) => {
+                e.preventDefault();
+                $.ajax({
+                    url: '../../pluginable.php?load=quickstart&action=cancel_job&job_id=<?php echo $job_id; ?>',
+                    type: 'GET',
+                    success: function( data ) {
+                        window.location = "?quickstart=import_export"
+                    }
+                });
             });
 
             // Upload file to server

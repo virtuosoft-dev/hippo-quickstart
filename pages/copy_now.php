@@ -116,7 +116,7 @@
                         }
                     }
                 }); 
-            }, 8000);
+            }, 6000);
             //             if ( data.status == 'running' ) return;
             //             if ( data.status == 'finished' ) {
             //                 $('#status').html(data.message);

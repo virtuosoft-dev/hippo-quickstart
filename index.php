@@ -8,118 +8,117 @@ if (session_status() == PHP_SESSION_NONE) {
 // User and action required
 if (false == isset($_SESSION['user'])) return;
 if (false == isset($_GET['action'])) return;
+if (false == isset($_GET['job_id'])) return;
+$job_id = $_GET['job_id'];
 
-// Process export actions
-if (in_array( $_GET['action'], ['export_status', 'export_cancel', 'download'] )) {
+// Check job_id
+global $hcpp;
+if ( $hcpp->quickstart->is_job_valid( $_GET['job_id'] ) === false ) return;
 
-    // Validate job_id
-    if (false == (isset($_GET['job_id']) && isset($_SESSION['job_id']))) return;
-    if ($_GET['job_id'] != $_SESSION['job_id']) return;
-    $job_id = $_GET['job_id'];
-    if (false == isset($_SESSION[$job_id . '_pid'])) return;
-    $job_id = $_SESSION[$job_id . '_pid'];
+// Cancel the job by job id
+if ( $_GET['action'] == 'cancel_job' ) {
+    $hcpp->quickstart->cancel_job( $job_id );
+}
 
-    // Check export_pid status
-    if ($_GET['action'] == 'export_status') {
-        echo shell_exec('/usr/local/hestia/bin/v-invoke-plugin quickstart_export_status ' . $job_id);
+// Get export status
+if ( $_GET['action'] == 'export_status' ) {
+    $status = $hcpp->quickstart->get_status( $job_id );
+    if ( $status['status'] === 'finished' ) {
+        $hcpp->quickstart->cleanup_job_data( $job_id );
     }
+    echo json_encode( $hcpp->quickstart->get_status( $job_id ) );
+}
 
-    // Cancel the export by killing the process
-    if ( $_GET['action'] == 'export_cancel' ) {
-        echo shell_exec('/usr/local/hestia/bin/v-invoke-plugin quickstart_export_cancel ' . $job_id);
-        unset($_SESSION['job_id']);
-        unset($_SESSION[$job_id . '_pid']);
-    }
+// Process file download
+if ( $_GET['action'] == 'download')  {
+    $manifest = $hcpp->quickstart->get_job_data( $job_id, 'manifest' );
+    $user = $_SESSION['user'];
+    $file = "/home/$user/web/exports/" . $manifest['zip_file'];
 
-    // Process file download
-    if ( $_GET['action'] == 'download')  {
-        $devstia_manifest = $_SESSION['devstia_manifest'];
-        $user = $_SESSION['user'];
-        $file = "/home/$user/web/exports/" . $devstia_manifest['zip_file'];
+    if ( file_exists( $file ) ) {
+        header('Content-Description: File Transfer');
+        header('Content-Type: application/octet-stream');
+        header('Content-Disposition: attachment; filename="' . basename($file) . '"');
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate');
+        header('Pragma: public');
+        header('Content-Length: ' . filesize($file));
 
-        if ( file_exists( $file ) ) {
-            header('Content-Description: File Transfer');
-            header('Content-Type: application/octet-stream');
-            header('Content-Disposition: attachment; filename="' . basename($file) . '"');
-            header('Expires: 0');
-            header('Cache-Control: must-revalidate');
-            header('Pragma: public');
-            header('Content-Length: ' . filesize($file));
-
-            // Turn off output buffering
-            if (ob_get_level()) {
-                ob_end_clean();
-            }
-            $handle = fopen($file, 'rb');
-            fpassthru($handle);
-            fclose($handle);
-            exit;
+        // Turn off output buffering
+        if (ob_get_level()) {
+            ob_end_clean();
         }
+        $handle = fopen($file, 'rb');
+        fpassthru($handle);
+        fclose($handle);
+        exit;
     }
 }
 
 // Process file upload
-if (in_array( $_GET['action'], ['import_cancel', 'import_status', 'import_result', 'upload'] ) ) {
+if ( $_GET['action'] == 'upload' ) {
 
-    // Process file upload
-    if ( $_GET['action'] == 'upload' ) {
-
-        // Validate job_id required to process uploads
-        if (false == (isset($_GET['job_id']) && isset($_SESSION['job_id']))) return;
-        if ($_GET['job_id'] != $_SESSION['job_id']) return;
-        if (false == isset($_SESSION['job_id'])) return;
-        $job_id = $_SESSION['job_id'];
-
-        // Generate response
-        $response = [
-            'status' => 'error',
-            'message' => 'Unknown error occurred.'
-        ];
-        $allowedMimeTypes = [
-            'application/zip', 
-            'application/x-xz', 
-            'application/octet-stream', 
-            'application/gzip', 
-            'application/x-rar-compressed',
-            'application/x-tar',
-            'application/x-bzip2',
-            'application/x-7z-compressed'
-        ];
-        if ($_FILES['file']['error'] == UPLOAD_ERR_OK && in_array($_FILES['file']['type'], $allowedMimeTypes)) {
-            $tmp_name = $_FILES['file']['tmp_name'];
-            global $hcpp;
-            $ext = $hcpp->delLeftMost( $_FILES['file']['name'], '_' );
-            $ext = $hcpp->delLeftMost( $ext, '.' );
-            $name = "/tmp/devstia_import_" . $_SESSION['job_id'] . '.' . $ext;
-            move_uploaded_file($tmp_name, $name);
-            $_SESSION[$job_id . '_file'] = $name;
-            $response['status'] = 'uploaded';
-            $response['message'] = 'File uploaded. Please click continue.';
-        }
-        echo json_encode( $response );
+    // Generate response
+    $response = [
+        'status' => 'error',
+        'message' => 'Unknown error occurred.'
+    ];
+    $allowedMimeTypes = [
+        'application/zip', 
+        'application/x-xz', 
+        'application/octet-stream', 
+        'application/gzip', 
+        'application/x-rar-compressed',
+        'application/x-tar',
+        'application/x-bzip2',
+        'application/x-7z-compressed'
+    ];
+    if ($_FILES['file']['error'] == UPLOAD_ERR_OK && in_array($_FILES['file']['type'], $allowedMimeTypes)) {
+        $tmp_name = $_FILES['file']['tmp_name'];
+        $ext = $hcpp->delLeftMost( $_FILES['file']['name'], '_' );
+        $ext = $hcpp->delLeftMost( $_FILES['file']['name'], '-' );
+        $ext = $hcpp->delLeftMost( $ext, '.' );
+        $name = "/tmp/devstia_$job_id-import.$ext";
+        move_uploaded_file($tmp_name, $name);
+        $hcpp->quickstart->set_job_data( $job_id, 'file', $name );
+        $response['status'] = 'uploaded';
+        $response['message'] = 'File uploaded. Please click continue.';
+        $hcpp->quickstart->set_job_data( $job_id, 'import_file', $name );
     }
- 
-    // Validate import_pid, $_SESSION['job_id'] not required (multiple imports can be running at once)
-    if (false == isset($_GET['job_id'])) return;
-    $job_id = $_GET['job_id'];
-    if (false == isset($_SESSION[$job_id . '_pid'])) return;
-    $import_pid = $_SESSION[$job_id . '_pid'];
-
-    // Check import_pid status
-    global $hcpp;
-    
-    if ( $_GET['action'] == 'import_status' ) {
-        echo shell_exec( '/usr/local/hestia/bin/v-invoke-plugin quickstart_import_status ' . $import_pid . ' ' . $job_id);
-    }
-
-    // Check import_result
-    if ( $_GET['action'] == 'import_result' ) {
-        echo shell_exec( '/usr/local/hestia/bin/v-invoke-plugin quickstart_import_result ' . $import_pid . ' ' . $job_id);
-    }
-
-    // Cancel the import by killing the process
-    if ( $_GET['action'] == 'import_cancel' ) {
-        echo shell_exec('/usr/local/hestia/bin/v-invoke-plugin quickstart_import_cancel ' . $import_pid . ' ' . $job_id);
-        unset($_SESSION[$job_id]);
-    }
+    echo json_encode( $response );
 }
+
+// Get import status
+if ( $_GET['action'] == 'import_status' ) {
+    $status = $hcpp->quickstart->get_status( $job_id );
+
+    // Import's decompress is finished, return manifest
+    if ( $status['status'] === 'finished' ) {
+        $manifest = "/tmp/devstia_$job_id-import/devstia_manifest.json";
+        if ( file_exists( $manifest ) ) {
+            try {
+                $content = file_get_contents( $manifest );
+                $manifest = json_decode( $content, true );
+            } catch( Exception $e ) {
+                echo json_encode( [ 'status' => 'error', 'message' => 'Error parsing manifest file.' ] );
+            }
+            $message = 'Fill in options.';
+            if ( is_dir('/home/devstia') ) {
+                $message .= ' <i>Devstia Preview should use a <b>.dev.pw</b> TLD.</i>';
+            }
+            $status['message'] = $message;
+            $status['manifest'] = $manifest;
+        }else{
+            $status['status'] = 'error';
+            $status['message'] = 'Import failed. Please try again.';
+        }
+    }
+    echo json_encode( $status );
+}
+
+// Check import_result
+if ( $_GET['action'] == 'import_result' ) {
+    $status = $hcpp->quickstart->get_status( $job_id );
+    echo json_encode( $status );
+}
+ 

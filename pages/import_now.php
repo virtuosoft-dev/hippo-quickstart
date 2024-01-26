@@ -1,25 +1,31 @@
 <?php require( 'header.php' ); ?>
 <?php
-
-    // Validate import key
-    if (false == (isset($_GET['job_id']) && isset($_SESSION['job_id']))) return;
-    if ($_GET['job_id'] != $_SESSION['job_id']) return;
+    // Validate the job_id
     $job_id = $_GET['job_id'];
-    if (false == isset($_SESSION[$job_id . '_file'])) return;
-    $import_file = $_SESSION[$job_id . '_file'];
-    unset ($_SESSION['job_id' . '_file']);
+    if ( $hcpp->quickstart->is_job_valid( $job_id ) === false ) {
+        header( 'Location: ?quickstart=main' );
+        exit;
+    }
 
-    // Write request with import file to temp file
-    global $hcpp;
-    $import_folder = $hcpp->getLeftMost( $import_file, '.' );
-    $_REQUEST['import_folder'] = $import_folder;
-    $_REQUEST['user'] = $_SESSION['user'];
-    $request_file = '/tmp/devstia_import_' . $job_id . '.json';
-    file_put_contents( $request_file, json_encode($_REQUEST, JSON_PRETTY_PRINT) );
+    // Start the import process
+    $hcpp->quickstart->import_now( $job_id );
+    // exit();
+
+    // if (false == isset($_SESSION[$job_id . '_file'])) return;
+    // $import_file = $_SESSION[$job_id . '_file'];
+    // unset ($_SESSION['job_id' . '_file']);
+
+    // // Write request with import file to temp file
+    // global $hcpp;
+    // $import_folder = $hcpp->getLeftMost( $import_file, '.' );
+    // $_REQUEST['import_folder'] = $import_folder;
+    // $_REQUEST['user'] = $_SESSION['user'];
+    // $request_file = '/tmp/devstia_import_' . $job_id . '.json';
+    // file_put_contents( $request_file, json_encode($_REQUEST, JSON_PRETTY_PRINT) );
     
-    // Start import process asynchonously and get the process id
-    $import_pid = trim( shell_exec(HESTIA_CMD . "v-invoke-plugin quickstart_import_now " . $job_id . " > /dev/null 2>/dev/null & echo $!") );
-    $_SESSION[$job_id . '_pid'] = $import_pid;
+    // // Start import process asynchonously and get the process id
+    // $import_pid = trim( shell_exec(HESTIA_CMD . "v-invoke-plugin quickstart_import_now " . $job_id . " > /dev/null 2>/dev/null & echo $!") );
+    // $_SESSION[$job_id . '_pid'] = $import_pid;
 ?>
 <div class="toolbar" style="z-index:100;position:relative;">
     <div class="toolbar-inner">
@@ -39,33 +45,29 @@
     <div class="quickstart qs_import_now">
         <h1>Import Website Files</h1>
         <legend id="status">Please wait. Importing website.</legend>
-        <div id="options">
-            <pre>
-                
-            </pre>
-        </div>
     </div>
 </div>
 <script>
     (function($){
         $(function() {
 
-            // // Cancel the import
-            // $('#back').on('click', (e) => {
-            //     e.preventDefault();
-            //     $.ajax({
-            //         url: '../../pluginable.php?load=quickstart&action=import_cancel&job_id=<?php echo $job_id; ?>',
-            //         type: 'GET',
-            //         success: function( data ) {
-            //             $('#status').html( 'Import cancelled. Click continue.');
-            //             $('#back').hide();
-            //             $('#options').hide();
-            //             $('#continue-button').removeClass('disabled');
-            //             $('#continue-button').attr('href', '?quickstart=main');
-            //             $('.spinner-overlay').removeClass('active');
-            //         }
-            //     });
-            // });
+            // Cancel the import
+            $('#back').on('click', (e) => {
+                e.preventDefault();
+                $.ajax({
+                    url: '../../pluginable.php?load=quickstart&action=cancel_job&job_id=<?php echo $job_id; ?>',
+                    type: 'GET',
+                    success: function( data ) {
+                        $('#error').html( '<p>Import cancelled. Please click continue.</p>');
+                        $('#error').show();
+                        $('#back').hide();
+                        $('#continue-button').removeClass('disabled');
+                        $('#continue-button').attr('href', '?quickstart=main');
+                        $('.spinner-overlay').removeClass('active');
+                    }
+                });
+            });
+
             // Check the import key every 8 seconds
             var import_int = setInterval( () => {
                 $.ajax({
@@ -81,7 +83,6 @@
                         $('#status').html(data.message);
                         if ( data.status != 'running' ) {
                             $('#back').hide();
-                            $('#options').hide();
                             $('#continue-button').removeClass('disabled');
                             $('#continue-button').attr('href', '?quickstart=main');
                             $('.spinner-overlay').removeClass('active');
@@ -89,7 +90,7 @@
                         }
                     }
                 }); 
-            }, 8000);
+            }, 6000);
             //             if ( data.status == 'running' ) return;
             //             if ( data.status == 'finished' ) {
             //                 $('#status').html(data.message);
