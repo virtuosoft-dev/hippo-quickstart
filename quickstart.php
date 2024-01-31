@@ -46,6 +46,19 @@ if ( ! class_exists( 'Quickstart') ) {
             shell_exec( $command );
         }
 
+        /**
+         * Copy the website with options asynchonously with the given job id
+         */
+        public function copy_now( $job_id ) {
+            global $hcpp;
+            $_REQUEST['user'] = $_SESSION['user'];
+            $this->set_job_data( $job_id, 'request', $_REQUEST );
+            $this->xfer_job_data( $job_id, 'request' );
+            $this->xfer_job_data( $job_id, 'manifest' );
+            $pid = trim( shell_exec( HESTIA_CMD . "v-invoke-plugin quickstart_copy_now " . $job_id . " > /dev/null 2>/dev/null & echo $!" ) );
+            $this->set_job_data( $job_id, 'pid', $pid );
+        }
+
         /** 
          * Create a unique job id, all jobs are prefixed with devstia_job_id for future listing.
          * @return string The unique job id.
@@ -192,9 +205,10 @@ if ( ! class_exists( 'Quickstart') ) {
          */
         public function hcpp_invoke_plugin( $args ) {
             $trusted = [
-                'quickstart_get_manifest',
-                'quickstart_export_zip',
                 'quickstart_cancel_job',
+                'quickstart_copy_now',
+                'quickstart_export_zip',
+                'quickstart_get_manifest',
                 'quickstart_import_file',
                 'quickstart_import_now'
             ];
@@ -425,9 +439,307 @@ if ( ! class_exists( 'Quickstart') ) {
             $job_id = $args[1];
             $pid = $args[2];
             $this->report_status( $job_id, 'Export cancelled.' );
-            $this->cleanup_job_data( $job_id );
             shell_exec( "kill -9 $pid" );
+            $this->cleanup_job_data( $job_id );
             return $args;
+        }
+
+        /**
+         * Our trusted elevated command to copy a website with user options asynchonously; used by $this->copy_now().
+         */
+        public function quickstart_copy_now( $args ) {
+            global $hcpp;
+            $job_id = $args[1];
+            $request = $this->pickup_job_data( $job_id, 'request' );
+            $request = $hcpp->do_action( 'quickstart_copy_now_request', $request ); // Allow plugins to modify
+            file_put_contents( "/tmp/test1.txt", json_encode($request, JSON_PRETTY_PRINT) );
+
+            // Load manifest
+            $manifest = $this->pickup_job_data( $job_id, 'manifest' );
+            $manifest = $hcpp->do_action( 'quickstart_copy_now_manifest', $manifest ); // Allow plugins to modify
+            file_put_contents( "/tmp/test2.txt", json_encode($manifest, JSON_PRETTY_PRINT) );
+
+            // $manifest_file = "/tmp/devstia_$job_id-import/devstia_manifest.json";
+            // if ( ! file_exists( $manifest_file ) ) {
+            //     $this->report_status( $job_id, 'Error: Manifest file not found.', 'error' );
+            //     return $args;
+            // }
+            // try {
+            //     $manifest = json_decode( file_get_contents( $manifest_file ), true );
+            // }catch( Exception $e ) {
+            //     $this->report_status( $job_id, 'Error: Manifest file could not be parsed.', 'error' );
+            //     return $args;
+            // }            
+            // $request = $hcpp->do_action( 'quickstart_import_now_request', $request ); // Allow plugins to modify
+            
+            // // Get original website details from manifest
+            // $orig_user = $manifest['user'];
+            // $orig_domain = $manifest['domain'];
+            // $orig_aliases = $manifest['aliases'];
+            // $proxy_ext = $manifest['proxy_ext'];
+            // $backend = $manifest['backend'];
+
+            // // Gather new website details from request
+            // $new_user = $request['user'];
+            // $new_domain = strtolower( $request['v_domain'] );
+            // $new_aliases = strtolower( trim( str_replace( "\r\n", ",", $request['v_aliases'] ) ) );
+            // if ( count( explode( ',', $new_aliases ) ) != count( $orig_aliases ) ) {
+            //     $this->report_status( $job_id, 'Number of aliases does not match original for substitution.', 'error' );
+            //     return $args;
+            // }            
+
+            // // Create the new website domain with new aliases
+            // $this->report_status( $job_id, 'Please wait. Creating domain.' );
+            // $details = $hcpp->run('list-user-ips ' . $new_user . ' json');
+            // $first_ip = null;
+            // foreach ( $details as $ip => $ip_details ) {
+            //     $first_ip = $ip;
+            //     break;
+            // }
+            // $command = "add-web-domain $new_user $new_domain $first_ip no \"$new_aliases\" $proxy_ext";
+            // $result = $hcpp->run( $command );
+            // if ( $result != '' ) {
+            //     $this->report_status( $job_id, $result, 'error' );
+            //     return $args;
+            // }
+            // $new_aliases = explode( ',', $new_aliases );
+
+            // // Wait up to 60 seconds for public_html/index.html to be created
+            // $dest_folder = '/home/' . $new_user . '/web/' . $new_domain;
+            // for ( $i = 0; $i < 60; $i++ ) {
+            //     if ( file_exists( $dest_folder . '/public_html/index.html' ) ) break;
+            //     sleep(1);
+            // }
+            // if ( !is_dir( $dest_folder . '/public_html' ) ) {
+            //     $this->report_status( $job_id, 'Error timeout awaiting domain creation. ' . $dest_folder, 'error' );
+            //     return $args;
+            // }
+
+            // // Copy all subfolders in the import folder
+            // $import_folder = "/tmp/devstia_$job_id-import";
+            // $this->report_status( $job_id, 'Please wait. Copying files.' );
+            // $folders = array_filter( glob( $import_folder . '/*' ), 'is_dir' );
+            // $command = "rm -f $dest_folder/public_html/index.html ; ";
+            // foreach( $folders as $folder ) {
+            //     $subfolder = $hcpp->getRightMost( $folder, '/' );
+            //     $command .= __DIR__ . '/abcopy ' . $folder . '/ ' . $dest_folder . "/$subfolder/ ; ";
+            //     $command .= "chown -R $new_user:$new_user " . $dest_folder . "/$subfolder/ ; ";
+            //     if ( $subfolder == 'public_html' ) {
+            //         $command .= "chown $new_user:www-data " . $dest_folder . "/$subfolder/ ; ";
+            //     }
+            // }
+            // $command = $hcpp->do_action( 'quickstart_import_copy_files', $command ); // Allow plugin mods
+            // shell_exec( $command );
+
+            // // Create the databases
+            // $orig_dbs = $manifest['databases'];
+            // if ( is_array( $orig_dbs ) && !empty( $orig_dbs ) ) {
+            //     foreach( $orig_dbs as $db ) {
+
+            //         // Get the original database details
+            //         $orig_db = $db['DATABASE'];
+            //         $orig_password = $db['DBPASSWORD'];
+            //         $orig_type = $db['TYPE'];
+            //         $orig_charset = $db['CHARSET'];
+            //         $ref_files = $db['ref_files'];
+
+            //         // Generate new credentials and new database
+            //         $db_name = $hcpp->nodeapp->random_chars(5);
+            //         $db_password = $hcpp->nodeapp->random_chars(20);
+            //         $command = "add-database $new_user $db_name $db_name $db_password $orig_type localhost $orig_charset";
+            //         $db_name = $new_user . '_' . $db_name;
+            //         $this->report_status( $job_id, "Please wait. Creating database: $db_name" );
+            //         $result = $hcpp->run( $command );
+
+            //         // Search and replace credentials in ref_files
+            //         foreach( $ref_files as $file ) {
+            //             $file = $dest_folder . '/' . $hcpp->delLeftMost( $file, '/' );
+            //             try {
+            //                 $this->search_replace_file( 
+            //                     $file, 
+            //                     [$orig_db, $orig_password], 
+            //                     [$db_name, $db_password] 
+            //                 );
+            //             }catch( Exception $e ) {
+            //                 $this->report_status( $job_id, $e->getMessage(), 'error' );
+            //                 return $args;
+            //             }
+            //         }
+
+            //         // Search and replace domain, user path, and aliases in db sql files
+            //         $db_sql_file = $dest_folder . '/devstia_databases/' . $db['DATABASE'] . '.sql';
+            //         $searches = [$orig_domain, "/home/$orig_user"];
+            //         $replaces = [$new_domain, "/home/$new_user"];
+            //         $searches = array_merge( $searches, $orig_aliases );
+            //         $replaces = array_merge( $replaces, $new_aliases );
+            //         try {
+            //             $this->search_replace_file( $db_sql_file, $searches, $replaces );
+            //         }catch( Exception $e ) {
+            //             $this->report_status( $job_id, $e->getMessage(), 'error' );
+            //             return $args;
+            //         }
+
+            //         // Import the database sql file
+            //         if ( $orig_type == 'mysql' ) {
+
+            //             // Support MySQL
+            //             $command = "mysql -h localhost -u $db_name -p$db_password $db_name < $db_sql_file";
+            //         }else{
+
+            //             // Support PostgreSQL
+            //             $command = "export PGPASSWORD=\"$db_password\"; psql -h localhost -U $db_name $db_name $db_sql_file";
+            //         }
+            //         $command = $hcpp->do_action( 'quickstart_import_now_db', $command ); // Allow plugin mods
+            //         $result = shell_exec( $command );
+            //         if ( strpos( strtolower( $result ), 'error' != '' ) !== false ){
+            //             $this->report_status( $job_id, $result, 'error' );
+            //             return $args;
+            //         }
+            //     }
+            // }
+
+            // // Update smtp.json file
+            // $smtp_file = $dest_folder . '/private/smtp.json';
+            // if ( file_exists( $smtp_file ) ) {
+            //     try {
+            //         // Get the original file's permissions and ownership
+            //         $fileStat = stat( $smtp_file );
+            //         $fileMode = $fileStat['mode'];
+            //         $fileUid = $fileStat['uid'];
+            //         $fileGid = $fileStat['gid'];
+
+            //         // Update the file
+            //         $content = file_get_contents( $smtp_file );
+            //         $content = json_decode( $content, true );
+            //         $content['username'] = $new_domain;
+            //         $content['password'] = $hcpp->nodeapp->random_chars( 16 );
+            //         file_put_contents( $smtp_file, json_encode( $content, JSON_PRETTY_PRINT ) );
+
+            //         // Restore the original file's permissions and ownership
+            //         chmod( $smtp_file, $fileMode );
+            //         chown( $smtp_file, $fileUid );
+            //         chgrp( $smtp_file, $fileGid );
+            //     }catch( Exception $e ) {
+            //         $this->report_status( $job_id, $e->getMessage(), 'error' );
+            //         return $args;
+            //     }
+            // }
+
+            // // Search and replace on base files
+            // foreach( $manifest['ref_files'] as $file ) {
+            //     $file = $dest_folder . '/' . $hcpp->delLeftMost( $file, '/' );
+            //     if ( !file_exists( $file ) ) continue;
+            //     try {
+            //         $searches = [$orig_domain, "/home/$orig_user"];
+            //         $replaces = [$new_domain, "/home/$new_user"];
+            //         $searches = array_merge( $searches, $orig_aliases );
+            //         $replaces = array_merge( $replaces, $new_aliases );
+            //         $this->search_replace_file( 
+            //             $file, 
+            //             $searches,
+            //             $replaces
+            //         );
+            //     }catch( Exception $e ) {
+            //         $this->report_status( $job_id, $e->getMessage(), 'error' );
+            //         return $args;
+            //     }
+            // }
+
+            // // Search and replace export advanced options
+            // $this->report_status( $job_id, 'Please wait. Updating files.');
+            // $export_adv_options = $manifest['export_adv_options'];
+            // foreach( $export_adv_options as $option ) {
+
+            //     // Get original value
+            //     $value = $option['value'];
+            //     $label = $option['label'];
+            //     $ref_files = $option['ref_files'];
+            //     if ( $label == '' ) continue;
+
+            //     // Find new value from form
+            //     $labelVar = 'eao_' . $this->title_to_var_name( $label );
+            //     $new_value = '';
+            //     if ( isset( $request[$labelVar] ) ) {
+            //         $new_value = $request[$labelVar];
+            //     }
+
+            //     // Get default value if multiselect
+            //     if ( strpos( $value, "|") !== false ) {
+            //         $value = $hcpp->delLeftMost( $value, "|");
+            //         $value = $hcpp->getLeftMost( $value, "\n");
+            //     }
+
+            //     // Search and replace the value in ref. files
+            //     foreach( $ref_files as $file ) {
+            //         $file = $dest_folder . '/' . $hcpp->delLeftMost( $file, '/' );
+            //         if ( !file_exists( $file ) ) continue;
+            //         if ( $value == $new_value ) continue;
+            //         try {
+            //             $this->search_replace_file( 
+            //                 $file, 
+            //                 [$value], 
+            //                 [$new_value] 
+            //             );
+            //         }catch( Exception $e ) {
+            //             $this->report_status( $job_id, $e->getMessage(), 'error' );
+            //             return $args;
+            //         }
+            //     }
+            // }
+
+            // // Search and replace export advanced options
+            // $export_adv_options = $manifest['export_adv_options'];
+            // foreach( $export_adv_options as $option ) {
+
+            //     // Get original value
+            //     $value = $option['value'];
+            //     $label = $option['label'];
+            //     $ref_files = $option['ref_files'];
+            //     if ( $label == '' ) continue;
+
+            //     // Find new value from form
+            //     $labelVar = 'eao_' . $this->title_to_var_name( $label );
+            //     $new_value = '';
+            //     if ( isset( $request[$labelVar] ) ) {
+            //         $new_value = $request[$labelVar];
+            //     }
+
+            //     // Get default value if multiselect
+            //     if ( strpos( $value, "|") !== false ) {
+            //         $value = $hcpp->delLeftMost( $value, "|");
+            //         $value = $hcpp->getLeftMost( $value, "\n");
+            //     }
+
+            //     // Search and replace the value in ref. files
+            //     foreach( $ref_files as $file ) {
+            //         $file = $dest_folder . '/' . $hcpp->delLeftMost( $file, '/' );
+            //         if ( !file_exists( $file ) ) continue;
+            //         if ( $value == $new_value ) continue;
+            //         try {
+            //             $this->search_replace_file( 
+            //                 $file, 
+            //                 [$value], 
+            //                 [$new_value] 
+            //             );
+            //         }catch( Exception $e ) {
+            //             $this->report_status( $job_id, $e->getMessage(), 'error' );
+            //             return $args;
+            //         }
+            //     }
+            // }
+            // shell_exec( 'rm -rf ' . $dest_folder . '/devstia_databases' );
+
+            // // Update the web domain backend
+            // $hcpp->run( "change-web-domain-backend-tpl $new_user $new_domain $backend" );
+            // $this->cleanup_job_data( $job_id );
+
+            // // Report success
+            // $message = "Website imported successfully. You can now visit <br/>your website at: ";
+            // $message .= "<a href=\"https://$new_domain\" target=\"_blank\"><i tabindex=\"100\" ";
+            // $message .= "style=\"font-size:smaller;\" class=\"fas fa-external-link\"></i> $new_domain</a>.";
+            // $this->report_status( $job_id, $message, 'finished' );
+
+            // return $args;
         }
 
         /**
@@ -527,6 +839,7 @@ if ( ! class_exists( 'Quickstart') ) {
             }
             try {
                 $manifest = json_decode( file_get_contents( $manifest_file ), true );
+                $manifest = $hcpp->do_action( 'quickstart_import_now_manifest', $manifest ); // Allow plugins to modify
             }catch( Exception $e ) {
                 $this->report_status( $job_id, 'Error: Manifest file could not be parsed.', 'error' );
                 return $args;

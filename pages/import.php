@@ -6,7 +6,7 @@
 <div class="toolbar">
     <div class="toolbar-inner">
         <div class="toolbar-buttons">
-            <a href="#" class="button button-secondary button-back js-button-back" id="back">
+            <a href="#" class="button button-secondary button-back js-button-back" id="back-button">
                 <i tabindex="300" class="fas fa-arrow-left icon-blue"></i>Back			
             </a>
         </div>
@@ -72,7 +72,7 @@
             });
 
             // Cancel the export
-            $('#back').on('click', (e) => {
+            $('#back-button').on('click', (e) => {
                 e.preventDefault();
                 $.ajax({
                     url: '../../pluginable.php?load=quickstart&action=cancel_job&job_id=<?php echo $job_id; ?>',
@@ -118,7 +118,7 @@
                         if (data.status == 'uploaded') {
                             $('#dropZone').html('<i class="fas fa-file-archive"></i><br>' + data.message + '</span>');
                             $('#continue-button').attr('href', '?quickstart=import_options&job_id=<?php echo $job_id; ?>');
-                            $('#back').attr('href', '?quickstart=import_export&job_id=<?php echo $job_id; ?>');
+                            $('#back-button').attr('href', '?quickstart=import_export&job_id=<?php echo $job_id; ?>');
                             $('#continue-button').removeClass('disabled');
                         }else{
                             $('#dropZone').html('<i class="fas fa-exclamation-triangle" style="color:orange;"></i><br>' + data.message + '</span>');

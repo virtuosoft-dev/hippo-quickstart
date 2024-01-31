@@ -20,7 +20,7 @@
 <div class="toolbar" style="z-index:100;position:relative;">
     <div class="toolbar-inner">
         <div class="toolbar-buttons">
-            <a href="#" class="button button-secondary button-back js-button-back" id="back">
+            <a href="#" class="button button-secondary button-back js-button-back" id="back-button">
                 <i tabindex="300" class="fas fa-stop-circle icon-red"></i>Cancel			
             </a>
         </div>
@@ -41,22 +41,6 @@
 <script>
     (function($){
         $(function() {
-            // Cancel the import
-            $('#back').on('click', (e) => {
-                e.preventDefault();
-                $.ajax({
-                    url: '../../pluginable.php?load=quickstart&action=cancel_job&job_id=<?php echo $job_id; ?>',
-                    type: 'GET',
-                    success: function( data ) {
-                        $('#status').html( 'Import cancelled. Click continue.');
-                        $('#back').hide();
-                        $('#options').hide();
-                        $('#continue-button').removeClass('disabled');
-                        $('#continue-button').attr('href', '?quickstart=main');
-                        $('.spinner-overlay').removeClass('active');
-                    }
-                });
-            });
 
             // Var-safe title function
             function titleToVarName(str) {
@@ -159,6 +143,24 @@
             setTimeout( () => {
                 $('.spinner-overlay').addClass('active');
             }, 1000);
+
+            // Cancel the import
+            $('#back-button').on('click', (e) => {
+                clearInterval( import_int );
+                e.preventDefault();
+                $.ajax({
+                    url: '../../pluginable.php?load=quickstart&action=cancel_job&job_id=<?php echo $job_id; ?>',
+                    type: 'GET',
+                    success: function( data ) {
+                        $('#status').html( 'Import cancelled. Click continue.');
+                        $('#back-button').hide();
+                        $('#options').hide();
+                        $('#continue-button').removeClass('disabled');
+                        $('#continue-button').attr('href', '?quickstart=main');
+                        $('.spinner-overlay').removeClass('active');
+                    }
+                });
+            });
         });
     })(jQuery);
 </script>

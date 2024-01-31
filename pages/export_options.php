@@ -40,7 +40,7 @@
     <div class="toolbar">
         <div class="toolbar-inner">
             <div class="toolbar-buttons">
-                <a href="?quickstart=export_details&domain=<?php echo $domain; ?>&dbs=<?php echo $dbs; ?>&job_id=<?php echo $job_id; ?>" class="button button-secondary button-back js-button-back" id="back">
+                <a href="?quickstart=export_details&domain=<?php echo $domain; ?>&dbs=<?php echo $dbs; ?>&job_id=<?php echo $job_id; ?>" class="button button-secondary button-back js-button-back" id="back-button">
                     <i tabindex="300" class="fas fa-arrow-left icon-blue"></i>Back			
                 </a>
             </div>

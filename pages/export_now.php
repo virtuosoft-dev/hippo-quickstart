@@ -25,7 +25,7 @@
 <div class="toolbar" style="z-index:100;position:relative;">
     <div class="toolbar-inner">
         <div class="toolbar-buttons">
-            <a href="#" class="button button-secondary button-back js-button-back" id="back">
+            <a href="#" class="button button-secondary button-back js-button-back" id="back-button">
                 <i tabindex="300" class="fas fa-stop-circle icon-red"></i>Cancel			
             </a>
         </div>
@@ -47,28 +47,10 @@
     (function($){
         $(function() {
 
-            // Cancel the export
-            $('#back').on('click', (e) => {
-                e.preventDefault();
-                $.ajax({
-                    url: '../../pluginable.php?load=quickstart&action=cancel_job&job_id=<?php echo $job_id; ?>',
-                    type: 'GET',
-                    success: function( data ) {
-                        $('#error').html( '<p>Export cancelled.</p>');
-                        $('#error').show();
-                        $('#back').hide();
-                        $('#continue-button').removeClass('disabled');
-                        $('#continue-button').attr('href', '?quickstart=main');
-                        $('.spinner-overlay').removeClass('active');
-                    }
-                });
-            });
-
             // Check the job_id every 8 seconds
-            var job_id = '<?php echo $job_id; ?>';
             var export_int = setInterval( () => {
                 $.ajax({
-                    url: '../../pluginable.php?load=quickstart&action=export_status&job_id=' + job_id,
+                    url: '../../pluginable.php?load=quickstart&action=export_status&job_id=<?php echo $job_id; ?>',
                     type: 'GET',
                     success: function( data ) {
                         console.log( data );
@@ -98,7 +80,7 @@
                         } else {
                             $('#status').html( '<p>An unknown error occurred. Please try again.</p>');
                         }
-                        $('#back').hide();
+                        $('#back-button').hide();
                         $('#continue-button').removeClass('disabled');
                         $('#continue-button').attr('href', '?quickstart=main');
                         $('.spinner-overlay').removeClass('active');
@@ -109,6 +91,24 @@
             setTimeout( () => {
                 $('.spinner-overlay').addClass('active');
             }, 1000);
+
+            // Cancel the export
+            $('#back-button').on('click', (e) => {
+                clearInterval( export_int );
+                e.preventDefault();
+                $.ajax({
+                    url: '../../pluginable.php?load=quickstart&action=cancel_job&job_id=<?php echo $job_id; ?>',
+                    type: 'GET',
+                    success: function( data ) {
+                        $('#error').html( '<p>Export cancelled.</p>');
+                        $('#error').show();
+                        $('#back-button').hide();
+                        $('#continue-button').removeClass('disabled');
+                        $('#continue-button').attr('href', '?quickstart=main');
+                        $('.spinner-overlay').removeClass('active');
+                    }
+                });
+            });
         });
     })(jQuery);
 </script>

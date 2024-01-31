@@ -2,7 +2,7 @@
 <div class="toolbar">
     <div class="toolbar-inner">
         <div class="toolbar-buttons">
-            <a href="?quickstart=import_export" class="button button-secondary button-back js-button-back" id="back">
+            <a href="?quickstart=import_export" class="button button-secondary button-back js-button-back" id="back-button">
                 <i class="fas fa-arrow-left icon-blue"></i>Back			
             </a>
         </div>

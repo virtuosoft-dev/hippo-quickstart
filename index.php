@@ -11,6 +11,11 @@ if (false == isset($_GET['action'])) return;
 if (false == isset($_GET['job_id'])) return;
 $job_id = $_GET['job_id'];
 
+// Clean up the job by job id
+if ( $_GET['action'] == 'cleanup_job' ) {
+    $hcpp->quickstart->cleanup_job_data( $job_id );
+}
+
 // Check job_id
 global $hcpp;
 if ( $hcpp->quickstart->is_job_valid( $_GET['job_id'] ) === false ) return;
@@ -116,9 +121,10 @@ if ( $_GET['action'] == 'import_status' ) {
     echo json_encode( $status );
 }
 
-// Check import_result
-if ( $_GET['action'] == 'import_result' ) {
+// Check import_result, copy_result
+if ( $_GET['action'] == 'import_result' || $_GET['action'] == 'copy_result' ) {
     $status = $hcpp->quickstart->get_status( $job_id );
     echo json_encode( $status );
 }
+
  
