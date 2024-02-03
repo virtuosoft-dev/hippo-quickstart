@@ -10,52 +10,6 @@
 
     // Start the copy process
     $hcpp->quickstart->copy_now( $job_id );
-
-
-    // // Validate remove_copy key
-    // global $hcpp;
-    // if (false == (isset($_GET['rc_key']) && isset($_SESSION['rc_key']))) return;
-    // if ($_GET['rc_key'] != $_SESSION['rc_key']) return;
-    // $rc_key = $_GET['rc_key'];
-
-    // // Gather details and write unique json temp file
-    // $site_details = $_SESSION[$rc_key . '_site_details'];
-    // $selected_databases = $_REQUEST['selected_databases'];
-    // $copy_details = [
-    //     'orig_domain' => '',
-    //     'new_domain' => '',
-    //     'orig_aliases' => [],
-    //     'new_aliases' => [],
-    //     'databases' => [],
-    //     'ref_files' => [],
-    //     'user' => ''
-    // ];
-    // foreach( $site_details as $detail ) {
-    //     if ( isset( $detail['DATABASE']) ) {
-    //         $database = $detail['DATABASE'];
-    //         if ( in_array( $database, $selected_databases ) ) {
-    //             $detail['new_DATABASE'] = $_SESSION['user'] . '_' . $hcpp->nodeapp->random_chars(5);
-    //             $detail['new_DBPASSWORD'] = $hcpp->nodeapp->random_chars(20);
-    //             $copy_details['databases'][] = $detail;
-    //         }
-    //     }
-    //     if ( isset( $detail['domain'] ) ) {
-    //         $copy_details['orig_domain'] = $detail['domain'];
-    //         $copy_details['orig_aliases'] = $detail['aliases'];
-    //         $copy_details['ref_files'] = $detail['ref_files'];
-    //         $copy_details['user'] = $_SESSION['user'];
-    //     }
-    // } 
-    // $copy_details['new_domain'] = $_REQUEST['v_domain'];
-    // $new_aliases = explode( "\n", $_REQUEST['v_aliases'] );
-    // $copy_details['new_aliases'] = array_map( 'trim', $new_aliases );
-    // file_put_contents( '/tmp/devstia_copy_' . $rc_key . '.json', json_encode($copy_details, JSON_PRETTY_PRINT) );
-
-    // // Start copy process asynchonously and get the process id
-    // $copy_pid = trim( shell_exec(HESTIA_CMD . "v-invoke-plugin quickstart_copy_now " . $rc_key . " > /dev/null 2>/dev/null & echo $!") );
-
-    // // Write the pid to a unique pid temp file
-    // file_put_contents( '/tmp/devstia_copy_' . $rc_key . '.pid', $copy_pid );
 ?>
 <div class="toolbar" style="z-index:100;position:relative;">
     <div class="toolbar-inner">
@@ -72,9 +26,9 @@
     </div>
 </div>
 <div class="body-reset container">
-    <div class="quickstart qs_import_now">
-        <h1>Import Website Files</h1>
-        <legend id="status">Please wait. Importing website.</legend>
+    <div class="quickstart qs_copy_now">
+        <h1>Copy Website Files</h1>
+        <legend id="status">Please wait. Copying website.</legend>
         <div id="options">
             <pre>
                 <?php

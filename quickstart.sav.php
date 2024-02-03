@@ -128,10 +128,10 @@
             }
 
             // Create the domain
-            $this->report_status( $result_file, 'Please wait. Creating domain.' );
             $new_user = $request['user'];
             $new_domain = $request['v_domain'];
             $new_aliases = str_replace( "\r\n", ",", $request['v_aliases'] );
+            $this->report_status( $result_file, 'Please wait. Creating domain ' . $new_domain . '.' );
             $details = $hcpp->run('list-user-ips ' . $new_user . ' json');
             $first_ip = null;
             foreach ( $details as $ip => $ip_details ) {
