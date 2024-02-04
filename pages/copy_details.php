@@ -23,7 +23,7 @@
         </div>
     </div>
     <div class="body-reset container">
-        <div class="quickstart qs_site_details">
+        <div class="quickstart qs_copy_details">
             <h1>Copy Details</h1>
                 <legend>Fill in options. <?php if ( is_dir('/home/devstia') ) echo "<i>Devstia Preview should use a <b>.dev.pw</b> TLD.</i>"; ?></legend>
                 <div class="u-mb10">

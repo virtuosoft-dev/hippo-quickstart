@@ -186,7 +186,7 @@
                 } else {
                     $('#continue-button').removeClass('disabled');
                     if ( $('#v_remove_website').prop('checked') ) {
-                        $('#continue-button').attr('href', '?quickstart=remove_detail&domain=' + domains.join(','));
+                        $('#continue-button').attr('href', '?quickstart=remove_details&domain=' + domains.join(','));
                     } else {
                         $('#continue-button').attr('href', '?quickstart=copy_details&domain=' + domains[0]);
                     }

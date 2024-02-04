@@ -210,7 +210,8 @@ if ( ! class_exists( 'Quickstart') ) {
                 'quickstart_export_zip',
                 'quickstart_get_manifest',
                 'quickstart_import_file',
-                'quickstart_import_now'
+                'quickstart_import_now',
+                'quickstart_remove_now'
             ];
             if ( in_array( $args[0], $trusted ) ) {
                 return call_user_func_array([$this, $args[0]], [$args]);
@@ -264,7 +265,8 @@ if ( ! class_exists( 'Quickstart') ) {
                 'remove_copy',
                 'copy_details',
                 'copy_now',
-                'remove_details'
+                'remove_details',
+                'remove_now'
             ];
 
             // Sanitize the quickstart parameter, default to main
