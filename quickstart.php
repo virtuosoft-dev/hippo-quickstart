@@ -72,6 +72,15 @@ if ( ! class_exists( 'Quickstart') ) {
         }
 
         /**
+         * Delete the given export file.
+         * @param string $file The file to delete.
+         */
+        public function delete_export( $file ) {
+            global $hcpp;
+            $hcpp->run('invoke-plugin quickstart_delete_export ' . $file );
+        }
+
+        /**
          * Check if the given job id is valid.
          * @param string $job_id The unique job id.
          */
@@ -139,7 +148,6 @@ if ( ! class_exists( 'Quickstart') ) {
          * @param string $job_id The unique job id.
          */
         public function import_file( $job_id ) {
-            global $hcpp;
             $this->xfer_job_data( $job_id, 'import_file' );
             $pid = trim( shell_exec( HESTIA_CMD . "v-invoke-plugin quickstart_import_file " . $job_id . " > /dev/null 2>/dev/null & echo $!" ) );
             $this->set_job_data( $job_id, 'pid', $pid );
@@ -150,7 +158,6 @@ if ( ! class_exists( 'Quickstart') ) {
          * @param string $job_id The unique job id.
          */
         public function import_now( $job_id ) {
-            global $hcpp;
             $_REQUEST['user'] = $_SESSION['user'];
             $this->set_job_data( $job_id, 'request', $_REQUEST );
             $this->xfer_job_data( $job_id, 'request' );
@@ -240,6 +247,7 @@ if ( ! class_exists( 'Quickstart') ) {
             $trusted = [
                 'quickstart_cancel_job',
                 'quickstart_copy_now',
+                'quickstart_delete_export',
                 'quickstart_export_zip',
                 'quickstart_get_manifest',
                 'quickstart_get_multi_manifests',
@@ -782,6 +790,15 @@ if ( ! class_exists( 'Quickstart') ) {
             $message .= "<a href=\"https://$new_domain\" target=\"_blank\"><i tabindex=\"100\" ";
             $message .= "style=\"font-size:smaller;\" class=\"fas fa-external-link\"></i> $new_domain</a>.";
             $this->report_status( $job_id, $message, 'finished' );
+            return $args;
+        }
+
+        /**
+         * Our trusted elevated command to delete an export archive; used by $this->delete_export().
+         */
+        public function quickstart_delete_export( $args ) {
+            $file = $args[1];
+            shell_exec( "rm -f $file" );
             return $args;
         }
 

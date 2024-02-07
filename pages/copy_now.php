@@ -15,12 +15,12 @@
     <div class="toolbar-inner">
         <div class="toolbar-buttons">
             <a href="#" class="button button-secondary button-back js-button-back" id="back-button">
-                <i class="fas fa-stop-circle icon-red"></i>Cancel			
+                <i tabindex="300" class="fas fa-stop-circle icon-red"></i>Cancel			
             </a>
         </div>
         <div class="toolbar-buttons">
             <a href="#" class="button disabled" id="continue-button">
-                <i class="fas fa-arrow-right icon-blue"></i>Continue
+                <i tabindex="200" class="fas fa-arrow-right icon-blue"></i>Continue
             </a>         
         </div>
     </div>

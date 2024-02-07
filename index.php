@@ -9,6 +9,8 @@ if (session_status() == PHP_SESSION_NONE) {
 if (false == isset($_SESSION['user'])) return;
 if (false == isset($_GET['action'])) return;
 
+global $hcpp;
+
 // Process file download
 if ( $_GET['action'] == 'download')  {
     if ( !isset( $_GET['file'] ) ) return;
@@ -33,6 +35,14 @@ if ( $_GET['action'] == 'download')  {
     }
 }
 
+// Process file delete
+if ( $_GET['action'] == 'delete_export' ) {
+    if ( !isset( $_GET['file'] ) ) return;
+    $file = "/home/" . $_SESSION['user'] . "/web/exports/" . $_GET['file'];
+    $hcpp->quickstart->delete_export( $file );
+    header('Location: list/web/?quickstart=export_view' );
+}
+
 if (false == isset($_GET['job_id'])) return;
 $job_id = $_GET['job_id'];
 
@@ -42,7 +52,6 @@ if ( $_GET['action'] == 'cleanup_job' ) {
 }
 
 // Check job_id
-global $hcpp;
 if ( $hcpp->quickstart->is_job_valid( $_GET['job_id'] ) === false ) return;
 
 // Cancel the job by job id
