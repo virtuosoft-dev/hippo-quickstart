@@ -29,19 +29,13 @@
     <div class="quickstart qs_copy_now">
         <h1>Copy Website Files</h1>
         <legend id="status">Please wait. Copying website.</legend>
-        <div id="options">
-            <pre>
-                <?php
-                    
-                ?>
-            </pre>
-        </div>
+        <div id="options"></div>
     </div>
 </div>
 <script>
     (function($){
         $(function() {
-            // Check the copy key every 8 seconds
+            // Check the copy key every 6 seconds
             var copy_int = setInterval( () => {
                 $.ajax({
                     url: '../../pluginable.php?load=quickstart&action=copy_result&job_id=<?php echo $job_id; ?>',
@@ -60,6 +54,9 @@
                             $('#continue-button').removeClass('disabled');
                             $('.spinner-overlay').removeClass('active');
                             clearInterval( copy_int );
+                        }
+                        if ( data.status == 'finished' ) {
+                            $('#continue-button').html('<i tabindex="200" class="fas fa-flag-checkered icon-blue"></i>Finished');
                         }
                     }
                 }); 

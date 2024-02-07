@@ -39,7 +39,7 @@
                         echo '</div>';
                     }
                 ?>
-            <br/>
+            <br>
             <h3 tabindex="100"><i class="fas fa-caret-right"></i> Database Details</h3>
             <div id="database-details" style="display:none;">
                 <legend>The following databases were referenced in files for <?php echo $manifest['domain'] ?>.<br>

@@ -51,7 +51,7 @@
                 return str;
             }
 
-            // Check the import key every 8 seconds
+            // Check the import key every 6 seconds
             var import_int = setInterval( () => {
                 $.ajax({
                     url: '../../pluginable.php?load=quickstart&action=import_status&job_id=<?php echo $job_id; ?>',

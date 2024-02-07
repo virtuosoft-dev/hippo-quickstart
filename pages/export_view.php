@@ -1,4 +1,11 @@
 <?php require( 'header.php' ); ?>
+<?php
+    if ( !isset( $_SESSION['user'] ) ) {
+        header( 'Location: ?quickstart=login' );
+        exit;
+    }
+    $user = $_SESSION['user'];
+?>
 <div class="toolbar">
     <div class="toolbar-inner">
         <div class="toolbar-buttons">
@@ -16,9 +23,30 @@
 <div class="body-reset container">
     <div class="quickstart qs_export_view">
         <h1>View of Exported Websites</h1>
-        <legend>Download, delete, or share your exported creation.</legend>
+        <legend>
+            Download, delete, or share your exported creation.
+        </legend>
+        <?php
+            // List zip files from the user's exports directory with a download link
+            $exports = glob( "/home/$user/web/exports/*.zip" );
+            if ( count( $exports ) > 0 ) {
+                echo '<ul>';
+                foreach ( $exports as $export ) {
+                    $export = basename( $export );
+                    echo '<li><a href="/exports/' . $export . '">' . $export . '</a></li>';
+                }
+                echo '</ul>';
+            } else {
+                echo '<p>No exports found.</p>';
+            }
+        ?>
         <p>
-
+        <?php
+            if ( $_SESSION['user'] == 'devstia' ) {
+                echo "<br><p><strong>Devstia Preview:</strong></p>";
+                echo '<p>You can also find exports in your <a href="https://devstia.com/docs/devstia-drive" target="_blank">Devstia drive\'s "exports" folder.</p>';
+            }
+        ?>
         </p>
     </div>
 </div>

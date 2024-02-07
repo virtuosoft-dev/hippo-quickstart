@@ -77,7 +77,7 @@
                 <input class="export_option" type="checkbox" id="exvc" checked="checked" tabindex="100"/>
                 <label for="exvc">Exclude version control files &amp; folders (.git*, .svn, .hg).</label>
             </p>
-            <br/>
+            <br>
             <h3 tabindex="100"><i class="fas fa-caret-right"></i> Advanced Options</h3>
             <div id="advanced-opt" style="display:none;">
                 <p>
@@ -87,7 +87,7 @@
                 <p>
                     Learn more on <a href="https://devstia.com/docs/export-advanced-options" target="_blank">Devstia's website</a>.
                 </p>
-                <br/>
+                <br>
                 <table id="advanced-options-table" class="units-table js-units-container">
                     <thead id="adv-options-table" class="units-table-header">
                         <tr class="units-table-row">
@@ -125,7 +125,7 @@
                         ?>
                     </tbody>
                 </table>
-                <br/>
+                <br>
                 <form id="add-row-form">
                     <div class="u-mb10">
                         <label for="label-input" class="form-label">

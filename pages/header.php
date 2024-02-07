@@ -81,6 +81,19 @@
     .qs_remove_copy .alert {
         transform: scale(.9);
     }
+    .qs_remove_details .alias-details {
+        padding: 10px;
+        font-style: italic;
+    }
+    .qs_remove_details #confirm-remove-opt input {
+        margin-top: 6px;
+    }
+    .qs_remove_details #confirm-remove-opt label {
+        font-weight: 400;
+    }
+    .qs_remove_details .action-warn {
+        margin: 15px 0 -15px;
+    }
 </style>
 <script>
     (function($){

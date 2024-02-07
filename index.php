@@ -8,6 +8,31 @@ if (session_status() == PHP_SESSION_NONE) {
 // User and action required
 if (false == isset($_SESSION['user'])) return;
 if (false == isset($_GET['action'])) return;
+
+// Process file download
+if ( $_GET['action'] == 'download')  {
+    if ( !isset( $_GET['file'] ) ) return;
+    $file = "/home/" . $_SESSION['user'] . "/web/exports/" . $_GET['file'];
+    if ( file_exists( $file ) ) {
+        header('Content-Description: File Transfer');
+        header('Content-Type: application/octet-stream');
+        header('Content-Disposition: attachment; filename="' . basename( $file ) . '"');
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate');
+        header('Pragma: public');
+        header('Content-Length: ' . filesize( $file ));
+
+        // Turn off output buffering
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+        $handle = fopen($file, 'rb');
+        fpassthru($handle);
+        fclose($handle);
+        exit;
+    }
+}
+
 if (false == isset($_GET['job_id'])) return;
 $job_id = $_GET['job_id'];
 
@@ -32,32 +57,6 @@ if ( $_GET['action'] == 'export_status' ) {
         $hcpp->quickstart->cleanup_job_data( $job_id );
     }
     echo json_encode( $hcpp->quickstart->get_status( $job_id ) );
-}
-
-// Process file download
-if ( $_GET['action'] == 'download')  {
-    $manifest = $hcpp->quickstart->get_job_data( $job_id, 'manifest' );
-    $user = $_SESSION['user'];
-    $file = "/home/$user/web/exports/" . $manifest['zip_file'];
-
-    if ( file_exists( $file ) ) {
-        header('Content-Description: File Transfer');
-        header('Content-Type: application/octet-stream');
-        header('Content-Disposition: attachment; filename="' . basename($file) . '"');
-        header('Expires: 0');
-        header('Cache-Control: must-revalidate');
-        header('Pragma: public');
-        header('Content-Length: ' . filesize($file));
-
-        // Turn off output buffering
-        if (ob_get_level()) {
-            ob_end_clean();
-        }
-        $handle = fopen($file, 'rb');
-        fpassthru($handle);
-        fclose($handle);
-        exit;
-    }
 }
 
 // Process file upload
@@ -93,6 +92,14 @@ if ( $_GET['action'] == 'upload' ) {
     echo json_encode( $response );
 }
 
+// Get detail status
+if ( $_GET['action'] == 'detail_status' ) {
+    $status = $hcpp->quickstart->get_status( $job_id );
+
+    // Detail status has finished, return all the manifests
+    echo json_encode( $status );
+}
+
 // Get import status
 if ( $_GET['action'] == 'import_status' ) {
     $status = $hcpp->quickstart->get_status( $job_id );
@@ -121,8 +128,10 @@ if ( $_GET['action'] == 'import_status' ) {
     echo json_encode( $status );
 }
 
-// Check import_result, copy_result
-if ( $_GET['action'] == 'import_result' || $_GET['action'] == 'copy_result' ) {
+// Check import_result, copy_result, remove_result
+if ( $_GET['action'] == 'import_result' ||
+     $_GET['action'] == 'copy_result' || 
+     $_GET['action'] == 'remove_result') {
     $status = $hcpp->quickstart->get_status( $job_id );
     echo json_encode( $status );
 }

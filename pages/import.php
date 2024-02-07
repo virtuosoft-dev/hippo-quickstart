@@ -20,7 +20,7 @@
 <div class="body-reset container">
     <div class="quickstart qs_import">
         <h1>Import a Website</h1>
-        <legend>Upload a <a href="https://devstia.com/compatible-website-archive" target="_blank">compatible website archive</a>.</legend>
+        <legend>Upload a <a href="https://devstia.com/docs/compatible-website-archive" target="_blank">compatible website archive</a>.</legend>
             <input type="file" id="fileInput" name="fileInput" style="display: none;" />
             <div id="dropZone" tabindex="100">
                 <i class="fas fa-upload"></i><br>

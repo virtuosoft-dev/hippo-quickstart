@@ -48,9 +48,9 @@ if ( ! class_exists( 'Quickstart') ) {
 
         /**
          * Copy the website with options asynchonously with the given job id
+         * @param string $job_id The unique job id.
          */
         public function copy_now( $job_id ) {
-            global $hcpp;
             $_REQUEST['user'] = $_SESSION['user'];
             $this->set_job_data( $job_id, 'request', $_REQUEST );
             $this->xfer_job_data( $job_id, 'request' );
@@ -93,6 +93,18 @@ if ( ! class_exists( 'Quickstart') ) {
         }
 
         /**
+         * Remove the websites and associated resources based on the given job id.
+         * @param string $job_id The unique job id.
+         */
+        public function remove_now( $job_id ) {
+            $_REQUEST['user'] = $_SESSION['user'];
+            $this->set_job_data( $job_id, 'request', $_REQUEST );
+            $this->xfer_job_data( $job_id, 'request' );
+            $pid = trim( shell_exec( HESTIA_CMD . "v-invoke-plugin quickstart_remove_now " . $job_id . " > /dev/null 2>/dev/null & echo $!" ) );
+            $this->set_job_data( $job_id, 'pid', $pid );
+        }
+
+        /**
          * Set the given job data with a reference key.
          * @param string $job_id The unique job id.
          * @param string $key The key of the data to set.
@@ -124,6 +136,7 @@ if ( ! class_exists( 'Quickstart') ) {
         
         /**
          * Decompress the website asynchonously with the given job id
+         * @param string $job_id The unique job id.
          */
         public function import_file( $job_id ) {
             global $hcpp;
@@ -134,13 +147,14 @@ if ( ! class_exists( 'Quickstart') ) {
 
         /**
          * Import the website with user options asynchonously with the given job id
+         * @param string $job_id The unique job id.
          */
         public function import_now( $job_id ) {
             global $hcpp;
             $_REQUEST['user'] = $_SESSION['user'];
             $this->set_job_data( $job_id, 'request', $_REQUEST );
             $this->xfer_job_data( $job_id, 'request' );
-            $pid = trim( shell_exec( HESTIA_CMD . "v-invoke-plugin quickstart_import_now " . $job_id . " > /dev/null 2>/dev/null & echo $!" ) );
+            $pid = trim( shell_exec( HESTIA_CMD . "v-invoke-plugin quickstart_import_now $job_id > /dev/null 2>/dev/null & echo $!" ) );
             $this->set_job_data( $job_id, 'pid', $pid );
         }
 
@@ -156,6 +170,25 @@ if ( ! class_exists( 'Quickstart') ) {
         public function get_manifest( $user, $domain ) {
             global $hcpp;
             return $hcpp->run( "invoke-plugin quickstart_get_manifest " . $user . " " . $domain . " json" );
+        }
+
+        /**
+         * Get an array of multiple manifests for the given stored with the job id.
+         * @param string $job_id The unique job id.
+         */
+        public function get_multi_manifests( $job_id ) {
+            global $hcpp;
+            $this->set_job_data( $job_id, 'get_multi_manifests', [
+                "user" => $_SESSION['user'],
+                "domains" => $_GET['domain']
+            ] );
+            $this->xfer_job_data( $job_id, 'get_multi_manifests' );
+            
+            // Start the gathering process asynchonously and get the process id
+            $pid = trim( shell_exec( HESTIA_CMD . "v-invoke-plugin quickstart_get_multi_manifests $job_id $user $domains > /dev/null 2>/dev/null & echo $!" ) );
+
+            // Store the process id data for the job, to be used for status checks
+            $this->set_job_data( $job_id, 'pid', $pid );
         }
 
         /**
@@ -209,6 +242,7 @@ if ( ! class_exists( 'Quickstart') ) {
                 'quickstart_copy_now',
                 'quickstart_export_zip',
                 'quickstart_get_manifest',
+                'quickstart_get_multi_manifests',
                 'quickstart_import_file',
                 'quickstart_import_now',
                 'quickstart_remove_now'
@@ -744,7 +778,7 @@ if ( ! class_exists( 'Quickstart') ) {
             $this->cleanup_job_data( $job_id );
 
             // Report success
-            $message = "Website copied successfully. You can now visit <br/>your website at: ";
+            $message = "Website copied successfully. You can now visit <br>your website at: ";
             $message .= "<a href=\"https://$new_domain\" target=\"_blank\"><i tabindex=\"100\" ";
             $message .= "style=\"font-size:smaller;\" class=\"fas fa-external-link\"></i> $new_domain</a>.";
             $this->report_status( $job_id, $message, 'finished' );
@@ -1117,7 +1151,7 @@ if ( ! class_exists( 'Quickstart') ) {
             $this->cleanup_job_data( $job_id );
 
             // Report success
-            $message = "Website imported successfully. You can now visit <br/>your website at: ";
+            $message = "Website imported successfully. You can now visit <br>your website at: ";
             $message .= "<a href=\"https://$new_domain\" target=\"_blank\"><i tabindex=\"100\" ";
             $message .= "style=\"font-size:smaller;\" class=\"fas fa-external-link\"></i> $new_domain</a>.";
             $this->report_status( $job_id, $message, 'finished' );
@@ -1322,6 +1356,72 @@ if ( ! class_exists( 'Quickstart') ) {
         }
 
         /**
+         * Our trusted elevated command to get multiple manifests; used by $this->get_multi_manifests().
+         * @param array $args The arguments passed to the command.
+         */
+        public function quickstart_get_multi_manifests( $args ) {
+            $job_id = $args[1];
+
+            // Get the user and domains
+            $gmm = $this->pickup_job_data( $job_id, 'get_multi_manifests' );
+            $user = $gmm['user'];
+            $domains = explode( ',', $gmm['domains'] );
+            $manifests = [];
+            foreach( $domains as $domain ) {
+                $this->report_status( $job_id, "Obtaining details for " . $domain . "." );
+                $args = [ $user, $domain ];
+                $manifest = $this->get_manifest( $user, $domain );
+                $manifests[] = $manifest;
+            }
+            file_put_contents( '/tmp/test1.txt', json_encode( $manifests, JSON_PRETTY_PRINT ) );
+            $this->report_status( $job_id, $manifests, 'finished' );
+            return $args;
+        }
+
+        /**
+         * Remove the websites and databases from the server by job_id; used by $this->remove_websites().
+         */
+        public function quickstart_remove_now( $args ) {
+            $job_id = $args[1];
+            $request = $this->pickup_job_data( $job_id, 'request' );
+            if ( $request == false ) return $args;
+            if ( !isset( $request['manifests'] ) ) return $args;
+            $manifests = json_decode( $request['manifests'], true );
+            
+            // Run removal commands for each manifest entry
+            global $hcpp;
+            foreach( $manifests as $manifest ) {
+                $user = $manifest['user'];
+                $domain = $manifest['domain'];
+                $this->report_status( $job_id, "Removing " . $domain . "." );
+                $command = "delete-web-domain $user $domain false";
+                $result = $hcpp->run( $command );
+                if ( $result != '' ) {
+                    $this->report_status( $job_id, $result, 'error' );
+                    return $args;
+                }
+
+                // Remove the databases
+                $databases = $manifest['databases'];
+                foreach( $databases as $db ) {
+                    $db_name = $db['DATABASE'];
+                    $command = "delete-database $user $db_name";
+                    $result = $hcpp->run( $command );
+                    if ( $result != '' ) {
+                        $this->report_status( $job_id, $result, 'error' );
+                        return $args;
+                    }
+                }
+            }
+            $hcpp->run( "restart-web" );
+            $hcpp->run( "restart-proxy" );
+
+            // Report success
+            $this->report_status( $job_id, "Websites removed successfully.", 'finished' );
+            return $args;
+        }
+
+        /**
          * Report a quickstart process status by unique key.
          * @param string $key The unique key for the process.
          * @param string $message The message to report.
@@ -1350,7 +1450,6 @@ if ( ! class_exists( 'Quickstart') ) {
          * @param string|string[] $search The string or array of strings to search for.
          * @param string|string[] $replace The string or array of strings to replace with.
          */
-        // Search and replace the given string in the given SQL file, assuming it's a quickdump file
         public function search_replace_file( $file, $search, $replace ) {
 
             // Check parameters

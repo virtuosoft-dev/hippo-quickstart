@@ -47,7 +47,7 @@
     (function($){
         $(function() {
 
-            // Check the job_id every 8 seconds
+            // Check the job_id every 6 seconds
             var export_int = setInterval( () => {
                 $.ajax({
                     url: '../../pluginable.php?load=quickstart&action=export_status&job_id=<?php echo $job_id; ?>',
@@ -64,7 +64,7 @@
                         if ( data.status == 'finished' ) {
                             $('#status').html(`<p>Finished! You can download the exported archive at:</p>
                             <div style="padding:10px;">
-                                <strong><a href="../../pluginable.php?load=quickstart&action=download&job_id=<?php echo $job_id; ?>">
+                                <strong><a href="../../pluginable.php?load=quickstart&action=download&file=<?php echo $manifest['zip_file']; ?>">
                                 <?php
                                     echo $manifest['zip_file'];
                                 ?>
@@ -74,7 +74,7 @@
                             <?php 
                                 if ( $_SESSION['user'] == 'devstia' ) {
                                     echo "<p><strong>Devstia Preview:</strong></p>";
-                                    echo "<p>You can also find the file in your Devstia drive's \"exports\" folder.</p>";
+                                    echo '<p>You can also find the file in your <a href="https://devstia.com/docs/devstia-drive" target="_blank">Devstia drive\'s "exports" folder.</p>';
                                 }
                             ?>`);                            
                         } else {
@@ -87,7 +87,7 @@
                         clearInterval( export_int );
                     }
                 });
-            }, 5000);
+            }, 6000);
             setTimeout( () => {
                 $('.spinner-overlay').addClass('active');
             }, 1000);

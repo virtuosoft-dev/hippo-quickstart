@@ -19,12 +19,12 @@
         <legend>Choose one or more websites from the list of websites:</legend>
         <div id="info-copy" class="alert alert-info u-mb10" role="alert">
             <i class="fas fa-info"></i>
-            <p>Copying a website copies the assoicated<br/>
+            <p>Copying a website copies the assoicated<br>
             files and databases.</p>
         </div>
         <div id="warn-remove" class="alert alert-danger u-mb10" role="alert" style="display:none;">
             <i class="fas fa-exclamation-triangle"></i>
-            <p>Removing website(s) deletes all the files and<br/>
+            <p>Removing website(s) deletes all the files and<br>
                associated databases.</p>
         </div>
         <div class="remove-copy-list">
@@ -88,7 +88,7 @@
                     } // end foreach( $websites as $domain => $details )
                 ?>
             </div>
-            <br/>
+            <br>
             <div id="action">
                 <div class="form-check u-mb10">
                     <input id="v_copy_website" class="website_radio" type="radio" title="Select" name="mode[]" value="copy" tabindex="100" checked>

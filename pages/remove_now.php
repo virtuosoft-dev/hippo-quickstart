@@ -7,8 +7,8 @@
         exit;
     }
 
-    // Start the import process
-    $hcpp->quickstart->import_now( $job_id );
+    // Start the remove process
+    $hcpp->quickstart->remove_now( $job_id );
 ?>
 <div class="toolbar" style="z-index:100;position:relative;">
     <div class="toolbar-inner">
@@ -26,8 +26,8 @@
 </div>
 <div class="body-reset container">
     <div class="quickstart qs_import_now">
-        <h1>Import Website Files</h1>
-        <legend id="status">Please wait. Importing website.</legend>
+        <h1>Remove Websites</h1>
+        <legend id="status">Please wait. Removing websites and associated resources.</legend>
     </div>
 </div>
 <script>
@@ -35,9 +35,9 @@
         $(function() {
 
             // Check the import key every 6 seconds
-            var import_int = setInterval( () => {
+            var remove_int = setInterval( () => {
                 $.ajax({
-                    url: '../../pluginable.php?load=quickstart&action=import_result&job_id=<?php echo $job_id; ?>',
+                    url: '../../pluginable.php?load=quickstart&action=remove_result&job_id=<?php echo $job_id; ?>',
                     type: 'GET',
                     success: function( data ) {
                         console.log(data);
@@ -51,7 +51,7 @@
                             $('#back-button').hide();
                             $('#continue-button').removeClass('disabled');
                             $('.spinner-overlay').removeClass('active');
-                            clearInterval( import_int );
+                            clearInterval( remove_int );
                         }
                     }
                 }); 
@@ -60,15 +60,15 @@
                 $('.spinner-overlay').addClass('active');
             }, 1000);
 
-            // Cancel the import
+            // Cancel the removal
             $('#back-button').on('click', (e) => {
-                clearInterval( import_int );
+                clearInterval( remove_int );
                 e.preventDefault();
                 $.ajax({
                     url: '../../pluginable.php?load=quickstart&action=cancel_job&job_id=<?php echo $job_id; ?>',
                     type: 'GET',
                     success: function( data ) {
-                        $('#error').html( '<p>Import cancelled. Please click continue.</p>');
+                        $('#error').html( '<p>Remove cancelled. Please click continue.</p>');
                         $('#error').show();
                         $('#back-button').hide();
                         $('#continue-button').removeClass('disabled');
