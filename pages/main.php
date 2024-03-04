@@ -4,7 +4,7 @@
         <div class="toolbar-buttons">
         </div>
         <div class="toolbar-buttons">
-            <a href="#" class="button" id="continue-button">
+            <a href="?quickstart=create" class="button" id="continue-button">
                 <i tabindex="300" class="fas fa-arrow-right icon-blue"></i>Continue
             </a>         
         </div>
@@ -24,6 +24,8 @@
         </p>
         <p>
         <input name="qsOption" type="radio" id="import_export" tabindex="100"/>
+
+        
         <label for="import_export">Import or export a website.</label>
         </p>
     </div>

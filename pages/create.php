@@ -1,7 +1,7 @@
 <?php require( 'header.php' ); ?>
 <?php
     // Create a new job
-    $job_id = $hcpp->quickstart->create_job();
+    //$job_id = $hcpp->quickstart->create_job();
 ?>
 <div class="toolbar">
     <div class="toolbar-inner">
