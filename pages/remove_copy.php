@@ -34,7 +34,7 @@
                         <div class="toolbar-search">
                             <form method="get">
                                 <input type="hidden" name="quickstart" value="remove_copy">
-                                <input type="search" class="form-control js-search-input" name="q" value="<?php echo $_GET['q'];?>" title="Search">
+                                <input type="search" class="form-control js-search-input" name="q" value="<?php echo isset($_GET['q']) ? $_GET['q'] : '' ;?>" title="Search">
                                 <button type="submit" class="toolbar-input-submit" title="Search">
                                     <i class="fas fa-magnifying-glass"></i>
                                 </button>

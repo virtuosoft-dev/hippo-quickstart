@@ -86,7 +86,7 @@
                                         databases += `<span class="">${manifest.databases[j].TYPE}: ${manifest.databases[j].DATABASE}</span><br>`;
                                     }
                                 }
-                                html += `<div class="units-table-row" data-sort-name="<?php echo $domain; ?>">
+                                html += `<div class="units-table-row" data-sort-name="${manifest.domain}">
                                             <div class="units-table-cell units-table-heading-cell">
                                                 <span class="u-text-bold">${manifest.domain}</span><br>
                                                 <div class="alias-details">${aliases}</div>
