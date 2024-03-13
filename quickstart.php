@@ -185,9 +185,11 @@ if ( ! class_exists( 'Quickstart') ) {
          */
         public function get_multi_manifests( $job_id ) {
             global $hcpp;
+            $user = $_SESSION['user'];
+            $domains = $_GET['domain'];
             $this->set_job_data( $job_id, 'get_multi_manifests', [
-                "user" => $_SESSION['user'],
-                "domains" => $_GET['domain']
+                "user" => $user,
+                "domains" => $domains
             ] );
             $this->xfer_job_data( $job_id, 'get_multi_manifests' );
             
@@ -506,6 +508,7 @@ if ( ! class_exists( 'Quickstart') ) {
             $orig_domain = $manifest['domain'];
             $orig_aliases = $manifest['aliases'];
             $proxy_ext = $manifest['proxy_ext'];
+            $proxy = $manifest['proxy'];
             $backend = $manifest['backend'];
 
             // Gather new website details from request
@@ -783,7 +786,13 @@ if ( ! class_exists( 'Quickstart') ) {
 
             // Update the web domain backend
             $hcpp->run( "change-web-domain-backend-tpl $new_user $new_domain $backend" );
+            $hcpp->run( "change-web-domain-proxy-tpl $new_user $new_domain $proxy" );
+            $hcpp->run( "restart-proxy" );
             $this->cleanup_job_data( $job_id );
+
+            // Restart web and proxy
+            $hcpp->run( "restart-web" );
+            $hcpp->run( "restart-proxy" );
 
             // Report success
             $message = "Website copied successfully. You can now visit <br>your website at: ";
@@ -911,6 +920,7 @@ if ( ! class_exists( 'Quickstart') ) {
             $orig_domain = $manifest['domain'];
             $orig_aliases = $manifest['aliases'];
             $proxy_ext = $manifest['proxy_ext'];
+            $proxy = $manifest['proxy'];
             $backend = $manifest['backend'];
 
             // Gather new website details from request
@@ -1163,9 +1173,14 @@ if ( ! class_exists( 'Quickstart') ) {
             }
             shell_exec( 'rm -rf ' . $dest_folder . '/devstia_databases' );
 
-            // Update the web domain backend
+            // Update the web domain backend and proxy
             $hcpp->run( "change-web-domain-backend-tpl $new_user $new_domain $backend" );
+            $hcpp->run( "change-web-domain-proxy-tpl $new_user $new_domain $proxy" );
             $this->cleanup_job_data( $job_id );
+
+            // Restart web and proxy
+            $hcpp->run( "restart-web" );
+            $hcpp->run( "restart-proxy" );
 
             // Report success
             $message = "Website imported successfully. You can now visit <br>your website at: ";
@@ -1411,7 +1426,7 @@ if ( ! class_exists( 'Quickstart') ) {
                 $user = $manifest['user'];
                 $domain = $manifest['domain'];
                 $this->report_status( $job_id, "Removing " . $domain . "." );
-                $command = "delete-web-domain $user $domain false";
+                $command = "delete-web-domain $user $domain no";
                 $result = $hcpp->run( $command );
                 if ( $result != '' ) {
                     $this->report_status( $job_id, $result, 'error' );
@@ -1430,6 +1445,8 @@ if ( ! class_exists( 'Quickstart') ) {
                     }
                 }
             }
+
+            // Restart web and proxy
             $hcpp->run( "restart-web" );
             $hcpp->run( "restart-proxy" );
 
@@ -1445,6 +1462,9 @@ if ( ! class_exists( 'Quickstart') ) {
          * @param string $status The status to report.
          */
         public function report_status( $job_id, $message, $status = 'running' ) {
+            global $hcpp;
+            $hcpp->log( 'report_status ' . $job_id . ' ' . $message . ' ' . $status );
+
             $result_file = '/tmp/devstia_' . $job_id . '-result.json';
             $result = json_encode( [ 'status' => $status, 'message' => $message ] );
             try {
