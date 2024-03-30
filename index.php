@@ -11,8 +11,117 @@ if (false == isset($_GET['action'])) return;
 
 global $hcpp;
 
+if ( $_GET['action'] == 'proxy' ) {
+
+    function getDevstia($url, $postData = null) {
+        // Only allow devstia.com access
+        if (substr($url, 0, 19) !== 'https://devstia.com') {
+            return [
+                'response' => 'Access denied',
+                'headers' => [
+                    'http_code' => 403
+                ]
+            ];
+        }
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    
+        // Support cookies
+        curl_setopt($ch, CURLOPT_COOKIEJAR, '/tmp/cookies.txt');
+        curl_setopt($ch, CURLOPT_COOKIEFILE, '/tmp/cookies.txt');
+    
+        // Support POST data
+        if ($postData !== null) {
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+        }
+    
+        $response = curl_exec($ch);
+        $responseHeaders = curl_getinfo($ch);
+        curl_close($ch);
+        return [
+            'response' => $response,
+            'headers' => $responseHeaders
+        ];
+    }
+
+    if ( !isset( $_GET['url'] ) ) {
+        $url = "https://devstia.com/";
+    }else{
+        $url = $_GET['url'];
+    }
+    $postData = !empty($_POST) ? $_POST : null;
+    $reply = getDevstia( $url, $postData );
+
+    // Support single redirects
+    if ( $reply['headers']['redirect_url'] != '') {
+        $url = $reply['headers']['redirect_url'];
+        $reply = getDevstia( $url, $postData );
+    }
+    $response = $reply['response'];
+    $responseHeaders = $reply['headers'];
+
+    // Rewrite all URLs to use the proxy
+    global $hcpp;
+    $new_response = '';
+    while( strpos( $response, '"https://devstia.com' ) !== false ) {
+        $new_response .= $hcpp->getLeftMost( $response, '"https://devstia.com' );
+        $response = $hcpp->delLeftMost( $response, '"https://devstia.com' );
+        $remaining_url = $hcpp->getLeftMost( $response, '"' ) . '"';
+        $old_url = '"https://devstia.com' . $remaining_url;
+        $new_url = '"https://local.dev.pw:8083/pluginable.php?load=quickstart&action=proxy&url=https://devstia.com' . $remaining_url;
+        $response = $hcpp->delLeftMost( $response, '"' );
+
+        // Don't bother proxying images, css, js
+        $image_ext = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'css', 'js', 'zip'];
+        $ext = substr( $hcpp->getRightMost( $old_url, '.' ), 0, 3 );
+        if ( in_array( $ext, $image_ext ) ) {
+            $new_response .= $old_url;
+        }else{
+            $new_response .= $new_url;
+        }
+    }
+    if ( $new_response != '') {
+        $new_response .= $response;
+        $response = $new_response;
+    }
+    
+    // Forward the response headers to the client   
+    foreach ($responseHeaders as $headerName => $headerValue) {
+        $headerName = str_replace('_', '-', $headerName);
+        header("$headerName: $headerValue");
+    }
+    $response = $hcpp->do_action( 'quickstart_proxy_response', $response );
+
+    // Inject our remote.js script into header
+    $response = str_replace( 
+        '</head>', 
+        '<script src="https://local.dev.pw:8083/pluginable.php?load=quickstart&action=remote_js"></script></head>
+        <link rel="stylesheet" type="text/css" href="https://local.dev.pw:8083/pluginable.php?load=quickstart&action=remote_css">'
+        , $response
+    );
+    echo $response;
+    exit;
+}
+
+// Serve up remote.js script
+if ( $_GET['action'] == 'remote_js' ) {
+    header('Content-Type: application/javascript');
+    echo file_get_contents( __DIR__ . '/remote.js' );
+    exit;
+}
+
+// Serve up remote.css script
+if ( $_GET['action'] == 'remote_css' ) {
+    header('Content-Type: text/css');
+    echo file_get_contents( __DIR__ . '/remote.css' );
+    exit;
+}
+
 // Process file download
-if ( $_GET['action'] == 'download')  {
+if ( $_GET['action'] == 'download' )  {
     if ( !isset( $_GET['file'] ) ) return;
     $file = "/home/" . $_SESSION['user'] . "/web/exports/" . $_GET['file'];
     if ( file_exists( $file ) ) {

@@ -21,8 +21,41 @@
     <div class="quickstart qs_create">
         <h1>Create a New Website</h1>
         <legend>Choose a blueprint to create your new website:</legend>
-        <p>
-
-        </p>
+        <iframe id="bpcreate" src="https://local.dev.pw:8083/pluginable.php?load=quickstart&action=proxy&url=https://devstia.com/blueprints/">
+        </iframe>
     </div>
 </div>
+<style>
+    #bpcreate {
+        border: none;
+        min-height: 1280px;
+        width: 900px;
+    }
+    @media (min-width: 680px) and (max-width: 1023px) {
+        #bpcreate {
+            width: 680px;
+        }
+    }
+    @media (max-width: 679px) {
+        #bpcreate {
+            width: 480px;
+        }
+    }
+</style>
+<script>
+    (function($) {
+        $(function() {
+            // Receive messages from iframe with wrapper height
+            window.addEventListener('message', function(event) {
+                if (event.origin !== 'https://local.dev.pw:8083') return;
+
+                // Check for wrapper height property
+                if (event.data.height) {
+                    $('#bpcreate').css('height', event.data.height + 'px');
+                }
+            });
+        });  
+    })(jQuery);
+</script>
+
+
