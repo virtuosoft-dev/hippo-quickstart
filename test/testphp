@@ -1,9 +1,0 @@
-#!/bin/bash
-rm -rf ./output.sql
-start=$(date +%s%N)
-php -f spsr.php /home/devstia/web/qs.dev.pw/private/quickstart/test/devstia_58189.sql publicProperty publicProperty222
-end=$(date +%s%N)
-
-runtime=$((end-start))
-
-echo "   PHP script executed in $runtime nanoseconds."
