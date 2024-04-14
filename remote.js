@@ -11,6 +11,21 @@
         window.parent.postMessage( {
             "type": "ready",
             "height": $('#wrapper').height()
-        }, 'local.dev.pw:8083' );
+        }, 'https://local.dev.pw:8083' );
+
+        // Intercept click for zip download
+        $('.bpcard a[href*=".zip"]').each(function(){
+            var $this = $(this);
+            $this.click(function(e){
+                e.preventDefault();
+                var href = $this.attr('href');
+                
+                // Post a message to the parent window of where to find the zip file
+                window.parent.postMessage( {
+                    "type": "download",
+                    "url": href
+                }, 'https://local.dev.pw:8083' );
+            });
+        });
     });  
 })(jQuery);

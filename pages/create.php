@@ -1,7 +1,7 @@
 <?php require( 'header.php' ); ?>
 <?php
     // Create a new job
-    //$job_id = $hcpp->quickstart->create_job();
+    $job_id = $hcpp->quickstart->create_job();
 ?>
 <div class="toolbar">
     <div class="toolbar-inner">
@@ -20,8 +20,8 @@
 <div class="body-reset container">
     <div class="quickstart qs_create">
         <h1>Create a New Website</h1>
-        <legend>Choose a blueprint to create your new website:</legend>
-        <iframe id="bpcreate" src="https://local.dev.pw:8083/pluginable.php?load=quickstart&action=proxy&url=https://devstia.com/blueprints/">
+        <div id="bpwait">Please wait. Loading latest blueprints.</div>
+        <iframe id="bpcreate" style="display:none;" src="https://local.dev.pw:8083/pluginable.php?load=quickstart&action=proxy&url=https://devstia.com/blueprints/">
         </iframe>
     </div>
 </div>
@@ -46,12 +46,24 @@
     (function($) {
         $(function() {
             // Receive messages from iframe with wrapper height
+            $('.spinner-overlay').addClass('active');
             window.addEventListener('message', function(event) {
                 if (event.origin !== 'https://local.dev.pw:8083') return;
+                if (!event.data.type) return;
 
-                // Check for wrapper height property
-                if (event.data.height) {
-                    $('#bpcreate').css('height', event.data.height + 'px');
+                // Process display ready, adjust height
+                if (event.data.type == 'ready') {
+                    $('#bpcreate').css('display', 'block');
+                    $('#bpwait').css('display', 'none');
+                    $('.spinner-overlay').removeClass('active');
+                    if (event.data.height) {
+                        $('#bpcreate').css('height', event.data.height + 'px');
+                    }
+                }
+
+                // Process iFrame download request on our local server
+                if (event.data.type == 'download') {
+                    window.location = '?quickstart=create_options&job_id=<?php echo $job_id; ?>&url=' + event.data.url;
                 }
             });
         });  

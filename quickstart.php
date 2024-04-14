@@ -81,6 +81,20 @@ if ( ! class_exists( 'Quickstart') ) {
         }
 
         /**
+         * Download the given file to our the job id.
+         */
+        public function download_file( $job_id, $url ) {
+            $this->set_job_data( $job_id, 'url', $url );
+            $this->set_job_data( $job_id, 'user', $_SESSION['user'] );
+            $this->xfer_job_data( $job_id, 'url' );
+            $this->xfer_job_data( $job_id, 'user' );
+            $pid = trim( shell_exec( HESTIA_CMD . "v-invoke-plugin quickstart_download_file " . $job_id . " > /dev/null 2>/dev/null & echo $!" ) );
+            file_put_contents( "/tmp/debug_devstia_$job_id-pid.json", $pid );
+            $this->set_job_data( $job_id, 'pid', $pid );
+            $this->xfer_job_data( $job_id, 'pid' );
+        }
+
+        /**
          * Check if the given job id is valid.
          * @param string $job_id The unique job id.
          */
@@ -214,14 +228,15 @@ if ( ! class_exists( 'Quickstart') ) {
             }
 
             // Check for running process
-            $pid = $this->get_job_data( $job_id, 'pid' );
+            $pid = $this->peek_job_data( $job_id, 'pid' );
             if ( $pid === false ) {
-                return [ 'status' => 'error', 'message' => 'PID is uknown.' ];
+                return [ 'status' => 'error', 'message' => 'PID is unknown.' ];
             }else{
                 
                 // Check if pid exists
                 $result = shell_exec( "ps -p $pid" );
                 if ( strpos( $result, $pid ) === false ) {
+                    $pid = $this->pickup_job_data( $job_id, 'pid' );
                     return [ 'status' => 'finished', 'message' => '' ];
                 }else{
                     return [ 'status' => 'running', 'message' => '' ];
@@ -250,6 +265,7 @@ if ( ! class_exists( 'Quickstart') ) {
                 'quickstart_cancel_job',
                 'quickstart_copy_now',
                 'quickstart_delete_export',
+                'quickstart_download_file',
                 'quickstart_export_zip',
                 'quickstart_get_manifest',
                 'quickstart_get_multi_manifests',
@@ -306,6 +322,8 @@ if ( ! class_exists( 'Quickstart') ) {
                 'export_options',
                 'export_now',
                 'create',
+                'create_options',
+                'create_now',
                 'remove_copy',
                 'copy_details',
                 'copy_now',
@@ -808,6 +826,52 @@ if ( ! class_exists( 'Quickstart') ) {
         public function quickstart_delete_export( $args ) {
             $file = $args[1];
             shell_exec( "rm -f $file" );
+            return $args;
+        }
+
+        /**
+         * Our trusted elevated command to download a file; used by $this->quickstart_download_file().
+         */
+        public function quickstart_download_file( $args ) {
+            
+            // Download the file using curl monitor/report the progress
+            $job_id = $args[1];
+            $url = $this->pickup_job_data( $job_id, 'url' );
+            $file = "/tmp/devstia_$job_id-" . basename( $url );
+            $command = "curl -o $file $url";
+            $dl_pid = trim( shell_exec( $command . ' > /dev/null 2>/dev/null & echo $!' ) );
+            file_put_contents( "/tmp/debug_devstia_$job_id-dl_pid.json", $dl_pid );
+            $this->set_job_data( $job_id, 'dl_file', $file );
+            $this->report_status( $job_id, 'Downloading file...', 'running');
+            $status = null;
+            pcntl_waitpid($dl_pid, $status);
+
+            // Check if there was an error
+            if (pcntl_wifexited($status) && pcntl_wexitstatus($status) != 0) {
+                $this->report_status( $job_id, 'Error downloading the file.', 'error' );
+
+                // Clean up the file
+                sleep(1);
+                if ( file_exists( $file ) ) {
+                    unlink( $file );
+                }
+            } else {
+                
+                // Wait up to 15 seconds for the file to exist/finish closing
+                for ( $i = 0; $i < 15; $i++ ) {
+                    if ( file_exists( $file ) ) break;
+                    sleep(1);
+                }
+
+                // Change permissions to allow user access
+                $user = $this->pickup_job_data( $job_id, 'user' );
+                shell_exec("/usr/bin/chown $user:$user $file 2>&1");
+
+                // Report completion 
+                $this->report_status( $job_id, 'Download complete. Now decompressing files.' );
+
+                
+            }
             return $args;
         }
 
@@ -1460,6 +1524,7 @@ if ( ! class_exists( 'Quickstart') ) {
          * @param string $key The unique key for the process.
          * @param string $message The message to report.
          * @param string $status The status to report.
+         * @param array $data Optional additional data to report.
          */
         public function report_status( $job_id, $message, $status = 'running' ) {
             global $hcpp;

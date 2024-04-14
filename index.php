@@ -29,8 +29,9 @@ if ( $_GET['action'] == 'proxy' ) {
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     
         // Support cookies
-        curl_setopt($ch, CURLOPT_COOKIEJAR, '/tmp/cookies.txt');
-        curl_setopt($ch, CURLOPT_COOKIEFILE, '/tmp/cookies.txt');
+        $user = $_SESSION['user'];
+        curl_setopt($ch, CURLOPT_COOKIEJAR, "/tmp/devstia_$user-cookies.dat");
+        curl_setopt($ch, CURLOPT_COOKIEFILE, "/tmp/devstia_$user-cookies.dat");
     
         // Support POST data
         if ($postData !== null) {
@@ -91,15 +92,27 @@ if ( $_GET['action'] == 'proxy' ) {
     // Forward the response headers to the client   
     foreach ($responseHeaders as $headerName => $headerValue) {
         $headerName = str_replace('_', '-', $headerName);
-        header("$headerName: $headerValue");
+        if (is_array($headerValue)) {
+            foreach ($headerValue as $singleHeaderValue) {
+                header("$headerName: $singleHeaderValue", false);
+            }
+        } else {
+            header("$headerName: $headerValue");
+        }
     }
     $response = $hcpp->do_action( 'quickstart_proxy_response', $response );
 
-    // Inject our remote.js script into header
+    // Inject our remote.css script into header
     $response = str_replace( 
         '</head>', 
-        '<script src="https://local.dev.pw:8083/pluginable.php?load=quickstart&action=remote_js"></script></head>
-        <link rel="stylesheet" type="text/css" href="https://local.dev.pw:8083/pluginable.php?load=quickstart&action=remote_css">'
+        '<link rel="stylesheet" type="text/css" href="https://local.dev.pw:8083/pluginable.php?load=quickstart&action=remote_css"></head>'
+        , $response
+    );
+
+    // Inject our remote.js script into body
+    $response = str_replace( 
+        '</body>', 
+        '<script src="https://local.dev.pw:8083/pluginable.php?load=quickstart&action=remote_js"></script></body>'
         , $response
     );
     echo $response;
@@ -123,7 +136,14 @@ if ( $_GET['action'] == 'remote_css' ) {
 // Process file download
 if ( $_GET['action'] == 'download' )  {
     if ( !isset( $_GET['file'] ) ) return;
-    $file = "/home/" . $_SESSION['user'] . "/web/exports/" . $_GET['file'];
+    
+    // Sanitize the file path
+    $file = $_GET['file'];
+    $file = str_replace( '/', '', $file );
+    $file = str_replace( '\\', '', $file );
+    $file = str_replace( '..', '', $file );
+    $file = "/home/" . $_SESSION['user'] . "/web/exports/" . $file;
+
     if ( file_exists( $file ) ) {
         header('Content-Description: File Transfer');
         header('Content-Type: application/octet-stream');
@@ -147,13 +167,31 @@ if ( $_GET['action'] == 'download' )  {
 // Process file delete
 if ( $_GET['action'] == 'delete_export' ) {
     if ( !isset( $_GET['file'] ) ) return;
-    $file = "/home/" . $_SESSION['user'] . "/web/exports/" . $_GET['file'];
+
+    // Sanitize the file path
+    $file = $_GET['file'];
+    $file = str_replace( '/', '', $file );
+    $file = str_replace( '\\', '', $file );
+    $file = str_replace( '..', '', $file );
+    $file = "/home/" . $_SESSION['user'] . "/web/exports/" . $file;
+
     $hcpp->quickstart->delete_export( $file );
     header('Location: list/web/?quickstart=export_view' );
 }
 
 if (false == isset($_GET['job_id'])) return;
 $job_id = $_GET['job_id'];
+
+// Get download status
+if ( $_GET['action'] == 'download_status' ) {
+    $status = $hcpp->quickstart->get_status( $job_id );
+
+    // Download status has finished, return the download link
+    if ( $status['status'] === 'finished' ) {
+        $status['download'] = $hcpp->quickstart->get_job_data( $job_id, 'file' );
+    }
+    echo json_encode( $status );
+}
 
 // Clean up the job by job id
 if ( $_GET['action'] == 'cleanup_job' ) {
@@ -217,6 +255,7 @@ if ( $_GET['action'] == 'detail_status' ) {
     // Detail status has finished, return all the manifests
     echo json_encode( $status );
 }
+
 
 // Get import status
 if ( $_GET['action'] == 'import_status' ) {
