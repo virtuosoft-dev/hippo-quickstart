@@ -7,6 +7,8 @@
  * @license GPL-3.0
  * @link https://github.com/virtuosoft-dev/hcpp-quickstart
  * 
+ * TODO: run long actions (export, blueprint download, import, etc.) under user process
+ * 
  */
 if ( ! class_exists( 'Quickstart') ) {
     class Quickstart {
@@ -81,15 +83,14 @@ if ( ! class_exists( 'Quickstart') ) {
         }
 
         /**
-         * Download the given file to our the job id.
+         * Download the given blueprint file to our the job id.
          */
-        public function download_file( $job_id, $url ) {
+        public function blueprint_file( $job_id, $url ) {
             $this->set_job_data( $job_id, 'url', $url );
             $this->set_job_data( $job_id, 'user', $_SESSION['user'] );
             $this->xfer_job_data( $job_id, 'url' );
             $this->xfer_job_data( $job_id, 'user' );
-            $pid = trim( shell_exec( HESTIA_CMD . "v-invoke-plugin quickstart_download_file " . $job_id . " > /dev/null 2>/dev/null & echo $!" ) );
-            file_put_contents( "/tmp/debug_devstia_$job_id-pid.json", $pid );
+            $pid = trim( shell_exec( HESTIA_CMD . "v-invoke-plugin quickstart_blueprint_file " . $job_id . " > /dev/null 2>/dev/null & echo $!" ) );
             $this->set_job_data( $job_id, 'pid', $pid );
             $this->xfer_job_data( $job_id, 'pid' );
         }
@@ -265,7 +266,7 @@ if ( ! class_exists( 'Quickstart') ) {
                 'quickstart_cancel_job',
                 'quickstart_copy_now',
                 'quickstart_delete_export',
-                'quickstart_download_file',
+                'quickstart_blueprint_file',
                 'quickstart_export_zip',
                 'quickstart_get_manifest',
                 'quickstart_get_multi_manifests',
@@ -830,48 +831,80 @@ if ( ! class_exists( 'Quickstart') ) {
         }
 
         /**
-         * Our trusted elevated command to download a file; used by $this->quickstart_download_file().
+         * Our trusted elevated command to download a blueprint file; used by $this->quickstart_blueprint_file().
          */
-        public function quickstart_download_file( $args ) {
+        public function quickstart_blueprint_file( $args ) {
             
-            // Download the file using curl monitor/report the progress
+            // Download the blueprint file using curl monitor/report the progress
             $job_id = $args[1];
-            $url = $this->pickup_job_data( $job_id, 'url' );
+            $url = $this->peek_job_data( $job_id, 'url' );
             $file = "/tmp/devstia_$job_id-" . basename( $url );
-            $command = "curl -o $file $url";
-            $dl_pid = trim( shell_exec( $command . ' > /dev/null 2>/dev/null & echo $!' ) );
-            file_put_contents( "/tmp/debug_devstia_$job_id-dl_pid.json", $dl_pid );
-            $this->set_job_data( $job_id, 'dl_file', $file );
-            $this->report_status( $job_id, 'Downloading file...', 'running');
+            $command = "curl -H 'Cache-Control: no-cache' -o $file $url > /dev/null 2>/dev/null & echo $!";
+
+            // Allow plugins to modify the command
+            global $hcpp;
+            $command = $hcpp->do_action( 'quickstart_blueprint_file_command', $command );
+            $dl_pid = trim( shell_exec( $command ) );
+            $this->report_status( $job_id, "Downloading blueprint file...<br>(0 bytes received)", 'running');
             $status = null;
-            pcntl_waitpid($dl_pid, $status);
 
-            // Check if there was an error
-            if (pcntl_wifexited($status) && pcntl_wexitstatus($status) != 0) {
-                $this->report_status( $job_id, 'Error downloading the file.', 'error' );
+            // Check up every 3 seconds if the $dl_pid is still running or timeout after 15 minutes
+            for ( $i = 0; $i < (60 * 15); $i++ ) {
 
-                // Clean up the file
-                sleep(1);
-                if ( file_exists( $file ) ) {
-                    unlink( $file );
+                // Get and report the file size
+                clearstatcache( true, $file );
+                $file_size = filesize( $file );
+                if ( $file_size === false ) {
+                    $file_size = "0";
                 }
-            } else {
-                
-                // Wait up to 15 seconds for the file to exist/finish closing
-                for ( $i = 0; $i < 15; $i++ ) {
-                    if ( file_exists( $file ) ) break;
+                $this->report_status( $job_id, "Downloading blueprint file...<br>($file_size bytes received)", 'running');
+
+                $result = shell_exec( "ps -p $dl_pid" );
+                if ( strpos( $result, $dl_pid ) === false ) {
+                    break;
+                }
+
+                // Check if there was an error
+                pcntl_waitpid( $dl_pid, $status );
+                if ( pcntl_wifexited( $status ) && pcntl_wexitstatus( $status ) != 0 ) {
+                    $this->report_status( $job_id, 'Error downloading the blueprint file.', 'error' );
+
+                    // Clean up the file
                     sleep(1);
+                    if ( file_exists( $file ) ) {
+                        unlink( $file );
+                    }
+                    return $args;
                 }
-
-                // Change permissions to allow user access
-                $user = $this->pickup_job_data( $job_id, 'user' );
-                shell_exec("/usr/bin/chown $user:$user $file 2>&1");
-
-                // Report completion 
-                $this->report_status( $job_id, 'Download complete. Now decompressing files.' );
-
-                
+                sleep(3);
             }
+
+            // Report download success
+            $this->report_status( $job_id, 'Download blueprint complete. Now decompressing files.' );
+
+            // Decompress the file to user's download folder and update owner to allow user access
+            $user = $this->peek_job_data( $job_id, 'user' );
+            $folder = basename( $url );
+            if ( substr( $folder, -4 ) == '.zip' ) {
+                $folder = substr( $folder, 0, -4 );
+            }
+            $command = "";
+            if ( ! is_dir( "/home/$user/web/blueprints") ) {
+                $command .= "mkdir -p /home/$user/web/blueprints ; ";
+                $command .= "chown $user:$user /home/$user/web/blueprints ; ";
+            }
+            $command .= "unzip -o -q $file -d /home/$user/web/blueprints/$folder ; ";
+            $command .= "rm -f $file ; ";
+            $command .= "chown -R $user:$user /home/$user/web/blueprints/$folder";
+
+            // Allow plugins to modify the command
+            $command = $hcpp->do_action( 'quickstart_blueprint_file_decompress', $command );
+            $dl_pid = trim( shell_exec( $command ) );
+
+            // Report finished
+            // $this->report_status( $job_id, 'Finsihed.', 'finished' );
+            // sleep(3);
+            // $this->pickup_job_data( $job_id, 'pid' );
             return $args;
         }
 
@@ -959,13 +992,14 @@ if ( ! class_exists( 'Quickstart') ) {
         /**
          * Our trusted elevated command to import a website with user options asynchonously; used by $this->import_now().
          */
-        public function quickstart_import_now( $args ) {
+        public function quickstart_import_now( $args, $import_folder = null ) {
             global $hcpp;
             $job_id = $args[1];
             $request = $this->pickup_job_data( $job_id, 'request' );
 
             // Load manifest and request
-            $manifest_file = "/tmp/devstia_$job_id-import/devstia_manifest.json";
+            $import_folder = $import_folder || "/tmp/devstia_$job_id-import";
+            $manifest_file = "$import_folder/devstia_manifest.json";
             if ( ! file_exists( $manifest_file ) ) {
                 $this->report_status( $job_id, 'Error: Manifest file not found.', 'error' );
                 return $args;
@@ -1024,7 +1058,6 @@ if ( ! class_exists( 'Quickstart') ) {
             }
 
             // Copy all subfolders in the import folder
-            $import_folder = "/tmp/devstia_$job_id-import";
             $this->report_status( $job_id, 'Please wait. Copying files.' );
             $folders = array_filter( glob( $import_folder . '/*' ), 'is_dir' );
             $command = "rm -f $dest_folder/public_html/index.html ; ";
@@ -1454,6 +1487,7 @@ if ( ! class_exists( 'Quickstart') ) {
         /**
          * Our trusted elevated command to get multiple manifests; used by $this->get_multi_manifests().
          * @param array $args The arguments passed to the command.
+         * 
          */
         public function quickstart_get_multi_manifests( $args ) {
             $job_id = $args[1];
@@ -1469,7 +1503,7 @@ if ( ! class_exists( 'Quickstart') ) {
                 $manifest = $this->get_manifest( $user, $domain );
                 $manifests[] = $manifest;
             }
-            file_put_contents( '/tmp/test1.txt', json_encode( $manifests, JSON_PRETTY_PRINT ) );
+//            file_put_contents( '/tmp/test1.txt', json_encode( $manifests, JSON_PRETTY_PRINT ) );
             $this->report_status( $job_id, $manifests, 'finished' );
             return $args;
         }
@@ -1524,7 +1558,6 @@ if ( ! class_exists( 'Quickstart') ) {
          * @param string $key The unique key for the process.
          * @param string $message The message to report.
          * @param string $status The status to report.
-         * @param array $data Optional additional data to report.
          */
         public function report_status( $job_id, $message, $status = 'running' ) {
             global $hcpp;

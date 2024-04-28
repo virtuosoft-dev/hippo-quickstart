@@ -83,7 +83,7 @@
                                         </div>`;
                             }
                             
-                            // Create form for export advanced options
+                            // Create form for advanced options
                             if (manifest.export_adv_options.length > 0) {
                                 manifest.export_adv_options.forEach( (option) => {
                                     if (option.label == '') {

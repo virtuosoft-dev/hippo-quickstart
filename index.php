@@ -134,7 +134,7 @@ if ( $_GET['action'] == 'remote_css' ) {
 }
 
 // Process file download
-if ( $_GET['action'] == 'download' )  {
+if ( $_GET['action'] == 'blueprint' )  {
     if ( !isset( $_GET['file'] ) ) return;
     
     // Sanitize the file path
@@ -179,16 +179,44 @@ if ( $_GET['action'] == 'delete_export' ) {
     header('Location: list/web/?quickstart=export_view' );
 }
 
+// Check job_id
 if (false == isset($_GET['job_id'])) return;
 $job_id = $_GET['job_id'];
+if ( $hcpp->quickstart->is_job_valid( $job_id ) === false ) return;
 
-// Get download status
-if ( $_GET['action'] == 'download_status' ) {
+// Get blueprint download status
+if ( $_GET['action'] == 'blueprint_status' ) {
     $status = $hcpp->quickstart->get_status( $job_id );
 
-    // Download status has finished, return the download link
+    // Download blueprint status has finished, return manifest
     if ( $status['status'] === 'finished' ) {
-        $status['download'] = $hcpp->quickstart->get_job_data( $job_id, 'file' );
+        $user = $hcpp->quickstart->get_job_data( $job_id, 'user' );
+        $url = $hcpp->quickstart->get_job_data( $job_id, 'url' );
+        $folder = basename( $url );
+        if ( substr( $folder, -4 ) == '.zip' ) {
+            $folder = substr( $folder, 0, -4 );
+        }
+        $folder = "/home/$user/web/blueprints/$folder";
+        $manifest = "$folder/devstia_manifest.json";
+
+        // Check if the blueprint folder and manifest exists
+        if ( is_dir( $folder ) && file_exists( $manifest ) ) {
+            try {
+                $content = file_get_contents( $manifest );
+                $manifest = json_decode( $content, true );
+            } catch( Exception $e ) {
+                echo json_encode( [ 'status' => 'error', 'message' => 'Error parsing manifest file.' ] );
+            }
+            $message = 'Fill in options.';
+            if ( is_dir('/home/devstia') ) {
+                $message .= ' <i>Devstia Preview should use a <b>.dev.pw</b> TLD.</i>';
+            }
+            $status['message'] = $message;
+            $status['manifest'] = $manifest;            
+        }else{
+            $status['status'] = 'error';
+            $status['message'] = 'Blueprint error. Please try again.';   
+        }
     }
     echo json_encode( $status );
 }
@@ -197,9 +225,6 @@ if ( $_GET['action'] == 'download_status' ) {
 if ( $_GET['action'] == 'cleanup_job' ) {
     $hcpp->quickstart->cleanup_job_data( $job_id );
 }
-
-// Check job_id
-if ( $hcpp->quickstart->is_job_valid( $_GET['job_id'] ) === false ) return;
 
 // Cancel the job by job id
 if ( $_GET['action'] == 'cancel_job' ) {
