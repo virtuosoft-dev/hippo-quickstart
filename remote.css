@@ -23,7 +23,6 @@ body, #wrapper {
 h3 a:hover {
     color: #ccc;
 }
-
 span.triangle-down {
     display: inline-block;
     width: 0;
@@ -33,7 +32,6 @@ span.triangle-down {
     border-top: 10px solid white;
     margin: 0px 5px;
 }
-
 span.triangle-up {
     display: inline-block;
     width: 0;

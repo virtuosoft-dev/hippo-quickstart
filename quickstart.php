@@ -322,9 +322,9 @@ if ( ! class_exists( 'Quickstart') ) {
                 'export_details',
                 'export_options',
                 'export_now',
-                'create',
                 'create_options',
                 'create_now',
+                'create',
                 'remove_copy',
                 'copy_details',
                 'copy_now',
@@ -992,13 +992,27 @@ if ( ! class_exists( 'Quickstart') ) {
         /**
          * Our trusted elevated command to import a website with user options asynchonously; used by $this->import_now().
          */
-        public function quickstart_import_now( $args, $import_folder = null ) {
+        public function quickstart_import_now( $args ) {
             global $hcpp;
             $job_id = $args[1];
             $request = $this->pickup_job_data( $job_id, 'request' );
 
             // Load manifest and request
-            $import_folder = $import_folder || "/tmp/devstia_$job_id-import";
+            $import_folder = "/tmp/devstia_$job_id-import";
+
+            // Check for downloaded blueprint folder
+            if ( !file_exists( $import_folder ) ) {
+                $user = $this->peek_job_data( $job_id, 'user' );
+                $url = $this->peek_job_data( $job_id, 'url' );
+                if ( $user != false && $url != false ) {
+                    $url = basename( $url );
+                    $url = $hcpp->delRightMost( $url, '.zip' );
+                    $import_folder = "/home/$user/web/blueprints/$url";
+                }else{
+                    $this->report_status( $job_id, 'Error: No import folder; user and URL not found.', 'error' );
+                    return $args;
+                }
+            }
             $manifest_file = "$import_folder/devstia_manifest.json";
             if ( ! file_exists( $manifest_file ) ) {
                 $this->report_status( $job_id, 'Error: Manifest file not found.', 'error' );
@@ -1281,6 +1295,9 @@ if ( ! class_exists( 'Quickstart') ) {
 
             // Report success
             $message = "Website imported successfully. You can now visit <br>your website at: ";
+            if (strpos($import_folder, '/tmp') !== 0) {
+                $message = "Website created successfully. You can now visit <br>your website at: ";
+            }
             $message .= "<a href=\"https://$new_domain\" target=\"_blank\"><i tabindex=\"100\" ";
             $message .= "style=\"font-size:smaller;\" class=\"fas fa-external-link\"></i> $new_domain</a>.";
             $this->report_status( $job_id, $message, 'finished' );

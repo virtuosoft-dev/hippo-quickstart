@@ -312,7 +312,8 @@ if ( $_GET['action'] == 'import_status' ) {
 
 // Check import_result, copy_result, remove_result
 if ( $_GET['action'] == 'import_result' ||
-     $_GET['action'] == 'copy_result' || 
+     $_GET['action'] == 'copy_result' ||
+     $_GET['action'] == 'create_result' || 
      $_GET['action'] == 'remove_result') {
     $status = $hcpp->quickstart->get_status( $job_id );
     echo json_encode( $status );

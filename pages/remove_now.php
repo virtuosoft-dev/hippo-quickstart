@@ -25,7 +25,7 @@
     </div>
 </div>
 <div class="body-reset container">
-    <div class="quickstart qs_import_now">
+    <div class="quickstart qs_remove_now">
         <h1>Remove Websites</h1>
         <legend id="status">Please wait. Removing websites and associated resources.</legend>
     </div>

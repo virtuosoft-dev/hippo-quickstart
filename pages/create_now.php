@@ -7,7 +7,7 @@
         exit;
     }
 
-    // Start the import process
+    // Start the create process
     $hcpp->quickstart->import_now( $job_id );
 ?>
 <div class="toolbar" style="z-index:100;position:relative;">
@@ -25,19 +25,19 @@
     </div>
 </div>
 <div class="body-reset container">
-    <div class="quickstart qs_import_now">
-        <h1>Import Website Files</h1>
-        <legend id="status">Please wait. Importing website.</legend>
+    <div class="quickstart qs_create_now">
+        <h1>Create Website Files</h1>
+        <legend id="status">Please wait. Creating website.</legend>
     </div>
 </div>
 <script>
     (function($){
         $(function() {
 
-            // Check the import key every 6 seconds
-            var import_int = setInterval( () => {
+            // Check the create key every 6 seconds
+            var create_int = setInterval( () => {
                 $.ajax({
-                    url: '../../pluginable.php?load=quickstart&action=import_result&job_id=<?php echo $job_id; ?>',
+                    url: '../../pluginable.php?load=quickstart&action=create_result&job_id=<?php echo $job_id; ?>',
                     type: 'GET',
                     success: function( data ) {
                         console.log(data);
@@ -51,7 +51,7 @@
                             $('#back-button').hide();
                             $('#continue-button').removeClass('disabled');
                             $('.spinner-overlay').removeClass('active');
-                            clearInterval( import_int );
+                            clearInterval( create_int );
                         }
                     }
                 }); 
@@ -62,13 +62,13 @@
 
             // Cancel the import
             $('#back-button').on('click', (e) => {
-                clearInterval( import_int );
+                clearInterval( create_int );
                 e.preventDefault();
                 $.ajax({
                     url: '../../pluginable.php?load=quickstart&action=cancel_job&job_id=<?php echo $job_id; ?>',
                     type: 'GET',
                     success: function( data ) {
-                        $('#error').html( '<p>Import cancelled. Please click continue.</p>');
+                        $('#error').html( '<p>Create cancelled. Please click continue.</p>');
                         $('#error').show();
                         $('#back-button').hide();
                         $('#continue-button').removeClass('disabled');
