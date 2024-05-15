@@ -43,6 +43,18 @@
     }
 </style>
 <script>
+<?php
+    // Inject list of blueprints into a local JS variable
+    $user = $_SESSION['user'];
+    if ( is_dir( "/home/$user/web/blueprints") ) {
+        $blueprints = scandir( "/home/$user/web/blueprints" );
+        $blueprints = array_diff( $blueprints, array( '.', '..', '.DS_Store', '._.DS_Store' ) );
+        $blueprints = array_values( $blueprints );
+        echo "var blueprints = " . json_encode( $blueprints ) . ";";
+    }else {
+        echo "var blueprints = [];";
+    }
+?>
     (function($) {
         $(function() {
             // Receive messages from iframe with wrapper height
@@ -56,9 +68,14 @@
                     $('#bpcreate').css('display', 'block');
                     $('#bpwait').css('display', 'none');
                     $('.spinner-overlay').removeClass('active');
-                    if (event.data.height) {
-                        $('#bpcreate').css('height', event.data.height + 'px');
-                    }
+                    $('#bpcreate').css('height', $('#primary').height() + 'px');
+
+                    // Send list of blueprints back to iframe
+                    var message = {
+                        type: 'blueprints',
+                        blueprints: blueprints
+                    };
+                    document.getElementById('bpcreate').contentWindow.postMessage(message, 'https://local.dev.pw:8083');
                 }
 
                 // Process iFrame download request on our local server
