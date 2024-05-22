@@ -78,7 +78,7 @@
                                 }
                             ?>`);                            
                         } else {
-                            $('#status').html( '<p>An unknown error occurred. Please try again.</p>');
+                            $('#status').html( data.message || 'An unknown error occurred. Please try again.');
                         }
                         $('#back-button').hide();
                         $('#continue-button').removeClass('disabled');
@@ -90,7 +90,7 @@
             }, 6000);
             setTimeout( () => {
                 $('.spinner-overlay').addClass('active');
-            }, 1000);
+            }, 500);
 
             // Cancel the export
             $('#back-button').on('click', (e) => {

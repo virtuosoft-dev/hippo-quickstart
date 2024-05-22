@@ -63,7 +63,7 @@
             }, 6000);
             setTimeout( () => {
                 $('.spinner-overlay').addClass('active');
-            }, 1000);
+            }, 500);
 
             // Cancel the copy
             $('#back-button').on('click', (e) => {

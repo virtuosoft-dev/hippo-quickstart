@@ -134,7 +134,7 @@ if ( $_GET['action'] == 'remote_css' ) {
 }
 
 // Process file download
-if ( $_GET['action'] == 'blueprint' )  {
+if ( $_GET['action'] == 'download' )  {
     if ( !isset( $_GET['file'] ) ) return;
     
     // Sanitize the file path
@@ -233,11 +233,12 @@ if ( $_GET['action'] == 'cancel_job' ) {
 
 // Get export status
 if ( $_GET['action'] == 'export_status' ) {
-    $status = $hcpp->quickstart->get_status( $job_id );
-    if ( $status['status'] === 'finished' ) {
-        $hcpp->quickstart->cleanup_job_data( $job_id );
-    }
+    // $status = $hcpp->quickstart->get_status( $job_id );
     echo json_encode( $hcpp->quickstart->get_status( $job_id ) );
+    // if ( $status['status'] === 'finished' ) {
+    //    $hcpp->quickstart->cleanup_job_data( $job_id );
+    // }
+    exit();
 }
 
 // Process file upload

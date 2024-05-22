@@ -156,6 +156,7 @@ if ( ! class_exists( 'Quickstart') ) {
 
             // Store the process id data for the job, to be used for status checks
             $this->set_job_data( $manifest['job_id'], 'pid', $pid );
+            $this->xfer_job_data( $manifest['job_id'], 'pid' );
         }
         
         /**
@@ -222,16 +223,16 @@ if ( ! class_exists( 'Quickstart') ) {
          */
         public function get_status( $job_id ) {
 
-            // Return last result status
-            $result = $this->pickup_job_data( $job_id, 'result' );
-            if ($result !== false) {
-                return $result;
-            }
+            // // Return last result status
+            // $result = $this->pickup_job_data( $job_id, 'result' );
+            // if ($result !== false) {
+            //     return $result;
+            // }
 
             // Check for running process
             $pid = $this->peek_job_data( $job_id, 'pid' );
             if ( $pid === false ) {
-                return [ 'status' => 'error', 'message' => 'PID is unknown.' ];
+                return [ 'status' => 'error', 'message' => "PID $pid is unknown for Job ID $job_id." ];
             }else{
                 
                 // Check if pid exists
@@ -834,10 +835,23 @@ if ( ! class_exists( 'Quickstart') ) {
          * Our trusted elevated command to download a blueprint file; used by $this->quickstart_blueprint_file().
          */
         public function quickstart_blueprint_file( $args ) {
-            
-            // Download the blueprint file using curl monitor/report the progress
+
+            // Check if the blueprint file is already downloaded
             $job_id = $args[1];
+            $user = $this->peek_job_data( $job_id, 'user' );
             $url = $this->peek_job_data( $job_id, 'url' );
+            $folder = basename( $url );
+            if ( substr( $folder, -4 ) == '.zip' ) {
+                $folder = substr( $folder, 0, -4 );
+            }
+            if ( is_dir( "/home/$user/web/blueprints/$folder" ) ) {
+                $this->report_status( $job_id, 'Blueprint file already downloaded.', 'finished' );
+                return $args;
+            }else{
+                $this->report_status( $job_id, "Downloading blueprint file...<br>(0 bytes received)", 'running');
+            }
+
+            // Download the blueprint file using curl monitor/report the progress
             $file = "/tmp/devstia_$job_id-" . basename( $url );
             $command = "curl -H 'Cache-Control: no-cache' -o $file $url > /dev/null 2>/dev/null & echo $!";
 
@@ -845,7 +859,6 @@ if ( ! class_exists( 'Quickstart') ) {
             global $hcpp;
             $command = $hcpp->do_action( 'quickstart_blueprint_file_command', $command );
             $dl_pid = trim( shell_exec( $command ) );
-            $this->report_status( $job_id, "Downloading blueprint file...<br>(0 bytes received)", 'running');
             $status = null;
 
             // Check up every 3 seconds if the $dl_pid is still running or timeout after 15 minutes
@@ -883,11 +896,6 @@ if ( ! class_exists( 'Quickstart') ) {
             $this->report_status( $job_id, 'Download blueprint complete. Now decompressing files.' );
 
             // Decompress the file to user's download folder and update owner to allow user access
-            $user = $this->peek_job_data( $job_id, 'user' );
-            $folder = basename( $url );
-            if ( substr( $folder, -4 ) == '.zip' ) {
-                $folder = substr( $folder, 0, -4 );
-            }
             $command = "";
             if ( ! is_dir( "/home/$user/web/blueprints") ) {
                 $command .= "mkdir -p /home/$user/web/blueprints ; ";

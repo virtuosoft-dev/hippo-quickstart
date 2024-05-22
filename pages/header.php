@@ -94,6 +94,9 @@
     .qs_remove_details .action-warn {
         margin: 15px 0 -15px;
     }
+    .spinner-overlay.active {
+        opacity: 0.6;
+    }
 </style>
 <script>
     (function($){

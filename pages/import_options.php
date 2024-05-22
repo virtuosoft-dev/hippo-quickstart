@@ -131,7 +131,7 @@
                             if ( data.status == 'error' ) {
                                 $('#status').html(data.message);
                             }else{
-                                $('#status').html('An unknown error occurred. Please try again.');
+                                $('#status').html( data.message || 'An unknown error occurred. Please try again.');
                             }
                         }
                         $('#continue-button').removeClass('disabled');
@@ -142,7 +142,7 @@
             }, 6000);
             setTimeout( () => {
                 $('.spinner-overlay').addClass('active');
-            }, 1000);
+            }, 500);
 
             // Cancel the import
             $('#back-button').on('click', (e) => {

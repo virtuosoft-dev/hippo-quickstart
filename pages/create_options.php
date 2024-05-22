@@ -40,7 +40,7 @@
 <div class="body-reset container">
     <div class="quickstart qs_create_options">
         <h1>Create Options</h1>
-        <legend id="status">Please wait. Downloading blueprint file.</legend>
+        <legend id="status">Please wait. Processing blueprint request.</legend>
         <div id="options"></div>
     </div>
 </div>
@@ -149,13 +149,13 @@
                         $('#continue-button').removeClass('disabled');
                         $('.spinner-overlay').removeClass('active');
                         $('#back-button').hide();
-                    }, 2000);
+                    }, 500);
                 }
             });
         }, 3000);
         setTimeout( () => {
             $('.spinner-overlay').addClass('active');
-        }, 1000);
+        }, 500);
 
         // Cancel the blueprint download
 
