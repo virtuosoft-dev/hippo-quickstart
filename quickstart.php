@@ -44,7 +44,7 @@ if ( ! class_exists( 'Quickstart') ) {
          * @param string $job_id The unique job id.
          */
         public function cleanup_job_data( $job_id ) {
-            $command = "rm -rf /tmp/devstia_$job_id*";
+            $command = "rm -rf /tmp/devstia_" . $job_id . "*";
             shell_exec( $command );
         }
 
@@ -59,6 +59,7 @@ if ( ! class_exists( 'Quickstart') ) {
             $this->xfer_job_data( $job_id, 'manifest' );
             $pid = trim( shell_exec( HESTIA_CMD . "v-invoke-plugin quickstart_copy_now " . $job_id . " > /dev/null 2>/dev/null & echo $!" ) );
             $this->set_job_data( $job_id, 'pid', $pid );
+            $this->xfer_job_data( $job_id, 'pid' );
         }
 
         /** 
@@ -126,6 +127,7 @@ if ( ! class_exists( 'Quickstart') ) {
             $this->xfer_job_data( $job_id, 'request' );
             $pid = trim( shell_exec( HESTIA_CMD . "v-invoke-plugin quickstart_remove_now " . $job_id . " > /dev/null 2>/dev/null & echo $!" ) );
             $this->set_job_data( $job_id, 'pid', $pid );
+            $this->xfer_job_data( $job_id, 'pid' );
         }
 
         /**
@@ -167,6 +169,7 @@ if ( ! class_exists( 'Quickstart') ) {
             $this->xfer_job_data( $job_id, 'import_file' );
             $pid = trim( shell_exec( HESTIA_CMD . "v-invoke-plugin quickstart_import_file " . $job_id . " > /dev/null 2>/dev/null & echo $!" ) );
             $this->set_job_data( $job_id, 'pid', $pid );
+            $this->xfer_job_data( $job_id, 'pid' );
         }
 
         /**
@@ -179,6 +182,7 @@ if ( ! class_exists( 'Quickstart') ) {
             $this->xfer_job_data( $job_id, 'request' );
             $pid = trim( shell_exec( HESTIA_CMD . "v-invoke-plugin quickstart_import_now $job_id > /dev/null 2>/dev/null & echo $!" ) );
             $this->set_job_data( $job_id, 'pid', $pid );
+            $this->xfer_job_data( $job_id, 'pid' );
         }
 
         /**
@@ -214,6 +218,7 @@ if ( ! class_exists( 'Quickstart') ) {
 
             // Store the process id data for the job, to be used for status checks
             $this->set_job_data( $job_id, 'pid', $pid );
+            $this->xfer_job_data( $job_id, 'pid' );
         }
 
         /**
@@ -223,16 +228,25 @@ if ( ! class_exists( 'Quickstart') ) {
          */
         public function get_status( $job_id ) {
 
-            // // Return last result status
-            // $result = $this->pickup_job_data( $job_id, 'result' );
-            // if ($result !== false) {
-            //     return $result;
-            // }
+            // Return last result status
+            $result = $this->pickup_job_data( $job_id, 'result' );
+            if ($result !== false) {
+                return $result;
+            }
 
             // Check for running process
             $pid = $this->peek_job_data( $job_id, 'pid' );
             if ( $pid === false ) {
-                return [ 'status' => 'error', 'message' => "PID $pid is unknown for Job ID $job_id." ];
+
+                // Process ended, wait up to 15 seconds for final result to appear
+                for ( $i = 0; $i < 15; $i++ ) {
+                    $result = $this->pickup_job_data( $job_id, 'result' );
+                    if ($result !== false) {
+                        return $result;
+                    }
+                    sleep(1);
+                }
+                return [ 'status' => 'error', 'message' => "Error with Job ID \"$job_id.\"; ended with no final result." ];
             }else{
                 
                 // Check if pid exists
@@ -469,7 +483,7 @@ if ( ! class_exists( 'Quickstart') ) {
          */
         public function pickup_job_data( $job_id, $key ) {
             $value = $this->peek_job_data( $job_id, $key );
-            $file = "/tmp/devstia_$job_id-$key.json";
+            $file = "/tmp/devstia_" . $job_id . "-" . $key . ".json";
             if ( file_exists( $file ) ) {
                 unlink( $file );
             }
@@ -484,9 +498,10 @@ if ( ! class_exists( 'Quickstart') ) {
          * @return mixed The data value.
          */
         public function peek_job_data( $job_id, $key ) {
-            if ( file_exists( "/tmp/devstia_$job_id-$key.json" ) ) {
+            $file = "/tmp/devstia_" . $job_id . "-" . $key . ".json";
+            if ( file_exists( $file ) ) {
                 try {
-                    $value = file_get_contents( "/tmp/devstia_$job_id-$key.json" );
+                    $value = file_get_contents( $file );
                     $value = json_decode( $value, true );
                     return $value;
                 } catch (Exception $e) {
@@ -852,7 +867,7 @@ if ( ! class_exists( 'Quickstart') ) {
             }
 
             // Download the blueprint file using curl monitor/report the progress
-            $file = "/tmp/devstia_$job_id-" . basename( $url );
+            $file = "/tmp/devstia_" . $job_id . "-" . basename( $url );
             $command = "curl -H 'Cache-Control: no-cache' -o $file $url > /dev/null 2>/dev/null & echo $!";
 
             // Allow plugins to modify the command
@@ -1006,7 +1021,7 @@ if ( ! class_exists( 'Quickstart') ) {
             $request = $this->pickup_job_data( $job_id, 'request' );
 
             // Load manifest and request
-            $import_folder = "/tmp/devstia_$job_id-import";
+            $import_folder = "/tmp/devstia_" . $job_id . "-import";
 
             // Check for downloaded blueprint folder
             if ( !file_exists( $import_folder ) ) {
@@ -1585,9 +1600,6 @@ if ( ! class_exists( 'Quickstart') ) {
          * @param string $status The status to report.
          */
         public function report_status( $job_id, $message, $status = 'running' ) {
-            global $hcpp;
-            $hcpp->log( 'report_status ' . $job_id . ' ' . $message . ' ' . $status );
-
             $result_file = '/tmp/devstia_' . $job_id . '-result.json';
             $result = json_encode( [ 'status' => $status, 'message' => $message ] );
             try {
@@ -1770,9 +1782,10 @@ if ( ! class_exists( 'Quickstart') ) {
             if ( !isset( $_SESSION['devstia_jobs'][$job_id] ) ) return false;
             if ( !isset( $_SESSION['devstia_jobs'][$job_id][$key] ) ) return false;
             $value = json_encode( $_SESSION['devstia_jobs'][$job_id][$key], JSON_PRETTY_PRINT );
-            file_put_contents( "/tmp/devstia_$job_id-$key.json", $value );
-            chown( "/tmp/devstia_$job_id-$key.json", 'admin' );
-            chgrp( "/tmp/devstia_$job_id-$key.json", 'admin' );
+            $file = "/tmp/devstia_" . $job_id . "-" . $key . ".json";
+            file_put_contents( $file, $value );
+            chown( $file, 'admin' );
+            chgrp( $file, 'admin' );
             return true;
         }
     }

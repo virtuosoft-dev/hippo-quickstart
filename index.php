@@ -184,43 +184,6 @@ if (false == isset($_GET['job_id'])) return;
 $job_id = $_GET['job_id'];
 if ( $hcpp->quickstart->is_job_valid( $job_id ) === false ) return;
 
-// Get blueprint download status
-if ( $_GET['action'] == 'blueprint_status' ) {
-    $status = $hcpp->quickstart->get_status( $job_id );
-
-    // Download blueprint status has finished, return manifest
-    if ( $status['status'] === 'finished' ) {
-        $user = $hcpp->quickstart->get_job_data( $job_id, 'user' );
-        $url = $hcpp->quickstart->get_job_data( $job_id, 'url' );
-        $folder = basename( $url );
-        if ( substr( $folder, -4 ) == '.zip' ) {
-            $folder = substr( $folder, 0, -4 );
-        }
-        $folder = "/home/$user/web/blueprints/$folder";
-        $manifest = "$folder/devstia_manifest.json";
-
-        // Check if the blueprint folder and manifest exists
-        if ( is_dir( $folder ) && file_exists( $manifest ) ) {
-            try {
-                $content = file_get_contents( $manifest );
-                $manifest = json_decode( $content, true );
-            } catch( Exception $e ) {
-                echo json_encode( [ 'status' => 'error', 'message' => 'Error parsing manifest file.' ] );
-            }
-            $message = 'Fill in options.';
-            if ( is_dir('/home/devstia') ) {
-                $message .= ' <i>Devstia Preview should use a <b>.dev.pw</b> TLD.</i>';
-            }
-            $status['message'] = $message;
-            $status['manifest'] = $manifest;            
-        }else{
-            $status['status'] = 'error';
-            $status['message'] = 'Blueprint error. Please try again.';   
-        }
-    }
-    echo json_encode( $status );
-}
-
 // Clean up the job by job id
 if ( $_GET['action'] == 'cleanup_job' ) {
     $hcpp->quickstart->cleanup_job_data( $job_id );
@@ -229,16 +192,6 @@ if ( $_GET['action'] == 'cleanup_job' ) {
 // Cancel the job by job id
 if ( $_GET['action'] == 'cancel_job' ) {
     $hcpp->quickstart->cancel_job( $job_id );
-}
-
-// Get export status
-if ( $_GET['action'] == 'export_status' ) {
-    // $status = $hcpp->quickstart->get_status( $job_id );
-    echo json_encode( $hcpp->quickstart->get_status( $job_id ) );
-    // if ( $status['status'] === 'finished' ) {
-    //    $hcpp->quickstart->cleanup_job_data( $job_id );
-    // }
-    exit();
 }
 
 // Process file upload
@@ -274,22 +227,25 @@ if ( $_GET['action'] == 'upload' ) {
     echo json_encode( $response );
 }
 
-// Get detail status
-if ( $_GET['action'] == 'detail_status' ) {
+
+// Check status and result actions
+if ( in_array( $_GET['action'], ['blueprint_status', 'export_status', 'detail_status', 'import_status',
+    'import_result', 'copy_result', 'create_result', 'remove_result'] ) ) {
     $status = $hcpp->quickstart->get_status( $job_id );
 
-    // Detail status has finished, return all the manifests
-    echo json_encode( $status );
-}
-
-
-// Get import status
-if ( $_GET['action'] == 'import_status' ) {
-    $status = $hcpp->quickstart->get_status( $job_id );
-
-    // Import's decompress is finished, return manifest
-    if ( $status['status'] === 'finished' ) {
+    // Check for manifests in blueprint and import status
+    if ( $status['status'] === 'finished' &&  in_array( $_GET['action'], ['blueprint_status', 'import_status'] ) ) {
         $manifest = "/tmp/devstia_$job_id-import/devstia_manifest.json";
+        if ( $_GET['action'] == 'blueprint_status' ) {
+            $user = $hcpp->quickstart->get_job_data( $job_id, 'user' );
+            $url = $hcpp->quickstart->get_job_data( $job_id, 'url' );
+            $folder = basename( $url );
+            if ( substr( $folder, -4 ) == '.zip' ) {
+                $folder = substr( $folder, 0, -4 );
+            }
+            $folder = "/home/$user/web/blueprints/$folder";
+            $manifest = "$folder/devstia_manifest.json";        
+        }
         if ( file_exists( $manifest ) ) {
             try {
                 $content = file_get_contents( $manifest );
@@ -305,19 +261,8 @@ if ( $_GET['action'] == 'import_status' ) {
             $status['manifest'] = $manifest;
         }else{
             $status['status'] = 'error';
-            $status['message'] = 'Import failed. Please try again.';
+            $status['message'] = 'Manifest error. Please try again.';
         }
     }
     echo json_encode( $status );
 }
-
-// Check import_result, copy_result, remove_result
-if ( $_GET['action'] == 'import_result' ||
-     $_GET['action'] == 'copy_result' ||
-     $_GET['action'] == 'create_result' || 
-     $_GET['action'] == 'remove_result') {
-    $status = $hcpp->quickstart->get_status( $job_id );
-    echo json_encode( $status );
-}
-
- 
