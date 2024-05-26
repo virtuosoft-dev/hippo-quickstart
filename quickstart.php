@@ -1589,7 +1589,7 @@ if ( ! class_exists( 'Quickstart') ) {
             $hcpp->run( "restart-proxy" );
 
             // Report success
-            $this->report_status( $job_id, "Websites removed successfully.", 'finished' );
+            $this->report_status( $job_id, "Website(s) removed successfully.", 'finished' );
             return $args;
         }
 

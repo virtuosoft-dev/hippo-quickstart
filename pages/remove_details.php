@@ -114,9 +114,7 @@
                     }
                 });
             }, 6000);
-            setTimeout( () => {
-                $('.spinner-overlay').addClass('active');
-            }, 500);
+            $('.spinner-overlay').addClass('active');
 
             // Cancel gathering details
             $('#back-button').on('click', (e) => {

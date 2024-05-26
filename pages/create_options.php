@@ -153,12 +153,7 @@
                 }
             });
         }, 3000);
-        setTimeout( () => {
-            $('.spinner-overlay').addClass('active');
-        }, 500);
-
-        // Cancel the blueprint download
-
+        $('.spinner-overlay').addClass('active');
     });
 })(jQuery);
 </script>

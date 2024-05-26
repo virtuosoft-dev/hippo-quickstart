@@ -61,9 +61,7 @@
                     }
                 }); 
             }, 6000);
-            setTimeout( () => {
-                $('.spinner-overlay').addClass('active');
-            }, 500);
+            $('.spinner-overlay').addClass('active');
 
             // Cancel the copy
             $('#back-button').on('click', (e) => {
