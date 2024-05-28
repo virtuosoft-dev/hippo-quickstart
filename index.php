@@ -75,10 +75,10 @@ if ( $_GET['action'] == 'proxy' ) {
         $new_url = '"https://local.dev.pw:8083/pluginable.php?load=quickstart&action=proxy&url=https://devstia.com' . $remaining_url;
         $response = $hcpp->delLeftMost( $response, '"' );
 
-        // Don't bother proxying images, css, js
+        // Don't bother proxying images, css, js, or last /
         $image_ext = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'css', 'js', 'zip'];
         $ext = substr( $hcpp->getRightMost( $old_url, '.' ), 0, 3 );
-        if ( in_array( $ext, $image_ext ) ) {
+        if ( in_array( $ext, $image_ext ) || strpos( $old_url, 'https://devstia.com/blueprint/') !== false ) {
             $new_response .= $old_url;
         }else{
             $new_response .= $new_url;
