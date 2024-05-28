@@ -7,12 +7,12 @@
     <div class="toolbar-inner">
         <div class="toolbar-buttons">
             <a href="?quickstart=main" class="button button-secondary button-back js-button-back" id="back-button">
-                <i class="fas fa-arrow-left icon-blue"></i>Back			
+                <i tabindex="300" class="fas fa-arrow-left icon-blue"></i>Back			
             </a>
         </div>
         <div class="toolbar-buttons">
             <a href="?quickstart=create_new" class="button" id="continue-button">
-                <i class="fas fa-arrow-right icon-blue"></i>Continue
+                <i tabindex="200" class="fas fa-arrow-right icon-blue"></i>Continue
             </a>         
         </div>
     </div>

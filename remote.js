@@ -7,6 +7,9 @@
         //     return false;
         // });
 
+        // Make bcard tabable
+        $('.bpcard img').attr('tabindex', '100');
+
         // Post a message to the parent window that we're ready 
         window.parent.postMessage( {
             "type": "ready"
