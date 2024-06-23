@@ -26,8 +26,8 @@
 <div class="toolbar" style="z-index:100;position:relative;">
     <div class="toolbar-inner">
         <div class="toolbar-buttons">
-            <a href="#" class="button button-secondary button-back js-button-back" id="back-button">
-                <i tabindex="300" class="fas fa-stop-circle icon-red"></i>Cancel			
+            <a href="?quickstart=main?job_id=<?php echo $job_id; ?>" class="button button-secondary button-back js-button-back" id="back-button">
+                <i tabindex="300" class="fas fa-stop-circle icon-red"></i>Back			
             </a>
         </div>
         <div class="toolbar-buttons">
@@ -148,7 +148,7 @@
                     setTimeout(()=>{
                         $('#continue-button').removeClass('disabled');
                         $('.spinner-overlay').removeClass('active');
-                        $('#back-button').hide();
+                        //$('#back-button').hide();
                     }, 500);
                 }
             });

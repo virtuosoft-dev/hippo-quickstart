@@ -37,6 +37,20 @@ if ( ! class_exists( 'Quickstart') ) {
             $hcpp->add_action( 'hcpp_rebooted', [ $this, 'hcpp_rebooted' ] );
             $hcpp->add_action( 'hcpp_render_body', [ $this, 'hcpp_render_body' ] );
             $hcpp->add_action( 'hcpp_render_panel', [ $this, 'hcpp_render_panel' ] );
+            $hcpp->add_action( 'priv_log_user_logout', [ $this, 'priv_log_user_logout' ] );
+        }
+
+        /**
+         * Download the given blueprint file to our the job id.
+         */
+        public function blueprint_file( $job_id, $url ) {
+            $this->set_job_data( $job_id, 'url', $url );
+            $this->set_job_data( $job_id, 'user', $_SESSION['user'] );
+            $this->xfer_job_data( $job_id, 'url' );
+            $this->xfer_job_data( $job_id, 'user' );
+            $pid = trim( shell_exec( HESTIA_CMD . "v-invoke-plugin quickstart_blueprint_file " . $job_id . " > /dev/null 2>/dev/null & echo $!" ) );
+            $this->set_job_data( $job_id, 'pid', $pid );
+            $this->xfer_job_data( $job_id, 'pid' );
         }
 
         /**
@@ -84,19 +98,6 @@ if ( ! class_exists( 'Quickstart') ) {
         }
 
         /**
-         * Download the given blueprint file to our the job id.
-         */
-        public function blueprint_file( $job_id, $url ) {
-            $this->set_job_data( $job_id, 'url', $url );
-            $this->set_job_data( $job_id, 'user', $_SESSION['user'] );
-            $this->xfer_job_data( $job_id, 'url' );
-            $this->xfer_job_data( $job_id, 'user' );
-            $pid = trim( shell_exec( HESTIA_CMD . "v-invoke-plugin quickstart_blueprint_file " . $job_id . " > /dev/null 2>/dev/null & echo $!" ) );
-            $this->set_job_data( $job_id, 'pid', $pid );
-            $this->xfer_job_data( $job_id, 'pid' );
-        }
-
-        /**
          * Check if the given job id is valid.
          * @param string $job_id The unique job id.
          */
@@ -115,6 +116,59 @@ if ( ! class_exists( 'Quickstart') ) {
             if ( !isset( $_SESSION['devstia_jobs'][$job_id] ) ) return false;
             if ( !isset( $_SESSION['devstia_jobs'][$job_id][$key] ) ) return false;
             return $_SESSION['devstia_jobs'][$job_id][$key];
+        }
+
+        /**
+         * Remove the user's cookies associated with the remove session; logging them out.
+         */
+        public function priv_log_user_logout( $args ) {
+            $user = $args[0];
+            $command = "rm -f /tmp/devstia_$user-cookies.dat";
+            global $hcpp;
+            $command = $hcpp->do_action( 'quickstart_priv_log_user_logout', $command );
+            shell_exec( $command );
+            return $args;
+        }
+        /**
+         * Return the source from the given devstia.com URL with optional POST data.
+         * @param string $url The URL to proxy.
+         * @param string $postData The POST data to send.
+         * @return array The response and headers.
+         */
+        public function proxy_devstia( $url, $postData = null ) {
+        
+            // Only allow devstia.com access
+            if (substr($url, 0, 19) !== 'https://devstia.com') {
+                return [
+                    'response' => 'Access denied',
+                    'headers' => [
+                        'http_code' => 403
+                    ]
+                ];
+            }
+    
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        
+            // Support cookies
+            $user = $_SESSION['user'];
+            curl_setopt($ch, CURLOPT_COOKIEJAR, "/tmp/devstia_$user-cookies.dat");
+            curl_setopt($ch, CURLOPT_COOKIEFILE, "/tmp/devstia_$user-cookies.dat");
+        
+            // Support POST data
+            if ($postData !== null) {
+                curl_setopt($ch, CURLOPT_POST, true);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+            }
+        
+            $response = curl_exec($ch);
+            $responseHeaders = curl_getinfo($ch);
+            curl_close($ch);
+            return [
+                'response' => $response,
+                'headers' => $responseHeaders
+            ];
         }
 
         /**
@@ -287,7 +341,9 @@ if ( ! class_exists( 'Quickstart') ) {
                 'quickstart_get_multi_manifests',
                 'quickstart_import_file',
                 'quickstart_import_now',
-                'quickstart_remove_now'
+                'quickstart_remove_now',
+                'quickstart_connect_now',
+                'quickstart_connect_save'
             ];
             if ( in_array( $args[0], $trusted ) ) {
                 return call_user_func_array([$this, $args[0]], [$args]);
@@ -341,6 +397,8 @@ if ( ! class_exists( 'Quickstart') ) {
                 'create_now',
                 'create',
                 'remove_copy',
+                'connect',
+                'connect_now',
                 'copy_details',
                 'copy_now',
                 'remove_details',
@@ -350,7 +408,7 @@ if ( ! class_exists( 'Quickstart') ) {
             // Sanitize the quickstart parameter, default to main
             $load = $_GET['quickstart'];
             $load = str_replace(array('/', '\\'), '', $load);
-            if (empty($load) || !preg_match('/^[A-Za-z0-9_-]+$/', $load)) {
+            if ( empty( $load ) || !preg_match( '/^[A-Za-z0-9_-]+$/', $load ) ) {
                 $load = 'main';
             } 
             if ( !in_array( $load, $authorized_pages ) ) {
@@ -522,6 +580,38 @@ if ( ! class_exists( 'Quickstart') ) {
             $this->report_status( $job_id, 'Export cancelled.' );
             shell_exec( "kill -9 $pid" );
             $this->cleanup_job_data( $job_id );
+            return $args;
+        }
+
+        /**
+         * Save devstia.com credentials to the protected user's .devstia-com file.
+         */
+        public function quickstart_connect_save( $args ) {
+            $job_id = $args[1];
+            $user = $args[2];
+            $file = "/tmp/devstia_$job_id-devstia-com";
+            $data = file_get_contents( $file );
+            unlink( $file );
+            $file = "/home/$user/.devstia-com";
+            file_put_contents( $file, $data );
+            chmod( $file, 0600 );
+            chown( $file, $user );
+            chgrp( $file, $user );
+            return $args;
+        }
+
+        /**
+         * Return the devstia.com credentials from the protected user's .devstia-com file.
+         */
+        public function quickstart_connect_now( $args ) {
+            $user = $args[1];
+            global $hcpp;
+            $hcpp->log( " THIS IS THE USER: $user" );
+            $file = "/home/$user/.devstia-com";
+            if ( file_exists( $file ) ) {
+                $data = file_get_contents( $file );
+                echo $data;
+            }
             return $args;
         }
 
@@ -1543,7 +1633,6 @@ if ( ! class_exists( 'Quickstart') ) {
                 $manifest = $this->get_manifest( $user, $domain );
                 $manifests[] = $manifest;
             }
-//            file_put_contents( '/tmp/test1.txt', json_encode( $manifests, JSON_PRETTY_PRINT ) );
             $this->report_status( $job_id, $manifests, 'finished' );
             return $args;
         }

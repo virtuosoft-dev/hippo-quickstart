@@ -1,4 +1,11 @@
-<?php require( 'header.php' ); ?>
+<?php require( 'header.php' ); 
+
+// Cancel any existing job
+if ( isset( $_GET['job_id'] ) ) {
+    $job_id = $_GET['job_id'];
+    $hcpp->quickstart->cancel_job( $job_id );
+}
+?>
 <div class="toolbar">
     <div class="toolbar-inner">
         <div class="toolbar-buttons">

@@ -97,6 +97,10 @@
     .spinner-overlay.active {
         opacity: 0.6;
     }
+    #connect-form {
+        margin: 0 auto 20px auto;
+        width: 60%;
+    }
 </style>
 <script>
     (function($){

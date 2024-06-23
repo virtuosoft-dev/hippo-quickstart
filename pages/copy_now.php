@@ -15,7 +15,7 @@
     <div class="toolbar-inner">
         <div class="toolbar-buttons">
             <a href="#" class="button button-secondary button-back js-button-back" id="back-button">
-                <i tabindex="300" class="fas fa-stop-circle icon-red"></i>Cancel			
+                <i tabindex="300" class="fas fa-stop-circle icon-red"></i>Cancel
             </a>
         </div>
         <div class="toolbar-buttons">

@@ -1,43 +1,12 @@
-body, #wrapper {
+body, #wrapper, article.entry {
     background: none transparent;
 }
 #wpadminbar {
     display: none;
 }
 #wrapper {
-    margin-top: -5rem;
-}
-.bpdesc {
-    font-size: 16px;
-}
-.bpcard .kb-button {
-    transform: scale(.75);
-    margin: -8px 0 0 -30px;
+    margin-top: -4rem;
 }
 .content-container {
     padding: 0 0 0 0;
-}
-.bpcard .wp-block-image {
-    margin-top: 12px;
-}
-h3 a:hover {
-    color: #ccc;
-}
-span.triangle-down {
-    display: inline-block;
-    width: 0;
-    height: 0;
-    border-left: 10px solid transparent;
-    border-right: 10px solid transparent;
-    border-top: 10px solid white;
-    margin: 0px 5px;
-}
-span.triangle-up {
-    display: inline-block;
-    width: 0;
-    height: 0;
-    border-top: 10px solid transparent;
-    border-bottom: 10px solid transparent;
-    border-left: 10px solid white;
-    margin: -1px 5px;
 }

@@ -1,26 +1,30 @@
 (function($) {
     $(function() {
-        // Make headings collapsible
-        // $('h4.tb-heading').html('<span class="triangle-down"></span><a href="#">' + $('h4.tb-heading').text() + '</a>').click(function() {
-        //     $(this).next().toggle();
-        //     $(this).find('span').toggleClass('triangle-down triangle-up');
-        //     return false;
-        // });
 
         // Make bcard tabable
         $('.bpcard img').attr('tabindex', '100');
 
         // Post a message to the parent window that we're ready 
-        window.parent.postMessage( {
-            "type": "ready"
-        }, 'https://local.dev.pw:8083' );
+        setTimeout(function() {
+            window.parent.postMessage({
+                "type": "ready",
+                "primaryHeight": $('#primary').height()
+            }, 'https://local.dev.pw:8083');
+        }, 1000);
+
+        // Change the URL to include the jobID to validate storing application credentials
+        $('.connect-devstia a').each(function() {
+            let $this = $(this);
+            let href = $this.attr('href');
+            $this.attr('href', href + '?jobID=' + jobID);
+        });
 
         // Intercept click for zip download
-        $('.bpcard a[href*=".zip"]').each(function(){
-            var $this = $(this);
-            $this.click(function(e){
+        $('.bpcard a[href*=".zip"]').each(function() {
+            let $this = $(this);
+            $this.click(function(e) {
                 e.preventDefault();
-                var href = $this.attr('href');
+                let href = $this.attr('href');
                 
                 // Post a message to the parent window of where to find the zip file
                 window.parent.postMessage( {
@@ -30,21 +34,13 @@
             });
         });
 
-        // Receive list of already downloaded blueprints from parent window
-        window.addEventListener('message', function(event) {
-            if (event.origin !== 'https://local.dev.pw:8083') {
-                return;
-            }
-            if (event.data.type === 'blueprints') {
-                var blueprints = event.data.blueprints;
-                $('.bpcard .wp-block-image a').each(function() {
-                    let bpf = $(this).attr('href');
-                    bpf = bpf.split('/').pop().replace('.zip', '');
-                    if (blueprints.includes(bpf)) {
-                        let bpcard = $(this).parent().parent().parent();
-                        bpcard.find('.bpbutton').css('visibility', 'hidden');
-                    }
-                });
+        // Remove download icon on already downloaded blueprints
+        $('.bpcard .wp-block-image a').each(function() {
+            let bpf = $(this).attr('href');
+            bpf = bpf.split('/').pop().replace('.zip', '');
+            if (blueprints.includes(bpf)) {
+                let bpcard = $(this).parent().parent().parent();
+                bpcard.find('.bpbutton').css('visibility', 'hidden');
             }
         });
     });  
