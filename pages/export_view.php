@@ -60,7 +60,7 @@
         <p>
         <?php
             if ( $_SESSION['user'] == 'devstia' ) {
-                echo "<br><p><strong>Devstia Preview:</strong></p>";
+                echo "<br><p><strong>Devstia Personal Web:</strong></p>";
                 echo '<p>You can also find exports in your <a href="https://devstia.com/docs/devstia-drive" target="_blank">Devstia drive\'s "exports" folder.</p>';
             }
         ?>

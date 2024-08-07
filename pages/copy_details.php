@@ -25,7 +25,7 @@
     <div class="body-reset container">
         <div class="quickstart qs_copy_details">
             <h1>Copy Details</h1>
-                <legend>Fill in options. <?php if ( is_dir('/home/devstia') ) echo "<i>Devstia Preview should use a <b>.dev.pw</b> TLD.</i>"; ?></legend>
+                <legend>Fill in options. <?php if ( is_dir('/home/devstia') ) echo "<i>Devstia Personal Web should use a <b>.dev.pw</b> TLD.</i>"; ?></legend>
                 <div class="u-mb10">
                     <label for="v_domain" class="form-label">Domain</label>
                     <input type="text" class="form-control" name="v_domain" id="v_domain" value="<?php echo $manifest['domain']; ?>" required="" tabindex="100">

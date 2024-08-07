@@ -147,7 +147,7 @@ if ( in_array( $_GET['action'], ['blueprint_status', 'export_status', 'detail_st
             }
             $message = 'Fill in options.';
             if ( is_dir('/home/devstia') ) {
-                $message .= ' <i>Devstia Preview should use a <b>.dev.pw</b> TLD.</i>';
+                $message .= ' <i>Devstia Personal Web should use a <b>.dev.pw</b> TLD.</i>';
             }
             $status['message'] = $message;
             $status['manifest'] = $manifest;
