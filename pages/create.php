@@ -20,7 +20,7 @@
         }
     }
 </style>
-<div class="toolbar">
+<div class="toolbar" style="z-index:100;position:relative;">
     <div class="toolbar-inner">
         <div class="toolbar-buttons">
             <a href="?quickstart=main" class="button button-secondary button-back js-button-back" id="back-button">
