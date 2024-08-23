@@ -42,8 +42,9 @@
 
             // Retrieve the list of blueprints from Devstia.com, passing the current application password
             $('.spinner-overlay').addClass('active');
+            let darkMode = $('link[href*="dark.min.css"]').length > 0;
             $.ajax({
-                url: 'https://devstia.com/wp-json/devstia-com/v1/protected-content?page_url=' + encodeURIComponent('https://devstia.com/blueprints/?quickstart=1'),
+                url: 'https://devstia.com/wp-json/devstia-com/v1/protected-content?page_url=' + encodeURIComponent('https://devstia.com/blueprints/?quickstart=1&dark_mode=' + darkMode),
                 type: 'GET',
                 beforeSend: function ( xhr ) {
                     <?php
