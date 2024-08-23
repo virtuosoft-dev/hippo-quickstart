@@ -49,10 +49,10 @@ if ( isset( $_POST['connect_username'] ) && isset( $_POST['connect_password'] ) 
     <div class="quickstart qs_connect">
         <?php if ( $credentials_saved === false ): ?>
             <h1>Connection Failed to Save</h1>
-            <legend>Unable to save credentials to Devstia.com. Please try again.</legend>
+            <legend>Unable to save credentials. Please try again.</legend>
         <?php else: ?>
             <h1>Connection to Devstia.com Saved</h1>
-            <legend>Your credentials have been saved to Devstia.com.</legend>
+            <legend>Your credentials have been saved.</legend>
             <p>Click the continue button to proceed.</p>
         <?php endif; ?>
     </div>
