@@ -56,7 +56,7 @@
                     ?>
                 },
                 success: function(data) {
-                    $('#bpwait').html("Click the blueprint icon you would like to use to create a new website.");
+                    $('#bpwait').hide();
 
                    // Inject list of already downloaded blueprints and current job_id into a local JS variable
                     <?php
