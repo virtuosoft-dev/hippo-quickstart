@@ -57,7 +57,7 @@
                 },
                 success: function(data) {
                     $('#bpwait').hide();
-                    $('quickstart.qs_create h1').hide();
+                    $('div.qs_create h1').hide();
 
                    // Inject list of already downloaded blueprints and current job_id into a local JS variable
                     <?php
