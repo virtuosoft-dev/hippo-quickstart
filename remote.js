@@ -44,8 +44,9 @@
             }
         });
 
-        // Update all anchor href attributes that start with https://devstia.com/ to use window.navigateURL
-        $('a[href^="https://devstia.com/"]').each(function() {
+        // Update all anchor href attributes that don't have target="_blank" and 
+        // that start with https://devstia.com/ to use window.navigateURL
+        $('a[href^="https://devstia.com/"]:not([target="_blank"])').each(function() {
             let $this = $(this);
             let href = $this.attr('href');
             $this.attr('href', 'javascript:window.parent.navigateToURL("' + href + '")');
