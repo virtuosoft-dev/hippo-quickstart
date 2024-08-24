@@ -40,6 +40,9 @@ if ( isset( $_GET['job_id'] ) ) {
 <script>
     (function($){
         $(function() {
+            $('#continue-button').click(function() {
+                $('.spinner-overlay').addClass('active');
+            });
 
             // Update the continue button href based on selected qsOption
             $('input[name="qsOption"]').on('change', (e) => {
