@@ -43,5 +43,15 @@
                 bpcard.find('.bpbutton').css('visibility', 'hidden');
             }
         });
+
+        // Update all anchor href attributes that start with https://devstia.com/ to use window.navigateURL
+        $('a[href^="https://devstia.com/"]').each(function() {
+            let $this = $(this);
+            let href = $this.attr('href');
+            $this.attr('href', 'javascript:window.parent.navigateToURL("' + href + '")');
+        });
+
+        // Show the display after content is loaded
+        $(window.parent.bpcreate).show();
     });  
 })(jQuery);
