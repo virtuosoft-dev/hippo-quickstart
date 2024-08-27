@@ -1244,6 +1244,14 @@ if ( ! class_exists( 'Quickstart') ) {
                     $command .= "chown $new_user:www-data " . $dest_folder . "/$subfolder/ ; ";
                 }
             }
+
+            // Copy over the devstia_setup.sh if present
+            $setup_file = $import_folder . '/devstia_setup.sh';
+            if ( file_exists( $setup_file ) ) {
+                $command .= "cp $setup_file $dest_folder/devstia_setup.sh ; ";
+                $command .= "chown $new_user:$new_user $dest_folder/devstia_setup.sh ; ";
+            }
+
             $command = $hcpp->do_action( 'quickstart_import_copy_files', $command ); // Allow plugin mods
             shell_exec( $command );
 
@@ -1451,7 +1459,7 @@ if ( ! class_exists( 'Quickstart') ) {
             if ( file_exists( $setup_script ) ) {
                 $setup_script = "cd $dest_folder && chmod +x devstia_setup.sh && ./devstia_setup.sh";
                 $hcpp->runuser( $new_user, $setup_script);
-                unlink( $setup_script );
+                //unlink( $setup_script );
             }
 
             // Update the web domain backend and proxy
