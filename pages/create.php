@@ -64,12 +64,10 @@
                 // Resume navigating and record the URL in navHistory
                 $('.spinner-overlay').addClass('active');
                 $('#bpcreate').hide();
-                console.log(url);
                 window.navHistory.push(url);
 
                 // Serve up from cache
                 if (typeof navCache[url] !== 'undefined' && navCache[url] !== null && navCache[url] !== '') {
-                    console.log("using cache for " + url);
                     $('#bpcreate').attr('srcdoc', navCache[url]);
                     $('.spinner-overlay').removeClass('active');
                     return;
@@ -77,11 +75,11 @@
 
                 // Set quickstart bit
                 let origURL = url;
-                url += (url.indexOf('?') === -1 ? '?' : '&') + 'quickstart=1';
-
+                let darkMode = $('link[href*="dark.min.css"]').length > 0;
+                url += (url.indexOf('?') === -1 ? '?' : '&') + 'quickstart=1&dark_mode=' + darkMode;
+                
                 // Use REST API protected content endpoint to retrieve the content
                 url = 'https://devstia.com/wp-json/devstia-com/v1/protected-content?page_url=' + encodeURIComponent(url);
-
                 $.ajax({
                     url: url,
                     type: 'GET',
@@ -98,19 +96,7 @@
                         $('#bpwait').hide();
                         $('div.qs_create h1').hide();
 
-                        // Inject list of already downloaded blueprints and current job_id into a local JS variable
-                        <?php
-                            $user = $_SESSION['user'];
-                            if ( is_dir( "/home/$user/web/blueprints") ) {
-                                $blueprints = scandir( "/home/$user/web/blueprints" );
-                                $blueprints = array_diff( $blueprints, array( '.', '..', '.DS_Store', '._.DS_Store' ) );
-                                $blueprints = array_values( $blueprints );
-                                $blueprints = json_encode( $blueprints );
-                            }else {
-                                $blueprints = '[]';
-                            }
-                        ?>
-                        src = src.replace('</' + 'head>', '<' + 'script>var blueprints=<?php echo $blueprints; ?>;var jobID="<?php echo $job_id; ?>";var httpHost="<?php echo $_SERVER['HTTP_HOST']; ?>";</' + 'script></' + 'head>');
+                        src = src.replace('</' + 'head>', '<' + 'script>var jobID="<?php echo $job_id; ?>";var httpHost="<?php echo $_SERVER['HTTP_HOST']; ?>";</' + 'script></' + 'head>');
                         $('#bpcreate').attr('srcdoc', src);
 
                         // Cache the content by url in navCache

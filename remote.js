@@ -1,17 +1,6 @@
 (function($) {
     $(function() {
 
-        // Make bcard tabable
-        $('.bpcard img').attr('tabindex', '100');
-
-        // Post a message to the parent window that we're ready 
-        setTimeout(function() {
-            window.parent.postMessage({
-                "type": "ready",
-                "primaryHeight": $('#primary').height()
-            }, 'https://local.dev.pw:8083');
-        }, 1000);
-
         // Change the URL to include the jobID to validate storing application credentials
         $('.connect-devstia a').each(function() {
             let $this = $(this);
@@ -32,17 +21,7 @@
                     "url": href
                 }, 'https://local.dev.pw:8083' );
             });
-        });
-
-        // Remove download icon on already downloaded blueprints
-        $('.bpcard .wp-block-image a').each(function() {
-            let bpf = $(this).attr('href');
-            bpf = bpf.split('/').pop().replace('.zip', '');
-            if (blueprints.includes(bpf)) {
-                let bpcard = $(this).parent().parent().parent();
-                bpcard.find('.bpbutton').css('visibility', 'hidden');
-            }
-        });
+        });       
 
         // Update all anchor href attributes that aren't target="_blank" and not zips
         $('a[href^="https://devstia.com/"]:not([target="_blank"]):not([href$=".zip"])').each(function() {
