@@ -1247,73 +1247,6 @@ if ( ! class_exists( 'Quickstart') ) {
             $command = $hcpp->do_action( 'quickstart_import_copy_files', $command ); // Allow plugin mods
             shell_exec( $command );
 
-            // Create the databases
-            $orig_dbs = $manifest['databases'];
-            if ( is_array( $orig_dbs ) && !empty( $orig_dbs ) ) {
-                foreach( $orig_dbs as $db ) {
-
-                    // Get the original database details
-                    $orig_db = $db['DATABASE'];
-                    $orig_password = $db['DBPASSWORD'];
-                    $orig_type = $db['TYPE'];
-                    $orig_charset = $db['CHARSET'];
-                    $ref_files = $db['ref_files'];
-
-                    // Generate new credentials and new database
-                    $db_name = $hcpp->nodeapp->random_chars(5);
-                    $db_password = $hcpp->nodeapp->random_chars(20);
-                    $command = "add-database $new_user $db_name $db_name $db_password $orig_type localhost $orig_charset";
-                    $db_name = $new_user . '_' . $db_name;
-                    $this->report_status( $job_id, "Please wait. Creating database: $db_name" );
-                    $result = $hcpp->run( $command );
-
-                    // Search and replace credentials in ref_files
-                    foreach( $ref_files as $file ) {
-                        $file = $dest_folder . '/' . $hcpp->delLeftMost( $file, '/' );
-                        try {
-                            $this->search_replace_file( 
-                                $file, 
-                                [$orig_db, $orig_password], 
-                                [$db_name, $db_password] 
-                            );
-                        }catch( Exception $e ) {
-                            $this->report_status( $job_id, $e->getMessage(), 'error' );
-                            return $args;
-                        }
-                    }
-
-                    // Search and replace domain, user path, and aliases in db sql files
-                    $db_sql_file = $dest_folder . '/devstia_databases/' . $db['DATABASE'] . '.sql';
-                    $searches = [$orig_domain, "/home/$orig_user"];
-                    $replaces = [$new_domain, "/home/$new_user"];
-                    $searches = array_merge( $searches, $orig_aliases );
-                    $replaces = array_merge( $replaces, $new_aliases );
-                    try {
-                        $this->search_replace_file( $db_sql_file, $searches, $replaces );
-                    }catch( Exception $e ) {
-                        $this->report_status( $job_id, $e->getMessage(), 'error' );
-                        return $args;
-                    }
-
-                    // Import the database sql file
-                    if ( $orig_type == 'mysql' ) {
-
-                        // Support MySQL
-                        $command = "mysql -h localhost -u $db_name -p$db_password $db_name < $db_sql_file";
-                    }else{
-
-                        // Support PostgreSQL
-                        $command = "export PGPASSWORD=\"$db_password\"; psql -h localhost -U $db_name $db_name $db_sql_file";
-                    }
-                    $command = $hcpp->do_action( 'quickstart_import_now_db', $command ); // Allow plugin mods
-                    $result = shell_exec( $command );
-                    if ( strpos( strtolower( $result ), 'error' != '' ) !== false ){
-                        $this->report_status( $job_id, $result, 'error' );
-                        return $args;
-                    }
-                }
-            }
-
             // Update smtp.json file
             $smtp_file = $dest_folder . '/private/smtp.json';
             if ( file_exists( $smtp_file ) ) {
@@ -1445,7 +1378,75 @@ if ( ! class_exists( 'Quickstart') ) {
             }
             shell_exec( 'rm -rf ' . $dest_folder . '/devstia_databases' );
 
+            // Create the databases
+            $orig_dbs = $manifest['databases'];
+            if ( is_array( $orig_dbs ) && !empty( $orig_dbs ) ) {
+                foreach( $orig_dbs as $db ) {
+
+                    // Get the original database details
+                    $orig_db = $db['DATABASE'];
+                    $orig_password = $db['DBPASSWORD'];
+                    $orig_type = $db['TYPE'];
+                    $orig_charset = $db['CHARSET'];
+                    $ref_files = $db['ref_files'];
+
+                    // Generate new credentials and new database
+                    $db_name = $hcpp->nodeapp->random_chars(5);
+                    $db_password = $hcpp->nodeapp->random_chars(20);
+                    $command = "add-database $new_user $db_name $db_name $db_password $orig_type localhost $orig_charset";
+                    $db_name = $new_user . '_' . $db_name;
+                    $this->report_status( $job_id, "Please wait. Creating database: $db_name" );
+                    $result = $hcpp->run( $command );
+
+                    // Search and replace credentials in ref_files
+                    foreach( $ref_files as $file ) {
+                        $file = $dest_folder . '/' . $hcpp->delLeftMost( $file, '/' );
+                        try {
+                            $this->search_replace_file( 
+                                $file, 
+                                [$orig_db, $orig_password], 
+                                [$db_name, $db_password] 
+                            );
+                        }catch( Exception $e ) {
+                            $this->report_status( $job_id, $e->getMessage(), 'error' );
+                            return $args;
+                        }
+                    }
+
+                    // Search and replace domain, user path, and aliases in db sql files
+                    $db_sql_file = $dest_folder . '/devstia_databases/' . $db['DATABASE'] . '.sql';
+                    $searches = [$orig_domain, "/home/$orig_user"];
+                    $replaces = [$new_domain, "/home/$new_user"];
+                    $searches = array_merge( $searches, $orig_aliases );
+                    $replaces = array_merge( $replaces, $new_aliases );
+                    try {
+                        $this->search_replace_file( $db_sql_file, $searches, $replaces );
+                    }catch( Exception $e ) {
+                        $this->report_status( $job_id, $e->getMessage(), 'error' );
+                        return $args;
+                    }
+
+                    // Import the database sql file
+                    if ( $orig_type == 'mysql' ) {
+
+                        // Support MySQL
+                        $command = "mysql -h localhost -u $db_name -p$db_password $db_name < $db_sql_file";
+                    }else{
+
+                        // Support PostgreSQL
+                        $command = "export PGPASSWORD=\"$db_password\"; psql -h localhost -U $db_name $db_name $db_sql_file";
+                    }
+                    $command = $hcpp->do_action( 'quickstart_import_now_db', $command ); // Allow plugin mods
+                    $result = shell_exec( $command );
+                    if ( strpos( strtolower( $result ), 'error' != '' ) !== false ){
+                        $this->report_status( $job_id, $result, 'error' );
+                        return $args;
+                    }
+                }
+            }
+
             // Run post-process devstia_setup.sh script if present and delete it
+            $this->report_status( $job_id, "Please wait. Finishing setup." );
             $setup_script = $dest_folder . '/devstia_setup.sh';
             if ( file_exists( $setup_script ) ) {
                 $setup_script = "cd $dest_folder && chmod +x devstia_setup.sh && ./devstia_setup.sh";
