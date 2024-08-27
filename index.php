@@ -144,6 +144,9 @@ if ( in_array( $_GET['action'], ['blueprint_status', 'export_status', 'detail_st
                 $manifest = json_decode( $content, true );
             } catch( Exception $e ) {
                 echo json_encode( [ 'status' => 'error', 'message' => 'Error parsing manifest file.' ] );
+
+                // Cleanup the job
+                $hcpp->quickstart->cleanup_job_data( $job_id );
             }
             $message = 'Fill in options.';
             if ( is_dir('/home/devstia') ) {
