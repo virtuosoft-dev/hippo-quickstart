@@ -1095,6 +1095,31 @@ if ( ! class_exists( 'Quickstart') ) {
                 $command .= '&& chown -R admin:admin ' . $import_folder;
                 $command = $hcpp->do_action( 'quickstart_import_file_command', $command );
                 shell_exec( $command );
+
+                // Check if devstia_manifest.json is at the root of import_folder
+                if (!file_exists($import_folder . '/devstia_manifest.json')) {
+                    // Locate devstia_manifest.json within subfolders
+                    $iterator = new RecursiveIteratorIterator(
+                        new RecursiveDirectoryIterator($import_folder, RecursiveDirectoryIterator::SKIP_DOTS),
+                        RecursiveIteratorIterator::SELF_FIRST
+                    );
+
+                    foreach ($iterator as $file) {
+                        if ($file->getFilename() === 'devstia_manifest.json') {
+                            $subfolder = $file->getPath();
+                            
+                            // Move all files and folders from subfolder to import_folder
+                            $files = new FilesystemIterator($subfolder, FilesystemIterator::SKIP_DOTS);
+                            foreach ($files as $item) {
+                                rename($item->getPathname(), $import_folder . '/' . $item->getFilename());
+                            }
+
+                            // Remove the now-empty subfolder
+                            shell_exec( 'rm -rf ' . $subfolder );
+                            break;
+                        }
+                    }
+                }
             }
             return $args;
         }
