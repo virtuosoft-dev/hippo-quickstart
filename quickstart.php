@@ -1465,7 +1465,6 @@ if ( ! class_exists( 'Quickstart') ) {
             // Update the web domain backend and proxy
             $hcpp->run( "change-web-domain-backend-tpl $new_user $new_domain $backend" );
             $hcpp->run( "change-web-domain-proxy-tpl $new_user $new_domain $proxy" );
-            $this->cleanup_job_data( $job_id );
 
             // Restart web and proxy
             $hcpp->run( "restart-web" );
@@ -1478,8 +1477,8 @@ if ( ! class_exists( 'Quickstart') ) {
             }
             $message .= "<a href=\"https://$new_domain\" target=\"_blank\"><i tabindex=\"100\" ";
             $message .= "style=\"font-size:smaller;\" class=\"fas fa-external-link\"></i> $new_domain</a>.";
+            $this->cleanup_job_data( $job_id );
             $this->report_status( $job_id, $message, 'finished' );
-
             return $args;
         }
 
