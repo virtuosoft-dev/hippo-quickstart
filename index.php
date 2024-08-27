@@ -154,6 +154,9 @@ if ( in_array( $_GET['action'], ['blueprint_status', 'export_status', 'detail_st
         }else{
             $status['status'] = 'error';
             $status['message'] = 'Manifest error. Please try again.';
+
+            // Cleanup the job
+            $hcpp->quickstart->cleanup_job_data( $job_id );
         }
     }
     echo json_encode( $status );
