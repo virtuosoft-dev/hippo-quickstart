@@ -1459,7 +1459,7 @@ if ( ! class_exists( 'Quickstart') ) {
             if ( file_exists( $setup_script ) ) {
                 $setup_script = "cd $dest_folder && chmod +x devstia_setup.sh && ./devstia_setup.sh";
                 $hcpp->runuser( $new_user, $setup_script);
-                //unlink( $setup_script );
+                unlink( $setup_script );
             }
 
             // Update the web domain backend and proxy
