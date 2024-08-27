@@ -1120,8 +1120,34 @@ if ( ! class_exists( 'Quickstart') ) {
                         }
                     }
                 }
+
+                // Clean up .DS_Store files and __MACOSX directory
+                $this->cleanup_import_folder($import_folder);
             }
             return $args;
+        }
+
+        /**
+         * Clean up .DS_Store files and __MACOSX directory
+         */
+        private function cleanup_import_folder( $import_folder ) {
+            // Remove .DS_Store files
+            $iterator = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator( $import_folder, RecursiveDirectoryIterator::SKIP_DOTS ),
+                RecursiveIteratorIterator::SELF_FIRST
+            );
+
+            foreach ($iterator as $file) {
+                if ( $file->getFilename() === '.DS_Store' ) {
+                    unlink( $file->getPathname() );
+                }
+            }
+
+            // Remove __MACOSX directory
+            $macosx_dir = $import_folder . '/__MACOSX';
+            if ( is_dir( $macosx_dir ) ) {
+                shell_exec( 'rm -rf ' . $macosx_dir );
+            }
         }
 
         /**
