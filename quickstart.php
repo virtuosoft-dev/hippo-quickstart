@@ -1376,7 +1376,6 @@ if ( ! class_exists( 'Quickstart') ) {
                     }
                 }
             }
-            shell_exec( 'rm -rf ' . $dest_folder . '/devstia_databases' );
 
             // Create the databases
             $orig_dbs = $manifest['databases'];
@@ -1444,6 +1443,7 @@ if ( ! class_exists( 'Quickstart') ) {
                     }
                 }
             }
+            shell_exec( 'rm -rf ' . $dest_folder . '/devstia_databases' );
 
             // Run post-process devstia_setup.sh script if present and delete it
             $this->report_status( $job_id, "Please wait. Finishing setup." );
