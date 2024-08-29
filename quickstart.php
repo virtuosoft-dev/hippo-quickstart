@@ -942,11 +942,13 @@ if ( ! class_exists( 'Quickstart') ) {
             $job_id = $args[1];
             $user = $this->peek_job_data( $job_id, 'user' );
             $url = $this->peek_job_data( $job_id, 'url' );
-            $folder = basename( $url );
-            if ( substr( $folder, -4 ) == '.zip' ) {
-                $folder = substr( $folder, 0, -4 );
+            $blueprint_folder = basename( $url );
+            if ( substr( $blueprint_folder, -4 ) == '.zip' ) {
+                $blueprint_folder = substr( $blueprint_folder, 0, -4 );
             }
-            if ( is_dir( "/home/$user/web/blueprints/$folder" ) ) {
+            $blueprint_folder = "/home/$user/web/blueprints/$blueprint_folder";
+
+            if ( is_dir( $blueprint_folder ) ) {
                 $this->report_status( $job_id, 'Blueprint file already downloaded.', 'finished' );
                 return $args;
             }else{
@@ -1003,13 +1005,41 @@ if ( ! class_exists( 'Quickstart') ) {
                 $command .= "mkdir -p /home/$user/web/blueprints ; ";
                 $command .= "chown $user:$user /home/$user/web/blueprints ; ";
             }
-            $command .= "unzip -o -q $file -d /home/$user/web/blueprints/$folder ; ";
+            $command .= "unzip -o -q $file -d $blueprint_folder ; ";
             $command .= "rm -f $file ; ";
-            $command .= "chown -R $user:$user /home/$user/web/blueprints/$folder";
+            $command .= "chown -R $user:$user $blueprint_folder";
 
             // Allow plugins to modify the command
             $command = $hcpp->do_action( 'quickstart_blueprint_file_decompress', $command );
             $dl_pid = trim( shell_exec( $command ) );
+
+            // Check if devstia_manifest.json is at the root of import_folder
+            if (!file_exists($blueprint_folder . '/devstia_manifest.json')) {
+                // Locate devstia_manifest.json within subfolders
+                $iterator = new RecursiveIteratorIterator(
+                    new RecursiveDirectoryIterator($blueprint_folder, RecursiveDirectoryIterator::SKIP_DOTS),
+                    RecursiveIteratorIterator::SELF_FIRST
+                );
+
+                foreach ($iterator as $file) {
+                    if ($file->getFilename() === 'devstia_manifest.json') {
+                        $subfolder = $file->getPath();
+                        
+                        // Move all files and folders from subfolder to import_folder
+                        $files = new FilesystemIterator($subfolder, FilesystemIterator::SKIP_DOTS);
+                        foreach ($files as $item) {
+                            rename($item->getPathname(), $blueprint_folder . '/' . $item->getFilename());
+                        }
+
+                        // Remove the now-empty subfolder
+                        shell_exec( 'rm -rf ' . $subfolder );
+                        break;
+                    }
+                }
+            }
+
+            // Clean up .DS_Store files and __MACOSX directory
+            $this->cleanup_import_folder($blueprint_folder);
 
             // Report finished
             // $this->report_status( $job_id, 'Finsihed.', 'finished' );
@@ -1457,9 +1487,8 @@ if ( ! class_exists( 'Quickstart') ) {
             $this->report_status( $job_id, "Please wait. Finishing setup." );
             $setup_script = $dest_folder . '/devstia_setup.sh';
             if ( file_exists( $setup_script ) ) {
-                $setup_script = "cd $dest_folder && chmod +x devstia_setup.sh && ./devstia_setup.sh";
-                $hcpp->runuser( $new_user, $setup_script);
-                unlink( $setup_script );
+                $hcpp->runuser( $new_user, "cd $dest_folder && chmod +x devstia_setup.sh && ./devstia_setup.sh" );
+                shell_exec( 'rm -f ' . $setup_script );
             }
 
             // Update the web domain backend and proxy
