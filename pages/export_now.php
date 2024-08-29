@@ -18,7 +18,8 @@
     $manifest['zip_file'] = $manifest['domain'] . '_' . date( 'Y-m-d-His' ) . '.zip';
     $manifest['export_options'] = $_POST['export_options'] ?? '';
     $manifest['export_adv_options'] = json_decode( $_POST['export_adv_options'] ?? '');
-    
+    $manifest['setup_script'] = trim( $_POST['setup-input'] ?? '' );
+
     // Run the export process
     $hcpp->quickstart->export_zip( $manifest );
 ?>

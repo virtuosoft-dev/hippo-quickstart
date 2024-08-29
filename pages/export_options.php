@@ -99,8 +99,6 @@
                     </thead>
                     <tbody>
                         <?php
-
-
                             // Pre-populate the table with any existing advanced options if private/devstia_manifest.json exists
                             $private_folder = "/home/" . $_SESSION['user'] . "/web/" . $domain . "/private";
                             if ( file_exists( $private_folder . '/devstia_manifest.json' ) ) {
@@ -149,6 +147,24 @@
                         <i tabindex="100" class="fas fa-plus icon-blue"></i>Add
                     </button>
                 </form>
+                <br>
+                <br>
+                <p>
+                   Optional post process setup script; use this to write a script to run after import.
+                </p>
+                <br>
+                <div class="u-mb10">
+                    <label for="setup-input" class="form-label">
+                        Setup Script
+                    </label>
+                    <textarea class="form-control" name="setup-input" id="setup-input" placeholder="" tabindex="100" rows="10" style="font-family: monospace; margin: 0;"><?php
+                            $private_folder = "/home/" . $_SESSION['user'] . "/web/" . $domain . "/private";
+                            if ( file_exists( $private_folder . '/devstia_setup.sh' ) ) {
+                                $content = file_get_contents( $private_folder . '/devstia_setup.sh' );
+                                echo htmlspecialchars( $content, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+                            }
+                    ?></textarea>
+                </div>
             </div>
         </div>
         <input type="hidden" id="export_options" name="export_options">

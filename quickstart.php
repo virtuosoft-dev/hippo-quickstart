@@ -1015,13 +1015,17 @@ if ( ! class_exists( 'Quickstart') ) {
 
             // Check if devstia_manifest.json is at the root of import_folder
             if (!file_exists($blueprint_folder . '/devstia_manifest.json')) {
-                // Locate devstia_manifest.json within subfolders
+                // Locate devstia_manifest.json within subfolders (but not in the private subfolder)
                 $iterator = new RecursiveIteratorIterator(
                     new RecursiveDirectoryIterator($blueprint_folder, RecursiveDirectoryIterator::SKIP_DOTS),
                     RecursiveIteratorIterator::SELF_FIRST
                 );
 
                 foreach ($iterator as $file) {
+                    // Skip the private subfolder
+                    if (strpos($file->getPathname(), $blueprint_folder . '/private') === 0) {
+                        continue;
+                    }
                     if ($file->getFilename() === 'devstia_manifest.json') {
                         $subfolder = $file->getPath();
                         
@@ -1060,12 +1064,17 @@ if ( ! class_exists( 'Quickstart') ) {
             $user = $manifest['user'];
             $domain = $manifest['domain'];
             $export_options = $manifest['export_options'];
+            $setup_script = $manifest['setup_script'];
+            unset( $manifest['setup_script'] );
             $export_folder = '/home/' . $user . '/tmp/devstia_export_' . $job_id;
             if ( !is_dir( $export_folder ) ) mkdir( $export_folder, true );
             file_put_contents( $export_folder . '/devstia_manifest.json', json_encode( $manifest, JSON_PRETTY_PRINT) );
-            $devstia_databases_folder = $export_folder . '/devstia_databases';
+            if ( trim( $setup_script ) != '' ) {
+                file_put_contents( $export_folder . '/devstia_setup.sh', $setup_script );
+            }
 
             // Dump databases to user tmp folder
+            $devstia_databases_folder = $export_folder . '/devstia_databases';
             mkdir( $devstia_databases_folder, true );
             chmod( $devstia_databases_folder, 0751);
             foreach( $manifest['databases'] as $database ) {
@@ -1135,6 +1144,10 @@ if ( ! class_exists( 'Quickstart') ) {
                     );
 
                     foreach ($iterator as $file) {
+                        // Skip the private subfolder
+                        if (strpos($file->getPathname(), $import_folder . '/private') === 0) {
+                            continue;
+                        }
                         if ($file->getFilename() === 'devstia_manifest.json') {
                             $subfolder = $file->getPath();
                             
