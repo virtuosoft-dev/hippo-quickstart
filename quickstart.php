@@ -1065,6 +1065,7 @@ if ( ! class_exists( 'Quickstart') ) {
             $domain = $manifest['domain'];
             $export_options = $manifest['export_options'];
             $setup_script = $manifest['setup_script'];
+            $setup_script = str_replace( "\r\n", "\n", $setup_script );
             unset( $manifest['setup_script'] );
             $export_folder = '/home/' . $user . '/tmp/devstia_export_' . $job_id;
             if ( !is_dir( $export_folder ) ) mkdir( $export_folder, true );
