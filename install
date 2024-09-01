@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# Backup existing configuration files
+if [ ! -f /usr/local/hestia/php/etc/php-fpm.conf.quickstart-sav ]; then
+    cp /usr/local/hestia/php/etc/php-fpm.conf /usr/local/hestia/php/etc/php-fpm.conf.quickstart-sav
+fi
+
+# Increase PHP upload limits
+sed -i 's/php_admin_value\[post_max_size\] = 256M/php_admin_value\[post_max_size\] = 2G/g' /usr/local/hestia/php/etc/php-fpm.conf
+sed -i 's/php_admin_value\[upload_max_filesize\] = 256M/php_admin_value\[upload_max_filesize\] = 2G/g' /usr/local/hestia/php/etc/php-fpm.conf
 
 # Notify installation has finished
 /usr/local/hestia/bin/v-add-user-notification admin Quickstart "<span>&#127937;</span> Quickstart plugin has finished installing."
