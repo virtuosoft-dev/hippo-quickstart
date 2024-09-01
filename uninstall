@@ -4,3 +4,6 @@
 if [ -f /usr/local/hestia/php/etc/php-fpm.conf.quickstart-sav ]; then
     mv /usr/local/hestia/php/etc/php-fpm.conf.quickstart-sav /usr/local/hestia/php/etc/php-fpm.conf
 fi
+
+# Restart services
+service hestia restart
