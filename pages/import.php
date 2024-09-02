@@ -1,7 +1,9 @@
 <?php require( 'header.php' ); ?>
 <?php
-    // Create a new job
+    // Create a new job and record user
     $job_id = $hcpp->quickstart->create_job();
+    $hcpp->set_job_data( $job_id, 'user', $_SESSION['user'] );
+    $user->xfer_job_data( $job_id, 'user' );
 ?>
 <div class="toolbar">
     <div class="toolbar-inner">
