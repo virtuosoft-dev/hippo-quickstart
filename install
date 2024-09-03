@@ -16,8 +16,15 @@ if ! grep -q 'nginx.conf_quickstart' /usr/local/hestia/nginx/conf/nginx.conf; th
     sed -i '/location \/ {/i include /usr/local/hestia/data/hcpp/nginx.conf_quickstart;' /usr/local/hestia/nginx/conf/nginx.conf
 fi
 
-# Start the nodejs server
-runuser -u admin -- "/usr/local/hestia/plugins/quickstart/start-upload-server.sh"
+# Check if upload-server.js is already running as admin
+PID=$(ps -aux | grep upload-server.js | grep admin | grep -v grep | awk '{print $2}')
+
+if [ -z "$PID" ]; then
+    # If no PID is found, run the script as admin
+    runuser -u admin -- "/usr/local/hestia/plugins/quickstart/start-upload-server.sh"
+else
+    echo "upload-server.js is already running with PID $PID"
+fi
 
 # Restart services
 service hestia restart
