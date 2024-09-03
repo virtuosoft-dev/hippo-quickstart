@@ -3,6 +3,7 @@
 # Restore backed up configuration file
 if [ -f /usr/local/hestia/php/etc/php-fpm.conf.quickstart-sav ]; then
     mv /usr/local/hestia/php/etc/php-fpm.conf.quickstart-sav /usr/local/hestia/php/etc/php-fpm.conf
+    rm -f /usr/local/hestia/data/hcpp/nginx.conf_quickstart
 fi
 
 # Restart services

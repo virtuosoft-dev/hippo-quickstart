@@ -2,8 +2,8 @@
 <?php
     // Create a new job and record user
     $job_id = $hcpp->quickstart->create_job();
-    $hcpp->set_job_data( $job_id, 'user', $_SESSION['user'] );
-    $user->xfer_job_data( $job_id, 'user' );
+    $hcpp->quickstart->set_job_data( $job_id, 'user', $_SESSION['user'] );
+    $hcpp->quickstart->xfer_job_data( $job_id, 'user' );
 ?>
 <div class="toolbar">
     <div class="toolbar-inner">
@@ -126,7 +126,7 @@
                             $('#dropZone').html('<i class="fas fa-exclamation-triangle" style="color:orange;"></i><br>' + data.message + '</span>');
                         }
                     },
-                    error: function() {                        
+                    error: function() {
                         // Reset the progress bar
                         $('#dropZone').html('<i class="fas fa-exclamation-triangle" style="color:orange;"></i><br>Upload failed. Please try again.</span>');
                     }
