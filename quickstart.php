@@ -38,6 +38,36 @@ if ( ! class_exists( 'Quickstart') ) {
             $hcpp->add_action( 'hcpp_render_body', [ $this, 'hcpp_render_body' ] );
             $hcpp->add_action( 'hcpp_render_panel', [ $this, 'hcpp_render_panel' ] );
             $hcpp->add_action( 'priv_log_user_logout', [ $this, 'priv_log_user_logout' ] );
+            $hcpp->add_action( 'hcpp_plugin_disabled', [ $this, 'hcpp_plugin_disabled' ] );
+            $hcpp->add_action( 'hcpp_plugin_enabled', [ $this, 'hcpp_plugin_enabled' ] );
+        }
+
+        /**
+         * Start the upload server on plugin enabled.
+         */
+        public function hcpp_plugin_enabled( $plugin ) {
+            if ( $plugin !== 'quickstart' ) return $plugin;
+            $this->start_upload_server();
+            return $plugin;
+        }
+
+        /**
+         * Stop the upload server on plugin disabled.
+         */
+        public function hcpp_plugin_disabled( $plugin ) {
+            if ( $plugin !== 'quickstart' ) return $plugin;
+            $this->stop_upload_server();
+            return $plugin;
+        }
+
+        /**
+         * Stop the upload server.
+         */
+        public function stop_upload_server() {
+            global $hcpp;
+            $cmd = '/usr/local/hestia/plugins/quickstart/stop-upload-server.sh';
+            $cmd = $hcpp->do_action( 'quickstart_stop_upload_server', $cmd );
+            shell_exec($cmd);
         }
 
         /**
@@ -373,7 +403,20 @@ if ( ! class_exists( 'Quickstart') ) {
                     shell_exec($command);
                 }
             }
+            $this->start_upload_server();
             return $args;
+        }
+
+        /**
+         * Start the upload server as admin; check for any existing server and start if not.
+         */
+        public function start_upload_server() {
+            global $hcpp;
+            $cmd = 'PID=$(ps -aux | grep upload-server.js | grep admin | grep -v grep | awk \'{print $2}\');';
+            $cmd .= ' if [ -z "$PID" ]; then runuser -u admin -- "/usr/local/hestia/plugins/quickstart/start-upload-server.sh";';
+            $cmd .= ' else echo "upload-server.js is already running with PID $PID"; fi';
+            $cmd = $hcpp->do_action( 'quickstart_start_upload_server', $cmd );
+            shell_exec($cmd);
         }
 
         /**
