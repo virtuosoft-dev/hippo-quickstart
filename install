@@ -17,7 +17,7 @@ if ! grep -q 'nginx.conf_quickstart' /usr/local/hestia/nginx/conf/nginx.conf; th
 fi
 
 # Start the nodejs server
-runuser -u admin -- "/user/local/hestia/plugins/quickstart/start-upload-server.sh"
+runuser -u admin -- "/usr/local/hestia/plugins/quickstart/start-upload-server.sh"
 
 # Restart services
 service hestia restart
