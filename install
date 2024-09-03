@@ -4,12 +4,9 @@
 npm install --yes
 
 # Backup existing configuration files
-if [ ! -f /usr/local/hestia/php/etc/php-fpm.conf.quickstart-sav ]; then
-    cp /usr/local/hestia/php/etc/php-fpm.conf /usr/local/hestia/php/etc/php-fpm.conf.quickstart-sav
+if [ ! -f /usr/local/hestia/nginx/conf/nginx.conf_quickstart-sav ]; then
+    cp /usr/local/hestia/nginx/conf/nginx.conf /usr/local/hestia/nginx/conf/nginx.conf_quickstart-sav
 fi
-
-# Include a reference to our nginx configuration file
-cp /usr/local/hestia/plugins/quickstart/nginx.conf_quickstart /usr/local/hestia/data/hcpp/nginx.conf_quickstart
 
 # Check if nginx.conf_quickstart is already included in nginx.conf
 if ! grep -q 'nginx.conf_quickstart' /usr/local/hestia/nginx/conf/nginx.conf; then
@@ -20,7 +17,7 @@ if ! grep -q 'nginx.conf_quickstart' /usr/local/hestia/nginx/conf/nginx.conf; th
 fi
 
 # Start the nodejs server
-runuser -u admin -- "node /usr/local/hestia/plugins/quickstart/upload-server.js > /dev/null 2>&1 &"
+runuser -u admin -- "/user/local/hestia/plugins/quickstart/start-upload-server.sh"
 
 # Restart services
 service hestia restart
