@@ -3,13 +3,9 @@ const fileUpload = require('express-fileupload');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const multer = require('multer');
 
 const app = express();
 const port = 3000;
-
-// Define the upload directory
-const UPLOAD_DIR = path.join(__dirname, 'uploads');
 
 // Allowed MIME types
 const ALLOWED_MIME_TYPES = [
@@ -22,28 +18,6 @@ const ALLOWED_MIME_TYPES = [
     'application/x-bzip2',
     'application/x-7z-compressed'
 ];
-
-// Set up storage for multer
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        if (!fs.existsSync(UPLOAD_DIR)) {
-            fs.mkdirSync(UPLOAD_DIR);
-        }
-        cb(null, UPLOAD_DIR);
-    },
-    filename: (req, file, cb) => {
-        cb(null, `${Date.now()}-${file.originalname}`);
-    }
-});
-
-// Set up file filter for multer
-const fileFilter = (req, file, cb) => {
-    if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-        cb(null, true);
-    } else {
-        cb(new Error('Invalid file type'), false);
-    }
-};
 
 // Middleware to handle file uploads
 app.use(fileUpload());
