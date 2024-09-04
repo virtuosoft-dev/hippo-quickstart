@@ -61,9 +61,25 @@ if ( ! class_exists( 'Quickstart') ) {
         }
 
         /**
-         * Start the upload server as admin; check for any existing server and start if not.
+         * Start the upload server.
          */
         public function start_upload_server() {
+            global $hcpp;
+            return $hcpp->run( "invoke-plugin quickstart_start_upload_server" );
+        }
+
+        /**
+         * Stop the upload server.
+         */
+        public function stop_upload_server() {
+            global $hcpp;
+            return $hcpp->run( "invoke-plugin quickstart_stop_upload_server" );
+        }
+
+        /**
+         * Start the upload server as admin; check for any existing server and start if not.
+         */
+        public function quickstart_start_upload_server() {
             global $hcpp;
             $cmd = '/usr/local/hestia/plugins/quickstart/start-upload-server.sh';
             $cmd = $hcpp->do_action( 'quickstart_start_upload_server', $cmd );
@@ -73,7 +89,7 @@ if ( ! class_exists( 'Quickstart') ) {
         /**
          * Stop the upload server.
          */
-        public function stop_upload_server() {
+        public function quickstart_stop_upload_server() {
             global $hcpp;
             $cmd = '/usr/local/hestia/plugins/quickstart/stop-upload-server.sh';
             $cmd = $hcpp->do_action( 'quickstart_stop_upload_server', $cmd );
@@ -383,7 +399,9 @@ if ( ! class_exists( 'Quickstart') ) {
                 'quickstart_import_now',
                 'quickstart_remove_now',
                 'quickstart_connect_now',
-                'quickstart_connect_save'
+                'quickstart_connect_save',
+                'quickstart_start_upload_server',
+                'quickstart_stop_upload_server'
             ];
             if ( in_array( $args[0], $trusted ) ) {
                 return call_user_func_array([$this, $args[0]], [$args]);
