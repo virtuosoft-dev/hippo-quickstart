@@ -67,7 +67,7 @@ if ( ! class_exists( 'Quickstart') ) {
             global $hcpp;
             $cmd = '/usr/local/hestia/plugins/quickstart/start-upload-server.sh';
             $cmd = $hcpp->do_action( 'quickstart_start_upload_server', $cmd );
-            shell_exec($cmd);
+            $hcpp->log( shell_exec( $cmd ) );
         }
 
         /**
@@ -77,7 +77,7 @@ if ( ! class_exists( 'Quickstart') ) {
             global $hcpp;
             $cmd = '/usr/local/hestia/plugins/quickstart/stop-upload-server.sh';
             $cmd = $hcpp->do_action( 'quickstart_stop_upload_server', $cmd );
-            shell_exec($cmd);
+            $hcpp->log( shell_exec( $cmd ) );
         }
 
         /**
