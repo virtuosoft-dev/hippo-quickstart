@@ -5,6 +5,8 @@ const fileUpload = require('express-fileupload');
 
 const app = express();
 const port = 4999;
+const activityFilePath = '/tmp/quickstart_upload_activity';
+const idleTimeout = 15 * 60 * 1000; // 15 minutes in milliseconds
 
 // Middleware to handle file uploads
 app.use(fileUpload());
@@ -53,28 +55,8 @@ app.post('/', async (req, res) => {
         return res.status(400).json({ status: 'error', message: 'Invalid file type.' });
     }
 
-    // Periodically check for idle time
-    const idleTimeout = 15 * 60 * 1000; // 15 minutes in milliseconds
-    
-    setInterval(() => {
-        fs.stat(activityFilePath, (err, stats) => {
-            if (err) {
-                console.error('Error checking activity file:', err);
-                return;
-            }
-    
-            const lastModified = new Date(stats.mtime).getTime();
-            const now = Date.now();
-    
-            if (now - lastModified > idleTimeout) {
-                console.log('Server has been idle for more than 15 minutes. Shutting down...');
-                process.exit(0);
-            }
-        });
-    }, 60 * 1000); // Check every minute
-    
-    // Middleware to handle file uploads
-    app.use(fileUpload());
+    // Touch the activity file
+    touchFile(activityFilePath);
 
     // Get the file extension
     const fileExtension = path.extname(uploadedFile.name);
@@ -89,6 +71,24 @@ app.post('/', async (req, res) => {
         res.json({ status: 'uploaded', message: 'File uploaded. Please click continue.' });
     });
 });
+
+// Periodically check for idle time
+setInterval(() => {
+    fs.stat(activityFilePath, (err, stats) => {
+        if (err) {
+            console.error('Error checking activity file:', err);
+            return;
+        }
+
+        const lastModified = new Date(stats.mtime).getTime();
+        const now = Date.now();
+
+        if (now - lastModified > idleTimeout) {
+            console.log('Server has been idle for more than 15 minutes. Shutting down...');
+            process.exit(0);
+        }
+    });
+}, 60 * 1000); // Check every minute
 
 app.use((err, req, res, next) => {
     if (err) {
