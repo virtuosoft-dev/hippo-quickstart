@@ -4,6 +4,9 @@
     $job_id = $hcpp->quickstart->create_job();
     $hcpp->quickstart->set_job_data( $job_id, 'user', $_SESSION['user'] );
     $hcpp->quickstart->xfer_job_data( $job_id, 'user' );
+
+    // Start the upload server on demand
+    $hcpp->quickstart->start_upload_server();
 ?>
 <div class="toolbar">
     <div class="toolbar-inner">

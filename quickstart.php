@@ -413,7 +413,6 @@ if ( ! class_exists( 'Quickstart') ) {
                     shell_exec($command);
                 }
             }
-            $this->start_upload_server();
             return $args;
         }
 

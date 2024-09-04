@@ -1,51 +1,22 @@
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const fileUpload = require('express-fileupload');
-const path = require('path');
-const fs = require('fs');
-const os = require('os');
 
 const app = express();
-const port = 3000;
-
-// Allowed MIME types
-const ALLOWED_MIME_TYPES = [
-    'application/zip',
-    'application/x-xz',
-    'application/octet-stream',
-    'application/gzip',
-    'application/x-rar-compressed',
-    'application/x-tar',
-    'application/x-bzip2',
-    'application/x-7z-compressed'
-];
+const port = 4999;
 
 // Middleware to handle file uploads
 app.use(fileUpload());
 
-// Function to check file ownership
-const checkFileOwnership = (filePath, owner) => {
-    return new Promise((resolve, reject) => {
-        fs.stat(filePath, (err, stats) => {
-            if (err) {
-                return reject(err);
-            }
-            // Get the username of the file owner
-            const uid = stats.uid;
-            const userInfo = os.userInfo({ uid });
-            if (userInfo.username === owner) {
-                resolve(true);
-            } else {
-                resolve(false);
-            }
-        });
-    });
-};
-
-// Function to validate jobId
-const isValidJobId = (jobId) => {
-    // Allow only alphanumeric characters
-    const regex = /^[a-zA-Z0-9_-]+$/;
-    return regex.test(jobId);
+// Function to touch a file
+const touchFile = (filePath) => {
+    const time = new Date();
+    try {
+        fs.utimesSync(filePath, time, time);
+    } catch (err) {
+        fs.closeSync(fs.openSync(filePath, 'w'));
+    }
 };
 
 // Endpoint to handle file upload
@@ -81,6 +52,29 @@ app.post('/', async (req, res) => {
     if (!ALLOWED_MIME_TYPES.includes(uploadedFile.mimetype)) {
         return res.status(400).json({ status: 'error', message: 'Invalid file type.' });
     }
+
+    // Periodically check for idle time
+    const idleTimeout = 15 * 60 * 1000; // 15 minutes in milliseconds
+    
+    setInterval(() => {
+        fs.stat(activityFilePath, (err, stats) => {
+            if (err) {
+                console.error('Error checking activity file:', err);
+                return;
+            }
+    
+            const lastModified = new Date(stats.mtime).getTime();
+            const now = Date.now();
+    
+            if (now - lastModified > idleTimeout) {
+                console.log('Server has been idle for more than 15 minutes. Shutting down...');
+                process.exit(0);
+            }
+        });
+    }, 60 * 1000); // Check every minute
+    
+    // Middleware to handle file uploads
+    app.use(fileUpload());
 
     // Get the file extension
     const fileExtension = path.extname(uploadedFile.name);
