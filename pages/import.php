@@ -99,7 +99,7 @@
                 var formData = new FormData();
                 formData.append('file', file);
                 $.ajax({
-                    url: '../../pluginable.php?load=quickstart&action=upload&job_id=<?php echo $job_id; ?>',
+                    url: 'quickstart-upload/?job_id=<?php echo $job_id; ?>',
                     type: 'POST',
                     data: formData,
                     processData: false,
