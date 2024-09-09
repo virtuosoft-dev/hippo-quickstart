@@ -6,10 +6,18 @@ const fileUpload = require('express-fileupload');
 const app = express();
 const port = 4999;
 const activityFilePath = '/tmp/quickstart_upload_activity';
+const logFilePath = '/tmp/upload-server.log';
 const idleTimeout = 15 * 60 * 1000; // 15 minutes in milliseconds
 
 // Middleware to handle file uploads
 app.use(fileUpload());
+
+// Inline logging function
+const logMessage = (message) => {
+    const timestamp = new Date().toISOString();
+    const logEntry = `[${timestamp}] ${message}\n`;
+    fs.appendFileSync(logFilePath, logEntry, 'utf8');
+};
 
 // Function to touch a file
 const touchFile = (filePath) => {
@@ -21,9 +29,12 @@ const touchFile = (filePath) => {
     }
 };
 
+logMessage('Server started.');
+
 // Endpoint to handle file upload
 app.post('/', async (req, res) => {
     const jobId = req.query.job_id;
+    logMessage(`Received file upload request for job_id: ${jobId}`);
 
     // Validate jobId
     if (!isValidJobId(jobId)) {
