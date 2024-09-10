@@ -39,8 +39,8 @@ const checkFileOwnership = async (filePath, owner) => {
     try {
         const stats = await stat(filePath);
         const fileOwner = stats.uid; // Get the file owner's user ID
-        const ownerInfo = await util.promisify(fs.promises.getuid)(); // Get the user ID of the specified owner
-        return fileOwner === ownerInfo;
+        const ownerUid = os.userInfo({ username: owner }).uid; // Get the user ID of the specified owner
+        return fileOwner === ownerUid;
     } catch (err) {
         logMessage(`Error checking file ownership: ${err.message}`);
         throw err;
