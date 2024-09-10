@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const fileUpload = require('express-fileupload');
+const { log } = require('console');
 
 const app = express();
 const port = 4999;
@@ -36,8 +37,15 @@ app.post('/', async (req, res) => {
     const jobId = req.query.job_id;
     logMessage(`Received file upload request for job_id: ${jobId}`);
 
+    // Check for undefined job_id
+    if (!jobId) {
+        logMessage('job_id is required.');
+        return res.status(400).json({ status: 'error', message: 'job_id is required.' });
+    }
+
     // Validate jobId
     if (!isValidJobId(jobId)) {
+        logMessage('Invalid job_id format.');
         return res.status(400).json({ status: 'error', message: 'Invalid job_id format.' });
     }
 
@@ -45,17 +53,21 @@ app.post('/', async (req, res) => {
     const jobFilePath = path.join('/tmp', `devstia_${jobId}-user.json`);
     try {
         if (!fs.existsSync(jobFilePath)) {
+            logMessage('Invalid job_id: File does not exist.');
             return res.status(400).json({ status: 'error', message: 'Invalid job_id: File does not exist.' });
         }
         const isOwnedByAdmin = await checkFileOwnership(jobFilePath, 'admin');
         if (!isOwnedByAdmin) {
+            logMessage('Invalid job_id: File is not owned by admin.');
             return res.status(400).json({ status: 'error', message: 'Invalid job_id: File is not owned by admin.' });
         }
     } catch (err) {
+        logMessage('Error checking file ownership.');
         return res.status(500).json({ status: 'error', message: 'Error checking file ownership.' });
     }
 
     if (!req.files || Object.keys(req.files).length === 0) {
+        logMessage('No file uploaded.');
         return res.status(400).json({ status: 'error', message: 'No file uploaded.' });
     }
 
@@ -63,6 +75,7 @@ app.post('/', async (req, res) => {
 
     // Check file type
     if (!ALLOWED_MIME_TYPES.includes(uploadedFile.mimetype)) {
+        logMessage('Invalid file type.');
         return res.status(400).json({ status: 'error', message: 'Invalid file type.' });
     }
 
@@ -76,9 +89,11 @@ app.post('/', async (req, res) => {
     // Move the file to the new location
     uploadedFile.mv(newFilePath, (err) => {
         if (err) {
+            logMessage('Failed to move the file.');
             console.error('Failed to move the file:', err);
             return res.status(500).json({ status: 'error', message: 'File upload failed.' });
         }
+        logMessage('File uploaded successfully.');
         res.json({ status: 'uploaded', message: 'File uploaded. Please click continue.' });
     });
 });
@@ -87,6 +102,7 @@ app.post('/', async (req, res) => {
 setInterval(() => {
     fs.stat(activityFilePath, (err, stats) => {
         if (err) {
+            logMessage('Error checking activity file.');
             console.error('Error checking activity file:', err);
             return;
         }
@@ -96,6 +112,7 @@ setInterval(() => {
 
         if (now - lastModified > idleTimeout) {
             console.log('Server has been idle for more than 15 minutes. Shutting down...');
+            logMessage('Server has been idle for more than 15 minutes. Shutting down...');
             process.exit(0);
         }
     });
@@ -103,6 +120,7 @@ setInterval(() => {
 
 app.use((err, req, res, next) => {
     if (err) {
+        logMessage(err.message);
         res.status(400).json({ status: 'error', message: err.message });
     } else {
         next();
@@ -110,5 +128,6 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(port, () => {
+    logMessage(`Server is running on http://localhost:${port}`);
     console.log(`Server is running on http://localhost:${port}`);
 });
