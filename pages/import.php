@@ -121,7 +121,7 @@
                         try {
                             data = JSON.parse(data);
                         } catch (e) {
-                            data = { status: 'error', message: 'Unknown error occurred: [' + data + ']' }; 
+                            data = { status: 'error', message: 'Unknown error occurred: [' + JSON.stringify(data) + ']' }; 
                         }
                         if (data.status == 'uploaded') {
                             $('#dropZone').html('<i class="fas fa-file-archive"></i><br>' + data.message + '</span>');
