@@ -30,17 +30,17 @@ const touchFile = (filePath) => {
     }
 };
 
-// Function to validate job ID format
-const isValidJobId = (jobId) => {
-    if (!jobId === 'string' || jobId.trim().length === 0) {
-        return false;
+// Function to check file ownership
+const checkFileOwnership = async (filePath, owner) => {
+    try {
+        const stats = await stat(filePath);
+        const fileOwner = stats.uid; // Get the file owner's user ID
+        const ownerInfo = await util.promisify(fs.promises.getuid)(); // Get the user ID of the specified owner
+        return fileOwner === ownerInfo;
+    } catch (err) {
+        logMessage(`Error checking file ownership: ${err.message}`);
+        throw err;
     }
-
-    const jobFilePath = `/tmp/devstia_${jobId}-user.json`;
-    if (!fs.existsSync(jobFilePath)) {
-        return false;
-    }
-    return true;
 };
 
 logMessage('Server started.');
@@ -57,7 +57,7 @@ app.post('/quickstart-upload/', async (req, res) => {
     }
 
     // Validate jobId
-    if (!isValidJobId(jobId)) {
+    if (!jobId === 'string' || jobId.trim().length === 0) {
         logMessage('Invalid job_id format.');
         return res.status(400).json({ status: 'error', message: 'Invalid job_id format.' });
     }
