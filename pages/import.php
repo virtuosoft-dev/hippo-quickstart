@@ -102,7 +102,7 @@
                 // Derive the fully qualified URL
                 var fqurl = window.location.protocol + "//" + window.location.host + "/quickstart-upload/?job_id=<?php echo $job_id; ?>";
                 $.ajax({
-                    url: fqrul,
+                    url: fqurl,
                     type: 'POST',
                     data: formData,
                     processData: false,
