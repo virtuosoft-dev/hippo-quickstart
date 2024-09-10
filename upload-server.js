@@ -90,6 +90,7 @@ app.post('/quickstart-upload/', async (req, res) => {
     }
 
     const uploadedFile = req.files.file;
+    logMessage(`Received file: ${uploadedFile.name}`);
 
     // Check file type
     if (!ALLOWED_MIME_TYPES.includes(uploadedFile.mimetype)) {
@@ -103,6 +104,7 @@ app.post('/quickstart-upload/', async (req, res) => {
     // Get the file extension
     const fileExtension = path.extname(uploadedFile.name);
     const newFilePath = path.join('/tmp', `devstia_${jobId}-import${fileExtension}`);
+    logMessage(`Moving file to: ${newFilePath}`);
 
     // Move the file to the new location
     uploadedFile.mv(newFilePath, (err) => {
