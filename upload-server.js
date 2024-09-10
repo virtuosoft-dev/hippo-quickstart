@@ -139,7 +139,7 @@ app.post('/quickstart-upload/', async (req, res) => {
                 return res.status(500).json({ status: 'error', message: 'File upload failed.' });
             }
             logMessage('File uploaded successfully.');
-            res.json({ status: 'uploaded', message: 'File uploaded. Please click continue.' });
+            res.status(200).json({ status: 'uploaded', message: 'File uploaded. Please click continue.' });
         });
     } catch (err) {
         logMessage(`Error occurred: ${err.message}`);
