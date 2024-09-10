@@ -30,10 +30,23 @@ const touchFile = (filePath) => {
     }
 };
 
+// Function to validate job ID format
+const isValidJobId = (jobId) => {
+    if (!jobId === 'string' || jobId.trim().length === 0) {
+        return false;
+    }
+
+    const jobFilePath = `/tmp/devstia_${jobId}-user.json`;
+    if (!fs.existsSync(jobFilePath)) {
+        return false;
+    }
+    return true;
+};
+
 logMessage('Server started.');
 
 // Endpoint to handle file upload
-app.post('/', async (req, res) => {
+app.post('/quickstart-upload/', async (req, res) => {
     const jobId = req.query.job_id;
     logMessage(`Received file upload request for job_id: ${jobId}`);
 
