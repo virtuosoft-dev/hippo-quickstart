@@ -119,7 +119,9 @@
                     },
                     success: function(data) {
                         try {
-                            data = JSON.parse(data);
+                            if (typeof data !== 'object') {
+                                data = JSON.parse(data);
+                            }
                         } catch (e) {
                             data = { status: 'error', message: 'Unknown error occurred: [' + JSON.stringify(data) + ']' }; 
                         }
