@@ -98,8 +98,11 @@
 
                 var formData = new FormData();
                 formData.append('file', file);
+                
+                // Derive the fully qualified URL
+                var fqurl = window.location.protocol + "//" + window.location.host + "/quickstart-upload/?job_id=<?php echo $job_id; ?>";
                 $.ajax({
-                    url: '/quickstart-upload/?job_id=<?php echo $job_id; ?>',
+                    url: fqrul,
                     type: 'POST',
                     data: formData,
                     processData: false,
