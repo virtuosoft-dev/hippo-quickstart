@@ -100,6 +100,7 @@ app.post('/quickstart-upload/', async (req, res) => {
 
     // Touch the activity file
     touchFile(activityFilePath);
+    logMessage('Touched activity file.');
 
     // Get the file extension
     const fileExtension = path.extname(uploadedFile.name);
