@@ -10,6 +10,9 @@ const activityFilePath = '/tmp/quickstart_upload_activity';
 const logFilePath = '/tmp/upload-server.log';
 const idleTimeout = 15 * 60 * 1000; // 15 minutes in milliseconds
 
+// Promisify fs functions
+const stat = util.promisify(fs.stat);
+
 // Middleware to handle file uploads
 app.use(fileUpload());
 
