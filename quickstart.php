@@ -1262,7 +1262,7 @@ if ( ! class_exists( 'Quickstart') ) {
             $request = $this->pickup_job_data( $job_id, 'request' );
 
             // Load manifest and request
-            $import_folder = "/home/admin/devstia_" . $job_id . "-import";
+            $import_folder = "/home/admin/tmp/devstia_" . $job_id . "-import";
 
             // Check for downloaded blueprint folder
             if ( !file_exists( $import_folder ) ) {
@@ -1855,7 +1855,7 @@ if ( ! class_exists( 'Quickstart') ) {
          * @param string $status The status to report.
          */
         public function report_status( $job_id, $message, $status = 'running' ) {
-            $result_file = '/home/admin/devstia_' . $job_id . '-result.json';
+            $result_file = '/home/admin/tmp/devstia_' . $job_id . '-result.json';
             $result = json_encode( [ 'status' => $status, 'message' => $message ] );
             try {
                 if ( file_exists( $result_file ) ) unlink( $result_file );
@@ -2037,7 +2037,7 @@ if ( ! class_exists( 'Quickstart') ) {
             if ( !isset( $_SESSION['devstia_jobs'][$job_id] ) ) return false;
             if ( !isset( $_SESSION['devstia_jobs'][$job_id][$key] ) ) return false;
             $value = json_encode( $_SESSION['devstia_jobs'][$job_id][$key], JSON_PRETTY_PRINT );
-            $file = "/home/admin/devstia_" . $job_id . "-" . $key . ".json";
+            $file = "/home/admin/tmp/devstia_" . $job_id . "-" . $key . ".json";
             file_put_contents( $file, $value );
             chown( $file, 'admin' );
             chgrp( $file, 'admin' );
