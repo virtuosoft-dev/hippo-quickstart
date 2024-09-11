@@ -7,7 +7,7 @@ const fileUpload = require('express-fileupload');
 
 const app = express();
 const port = 4999;
-const activityFilePath = '/tmp/quickstart_upload_activity';
+const activityFilePath = '/home/admin/tmp/quickstart_upload_activity';
 const logFilePath = '/tmp/upload-server.log';
 const idleTimeout = 15 * 60 * 1000; // 15 minutes in milliseconds
 

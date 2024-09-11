@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Update activity flag to keep any upload server running
-touch /tmp/quickstart_upload_activity
-chown admin:admin /tmp/quickstart_upload_activity
+touch /home/admin/tmp/quickstart_upload_activity
+chown admin:admin /home/admin/tmp/quickstart_upload_activity
 
 # First determine if the upload server is already running
 PID=$(ps -aux | grep upload-server.js | grep admin | grep -v grep | awk '{print $2}');
