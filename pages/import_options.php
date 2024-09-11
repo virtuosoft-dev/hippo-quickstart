@@ -8,7 +8,7 @@
     }
 
     // Locate the import file
-    $import_file = $hcpp->quickstart->get_job_data( $job_id, 'import_file' );
+    $import_file = $hcpp->quickstart->peek_job_data( $job_id, 'import_file' );
     if ( false == file_exists( $import_file ) ) {
         header( 'Location: ?quickstart=main' );
         exit;
