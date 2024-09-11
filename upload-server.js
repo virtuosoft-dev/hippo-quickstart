@@ -46,6 +46,17 @@ const touchFile = (filePath) => {
     }
 };
 
+// Our setXferJobData function
+const setXferJobData = (jobId, key, data) => {
+    // Here we need to write the data to the /home/admin/tmp/devstia_${jobId}-${key}.json file 
+    // with the content of data
+    const filePath = path.join('/home/admin/tmp', `devstia_${jobId}-${key}.json`);
+    fs.writeFileSync(filePath, JSON.stringify(data), 'utf8');
+
+    // Log the operation
+    logMessage(`Data written to file: ${filePath}`);
+};
+
 // Function to check file ownership
 const checkFileOwnership = async (filePath, owner) => {
     try {
@@ -139,6 +150,7 @@ app.post('/quickstart-upload/', async (req, res) => {
                 return res.status(500).json({ status: 'error', message: 'File upload failed.' });
             }
             logMessage('File uploaded successfully.');
+            setXferJobData(jobId, 'import_file', newFilePath);
             return res.status(200).json({ status: 'uploaded', message: 'File uploaded. Please click continue.' });
         });
     } catch (err) {

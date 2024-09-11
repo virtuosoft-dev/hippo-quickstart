@@ -86,38 +86,38 @@ if ( $_GET['action'] == 'cancel_job' ) {
     $hcpp->quickstart->cancel_job( $job_id );
 }
 
-// Process file upload
-if ( $_GET['action'] == 'upload' ) {
+// // Process file upload
+// if ( $_GET['action'] == 'upload' ) {
 
-    // Generate response
-    $response = [
-        'status' => 'error',
-        'message' => 'Unknown error occurred.'
-    ];
-    $allowedMimeTypes = [
-        'application/zip', 
-        'application/x-xz', 
-        'application/octet-stream', 
-        'application/gzip', 
-        'application/x-rar-compressed',
-        'application/x-tar',
-        'application/x-bzip2',
-        'application/x-7z-compressed'
-    ];
-    if ($_FILES['file']['error'] == UPLOAD_ERR_OK && in_array($_FILES['file']['type'], $allowedMimeTypes)) {
-        $tmp_name = $_FILES['file']['tmp_name'];
-        $ext = $hcpp->delLeftMost( $_FILES['file']['name'], '_' );
-        $ext = $hcpp->delLeftMost( $_FILES['file']['name'], '-' );
-        $ext = $hcpp->delLeftMost( $ext, '.' );
-        $name = "/tmp/devstia_$job_id-import.$ext";
-        move_uploaded_file($tmp_name, $name);
-        $hcpp->quickstart->set_job_data( $job_id, 'file', $name );
-        $response['status'] = 'uploaded';
-        $response['message'] = 'File uploaded. Please click continue.';
-        $hcpp->quickstart->set_job_data( $job_id, 'import_file', $name );
-    }
-    echo json_encode( $response );
-}
+//     // Generate response
+//     $response = [
+//         'status' => 'error',
+//         'message' => 'Unknown error occurred.'
+//     ];
+//     $allowedMimeTypes = [
+//         'application/zip', 
+//         'application/x-xz', 
+//         'application/octet-stream', 
+//         'application/gzip', 
+//         'application/x-rar-compressed',
+//         'application/x-tar',
+//         'application/x-bzip2',
+//         'application/x-7z-compressed'
+//     ];
+//     if ($_FILES['file']['error'] == UPLOAD_ERR_OK && in_array($_FILES['file']['type'], $allowedMimeTypes)) {
+//         $tmp_name = $_FILES['file']['tmp_name'];
+//         $ext = $hcpp->delLeftMost( $_FILES['file']['name'], '_' );
+//         $ext = $hcpp->delLeftMost( $_FILES['file']['name'], '-' );
+//         $ext = $hcpp->delLeftMost( $ext, '.' );
+//         $name = "/tmp/devstia_$job_id-import.$ext";
+//         move_uploaded_file($tmp_name, $name);
+//         $hcpp->quickstart->set_job_data( $job_id, 'file', $name );
+//         $response['status'] = 'uploaded';
+//         $response['message'] = 'File uploaded. Please click continue.';
+//         $hcpp->quickstart->set_job_data( $job_id, 'import_file', $name );
+//     }
+//     echo json_encode( $response );
+// }
 
 
 // Check status and result actions
@@ -127,7 +127,7 @@ if ( in_array( $_GET['action'], ['blueprint_status', 'export_status', 'detail_st
 
     // Check for manifests in blueprint and import status
     if ( $status['status'] === 'finished' &&  in_array( $_GET['action'], ['blueprint_status', 'import_status'] ) ) {
-        $manifest = "/tmp/devstia_$job_id-import/devstia_manifest.json";
+        $manifest = "/home/admin/tmp/devstia_$job_id-import/devstia_manifest.json";
         if ( $_GET['action'] == 'blueprint_status' ) {
             $user = $hcpp->quickstart->get_job_data( $job_id, 'user' );
             $url = $hcpp->quickstart->get_job_data( $job_id, 'url' );

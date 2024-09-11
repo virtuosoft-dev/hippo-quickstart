@@ -114,7 +114,7 @@ if ( ! class_exists( 'Quickstart') ) {
          * @param string $job_id The unique job id.
          */
         public function cleanup_job_data( $job_id ) {
-            $command = "rm -rf /tmp/devstia_" . $job_id . "*";
+            $command = "rm -rf /home/admin/tmp/devstia_" . $job_id . "*";
             shell_exec( $command );
         }
 
@@ -179,7 +179,7 @@ if ( ! class_exists( 'Quickstart') ) {
          */
         public function priv_log_user_logout( $args ) {
             $user = $args[0];
-            $command = "rm -f /tmp/devstia_$user-cookies.dat";
+            $command = "rm -f /home/admin/tmp/devstia_$user-cookies.dat";
             global $hcpp;
             $command = $hcpp->do_action( 'quickstart_priv_log_user_logout', $command );
             shell_exec( $command );
@@ -209,8 +209,8 @@ if ( ! class_exists( 'Quickstart') ) {
         
             // Support cookies
             $user = $_SESSION['user'];
-            curl_setopt($ch, CURLOPT_COOKIEJAR, "/tmp/devstia_$user-cookies.dat");
-            curl_setopt($ch, CURLOPT_COOKIEFILE, "/tmp/devstia_$user-cookies.dat");
+            curl_setopt($ch, CURLOPT_COOKIEJAR, "/home/admin/tmp/devstia_$user-cookies.dat");
+            curl_setopt($ch, CURLOPT_COOKIEFILE, "/home/admin/tmp/devstia_$user-cookies.dat");
         
             // Support POST data
             if ($postData !== null) {
@@ -596,7 +596,7 @@ if ( ! class_exists( 'Quickstart') ) {
          */
         public function pickup_job_data( $job_id, $key ) {
             $value = $this->peek_job_data( $job_id, $key );
-            $file = "/tmp/devstia_" . $job_id . "-" . $key . ".json";
+            $file = "/home/admin/tmp/devstia_" . $job_id . "-" . $key . ".json";
             if ( file_exists( $file ) ) {
                 unlink( $file );
             }
@@ -611,7 +611,7 @@ if ( ! class_exists( 'Quickstart') ) {
          * @return mixed The data value.
          */
         public function peek_job_data( $job_id, $key ) {
-            $file = "/tmp/devstia_" . $job_id . "-" . $key . ".json";
+            $file = "/home/admin/tmp/devstia_" . $job_id . "-" . $key . ".json";
             if ( file_exists( $file ) ) {
                 try {
                     $value = file_get_contents( $file );
@@ -1186,6 +1186,7 @@ if ( ! class_exists( 'Quickstart') ) {
             global $hcpp;
             $job_id = $args[1];
             $import_file = $this->pickup_job_data( $job_id, 'import_file' );
+            //$import_file = "/home/admin/tmp/devstia_" . $job_id . "-import_file.json";
             $import_folder = $hcpp->getLeftMost( $import_file, '.' );
             if ( file_exists( $import_file ) ) {
                 $command = 'unzip -o -q ' . $import_file . ' -d ' . $import_folder . ' ';
@@ -1261,7 +1262,7 @@ if ( ! class_exists( 'Quickstart') ) {
             $request = $this->pickup_job_data( $job_id, 'request' );
 
             // Load manifest and request
-            $import_folder = "/tmp/devstia_" . $job_id . "-import";
+            $import_folder = "/home/admin/devstia_" . $job_id . "-import";
 
             // Check for downloaded blueprint folder
             if ( !file_exists( $import_folder ) ) {
@@ -1854,7 +1855,7 @@ if ( ! class_exists( 'Quickstart') ) {
          * @param string $status The status to report.
          */
         public function report_status( $job_id, $message, $status = 'running' ) {
-            $result_file = '/tmp/devstia_' . $job_id . '-result.json';
+            $result_file = '/home/admin/devstia_' . $job_id . '-result.json';
             $result = json_encode( [ 'status' => $status, 'message' => $message ] );
             try {
                 if ( file_exists( $result_file ) ) unlink( $result_file );
@@ -2036,7 +2037,7 @@ if ( ! class_exists( 'Quickstart') ) {
             if ( !isset( $_SESSION['devstia_jobs'][$job_id] ) ) return false;
             if ( !isset( $_SESSION['devstia_jobs'][$job_id][$key] ) ) return false;
             $value = json_encode( $_SESSION['devstia_jobs'][$job_id][$key], JSON_PRETTY_PRINT );
-            $file = "/tmp/devstia_" . $job_id . "-" . $key . ".json";
+            $file = "/home/admin/devstia_" . $job_id . "-" . $key . ".json";
             file_put_contents( $file, $value );
             chown( $file, 'admin' );
             chgrp( $file, 'admin' );
