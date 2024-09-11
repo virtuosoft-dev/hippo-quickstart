@@ -1,3 +1,4 @@
+const uploadServerLogging = false;
 const fs = require('fs');
 const path = require('path');
 const util = require('util');
@@ -31,6 +32,7 @@ app.use(fileUpload());
 
 // Inline logging function
 const logMessage = (message) => {
+    if (!uploadServerLogging) return;
     const timestamp = new Date().toISOString();
     const logEntry = `[${timestamp}] ${message}\n`;
     fs.appendFileSync(logFilePath, logEntry, 'utf8');

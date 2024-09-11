@@ -1878,7 +1878,11 @@ if ( ! class_exists( 'Quickstart') ) {
          * @param string|string[] $replace The string or array of strings to replace with.
          */
         public function search_replace_file( $file, $search, $replace ) {
-
+            global $hcpp;
+            $hcpp->log( "Searching and replacing in file: $file" );
+            $hcpp->log( "Search: " . json_encode( $search ) );
+            $hcpp->log( "Replace: " . json_encode( $replace ) );
+            
             // Check parameters
             if ( !file_exists( $file ) ) {
                 throw new Exception( "File '$file' does not exist." );
