@@ -105,7 +105,7 @@ app.post('/quickstart-upload/', async (req, res) => {
         }
 
         // Validate job_id by checking if the file exists
-        const jobFilePath = path.join('/tmp', `devstia_${jobId}-user.json`);
+        const jobFilePath = path.join('/home/admin/tmp', `devstia_${jobId}-user.json`);
         logMessage(`Checking if job file exists: ${jobFilePath}`);
         if (!fs.existsSync(jobFilePath)) {
             logMessage('Invalid job_id: File does not exist.');
@@ -139,7 +139,7 @@ app.post('/quickstart-upload/', async (req, res) => {
 
         // Get the file extension
         const fileExtension = path.extname(uploadedFile.name);
-        const newFilePath = path.join('/tmp', `devstia_${jobId}-import${fileExtension}`);
+        const newFilePath = path.join('/home/admin/tmp', `devstia_${jobId}-import${fileExtension}`);
         logMessage(`Moving file to: ${newFilePath}`);
 
         // Move the file to the new location
