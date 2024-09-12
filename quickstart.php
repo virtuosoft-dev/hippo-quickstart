@@ -1869,6 +1869,61 @@ if ( ! class_exists( 'Quickstart') ) {
         }
 
         /**
+         * Parses the given $sql fragment into an array of values based on the SQL syntax
+         * containing single quote strings.
+         * @param string $sql The SQL fragment to parse.
+         * @return string[] The array of strings parsed from the SQL fragment.
+         */
+        public function parse_sql_sequence( $sql ) {
+            $length = strlen($sql);
+            $result = [];
+            $i = 0;
+        
+            while ($i < $length) {
+                if (ctype_digit($sql[$i])) {
+                    // Parse integer
+                    $start = $i;
+                    while ($i < $length && ctype_digit($sql[$i])) {
+                        $i++;
+                    }
+                    $result[] = substr($sql, $start, $i - $start);
+                } elseif ($sql[$i] === "'") {
+                    // Parse string
+                    $start = $i;
+                    $i++;
+                    while ($i < $length) {
+                        if ($sql[$i] === "\\" && $i + 1 < $length && $sql[$i + 1] === "'") {
+                            // Skip escaped single quote
+                            $i += 2;
+                        } elseif ($sql[$i] === "'") {
+                            // End of string
+                            $i++;
+                            break;
+                        } else {
+                            $i++;
+                        }
+                    }
+                    $result[] = substr($sql, $start, $i - $start);
+                } elseif ($sql[$i] === 'O' && $i + 1 < $length && $sql[$i + 1] === ':') {
+                    // Parse serialized object
+                    $start = $i;
+                    $i += 2;
+                    while ($i < $length && $sql[$i] !== '}') {
+                        $i++;
+                    }
+                    if ($i < $length && $sql[$i] === '}') {
+                        $i++;
+                    }
+                    $result[] = substr($sql, $start, $i - $start);
+                } else {
+                    $i++;
+                }
+            }
+        
+            return $result;
+        }
+
+        /**
          * Search and replace the given string in the given source text file, with special support
          * for PHP serialized strings in MySQL's "quickdump" file format, and the search for escaped
          * characters in the strings.
@@ -1882,7 +1937,7 @@ if ( ! class_exists( 'Quickstart') ) {
             $hcpp->log( "Searching and replacing in file: $file" );
             $hcpp->log( "Search: " . json_encode( $search ) );
             $hcpp->log( "Replace: " . json_encode( $replace ) );
-            
+
             // Check parameters
             if ( !file_exists( $file ) ) {
                 throw new Exception( "File '$file' does not exist." );
@@ -1939,9 +1994,10 @@ if ( ! class_exists( 'Quickstart') ) {
                             $endLine = substr( $line, -2 );
                             $line = substr( $line, 1, -2 );
                             $line = str_replace("\\0", "~0Placeholder", $line );
-                            $matches = [];
-                            preg_match_all( $regex1, $line, $matches );
-                            $items = $matches[0];
+                            // $matches = [];
+                            // preg_match_all( $regex1, $line, $matches );
+                            // $items = $matches[0];
+                            $items = $this->parse_sql_sequence( $line );
                             $line = implode( '', [$startLine, implode( ",", array_map( function ( $item ) use ( $searchString, $replaceString ) {
                                 if (strpos( $item, "'" ) === 0 && strrpos( $item, "'" ) === strlen( $item ) - 1 ) {
                                     $item = substr( $item, 1, -1 );
