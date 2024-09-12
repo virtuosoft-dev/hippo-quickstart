@@ -423,14 +423,11 @@ if ( ! class_exists( 'Quickstart') ) {
             // Cycle through all users and remove /home/user/tmp/devstia_* folders
             global $hcpp;
             $users = $hcpp->run( "list-users json" );
+            $cmd = '';
             foreach( $users as $user => $details) {
-                $command = "find /home/$user/tmp -maxdepth 1 -type d | egrep 'devstia_'";
-                $folders = array_filter(explode("\n", shell_exec($command)));
-                foreach( $folders as $folder ) {
-                    $command = "rm -rf $folder";
-                    shell_exec($command);
-                }
+                $cmd .= "rm -rf /home/$user/tmp/devstia_* ; ";   
             }
+            shell_exec( $cmd );
             return $args;
         }
 
