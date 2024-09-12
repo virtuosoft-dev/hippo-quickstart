@@ -776,7 +776,7 @@ if ( ! class_exists( 'Quickstart') ) {
                     $ref_files = $db['ref_files'];
 
                     // Generate new credentials and new database
-                    $db_name = $hcpp->nodeapp->random_chars(5);
+                    $db_name = strtolower( $hcpp->nodeapp->random_chars(5) );
                     $db_password = $hcpp->nodeapp->random_chars(20);
                     $command = "add-database $new_user $db_name $db_name $db_password $orig_type localhost $orig_charset";
                     $db_name = $new_user . '_' . $db_name;
