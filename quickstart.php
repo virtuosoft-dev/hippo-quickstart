@@ -819,7 +819,7 @@ if ( ! class_exists( 'Quickstart') ) {
                     }else{
 
                         // Support PostgreSQL
-                        $command = "export PGPASSWORD=\"$db_password\"; psql -h localhost -U $db_name $db_name $db_sql_file";
+                        $command = "export PGPASSWORD=\"$db_password\"; psql -h localhost -U $db_name $db_name -f $db_sql_file";
                     }
                     $command = $hcpp->do_action( 'quickstart_copy_now_db', $command ); // Allow plugin mods
                     $result = shell_exec( $command );
@@ -1541,7 +1541,7 @@ if ( ! class_exists( 'Quickstart') ) {
                     }else{
 
                         // Support PostgreSQL
-                        $command = "export PGPASSWORD=\"$db_password\"; psql -h localhost -U $db_name $db_name $db_sql_file";
+                        $command = "export PGPASSWORD=\"$db_password\"; psql -h localhost -U $db_name $db_name -f $db_sql_file";
                     }
                     $command = $hcpp->do_action( 'quickstart_import_now_db', $command ); // Allow plugin mods
                     $result = shell_exec( $command );
