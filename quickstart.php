@@ -823,7 +823,7 @@ if ( ! class_exists( 'Quickstart') ) {
                     }
                     $command = $hcpp->do_action( 'quickstart_copy_now_db', $command ); // Allow plugin mods
                     $result = shell_exec( $command );
-                    if ( strpos( strtolower( $result ), 'error' != '' ) !== false ){
+                    if ( strpos( strtolower( $result ), 'error' ) !== false ) {
                         $this->report_status( $job_id, $result, 'error' );
                         return $args;
                     }
@@ -1545,7 +1545,7 @@ if ( ! class_exists( 'Quickstart') ) {
                     }
                     $command = $hcpp->do_action( 'quickstart_import_now_db', $command ); // Allow plugin mods
                     $result = shell_exec( $command );
-                    if ( strpos( strtolower( $result ), 'error' != '' ) !== false ){
+                    if ( strpos( strtolower( $result ), 'error' ) !== false ) {
                         $this->report_status( $job_id, $result, 'error' );
                         return $args;
                     }
