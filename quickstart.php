@@ -730,7 +730,7 @@ if ( ! class_exists( 'Quickstart') ) {
             $folders = array_filter( glob( $import_folder . '/*' ), 'is_dir' );
 
             // Apply write owner permissions on the domain folder and remove the index.html
-            $command = "chmod 750 $dest_folder ; rm -f $dest_folder/public_html/index.html ; ";
+            $command = "chmod 751 $dest_folder ; rm -f $dest_folder/public_html/index.html ; ";
             foreach( $folders as $folder ) {
                 $subfolder = $hcpp->getRightMost( $folder, '/' );
                 $command .= __DIR__ . '/abcopy ' . $folder . '/ ' . $dest_folder . "/$subfolder/ ; ";
@@ -1338,7 +1338,7 @@ if ( ! class_exists( 'Quickstart') ) {
             $folders = array_filter( glob( $import_folder . '/*' ), 'is_dir' );
 
             // Apply write owner permissions on the domain folder and remove the index.html
-            $command = "chmod 750 $dest_folder ; rm -f $dest_folder/public_html/index.html ; ";
+            $command = "chmod 751 $dest_folder ; rm -f $dest_folder/public_html/index.html ; ";
             foreach( $folders as $folder ) {
                 $subfolder = $hcpp->getRightMost( $folder, '/' );
                 $command .= __DIR__ . '/abcopy ' . $folder . '/ ' . $dest_folder . "/$subfolder/ ; ";
