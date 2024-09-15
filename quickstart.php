@@ -729,7 +729,8 @@ if ( ! class_exists( 'Quickstart') ) {
             $this->report_status( $job_id, 'Please wait. Copying files.' );
             $folders = array_filter( glob( $import_folder . '/*' ), 'is_dir' );
 
-            $command = "rm -f $dest_folder/public_html/index.html ; ";
+            // Apply write owner permissions on the domain folder and remove the index.html
+            $command = "chown $new_user:$new_user $dest_folder ; rm -f $dest_folder/public_html/index.html ; ";
             foreach( $folders as $folder ) {
                 $subfolder = $hcpp->getRightMost( $folder, '/' );
                 $command .= __DIR__ . '/abcopy ' . $folder . '/ ' . $dest_folder . "/$subfolder/ ; ";
@@ -1335,7 +1336,9 @@ if ( ! class_exists( 'Quickstart') ) {
             // Copy all subfolders in the import folder
             $this->report_status( $job_id, 'Please wait. Copying files.' );
             $folders = array_filter( glob( $import_folder . '/*' ), 'is_dir' );
-            $command = "rm -f $dest_folder/public_html/index.html ; ";
+
+            // Apply write owner permissions on the domain folder and remove the index.html
+            $command = "chown $new_user:$new_user $dest_folder ; rm -f $dest_folder/public_html/index.html ; ";
             foreach( $folders as $folder ) {
                 $subfolder = $hcpp->getRightMost( $folder, '/' );
                 $command .= __DIR__ . '/abcopy ' . $folder . '/ ' . $dest_folder . "/$subfolder/ ; ";
