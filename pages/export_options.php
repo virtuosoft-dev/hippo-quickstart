@@ -35,6 +35,7 @@
     $manifest['databases'] = $db_selected;
     $hcpp->set_job_data( $job_id, 'manifest', $manifest );
     $domain = $manifest['domain'];
+    $user = $manifest['user'];
 ?>
 <form id="export-options-form" method="post" action="?quickstart=export_now&domain=<?php echo $domain; ?>&dbs=<?php echo $dbs; ?>&job_id=<?php echo $job_id; ?>">
     <div class="toolbar">
@@ -52,29 +53,40 @@
     <div class="body-reset container">
         <div class="quickstart qs_export_options">
             <h1>Export Options</h1>
-            <legend>Leave all items checked for default export options.</legend>
+            <legend>Check items and options for your export archive.</legend>
+            <?php
+                $subfolders = $hcpp->quickstart->get_domain_folders( $user, $domain );
+                $private_folder = "/home/" . $_SESSION['user'] . "/web/" . $domain . "/private";
+                $json = null;
+                if ( file_exists( $private_folder . '/devstia_manifest.json' ) ) {
+                    try {
+                        $content = file_get_contents( $private_folder . '/devstia_manifest.json' );
+                        $json = json_decode( $content, true );
+                        $export_options = $json['export_options'];
+                    }catch (Exception $e) {
+                        echo 'Caught exception: ',  $e->getMessage(), "\n";
+                    }
+                }
+                foreach ($subfolders as $subfolder) {
+                    $folderName = basename($subfolder);
+                    if ( $json == null ) {
+                        $checked = ($folderName !== 'logs' && $folderName !== 'stats') ? 'checked="checked"' : '';
+                    }else{
+                        $checked = ( strpos( ",$export_options,", $folderName ) !== false ) ? 'checked="checked"' : '';
+                    }
+                    echo '<p>';
+                    echo '<input class="export_option" type="checkbox" id="' . htmlspecialchars($folderName) . '" ' . $checked . ' tabindex="100"/>';
+                    echo '<label for="' . htmlspecialchars($folderName) . '"> Include ./' . htmlspecialchars($folderName) . ' folder.</label>';
+                    echo '</p>';
+                }
+                if ( $json == null ) {
+                    $checked = 'checked="checked"';
+                }else{
+                    $checked = ( strpos( ",$export_options,", 'exvc' ) !== false ) ? 'checked="checked"' : '';
+                }
+            ?>
             <p>
-                <input class="export_option" type="checkbox" id="cgi_bin" checked="checked" tabindex="100"/>
-                <label for="cgi_bin">Include ./cgi-bin folder.</label>
-            </p>
-            <p>
-                <input class="export_option" type="checkbox" id="document_errors" checked="checked" tabindex="100"/>
-                <label for="document_errors">Include ./document_errors folder.</label>
-            </p>
-            <p>
-                <input class="export_option" type="checkbox" id="nodeapp" checked="checked" tabindex="100"/>
-                <label for="nodeapp">Include ./nodeapp folder.</label>
-            </p>
-            <p>
-                <input class="export_option" type="checkbox" id="private" checked="checked" tabindex="100"/>
-                <label for="private">Include ./private folder.</label>
-            </p>
-            <p>
-                <input class="export_option" type="checkbox" id="public_html" checked="checked" tabindex="100"/>
-                <label for="public_html">Include ./public_html folder.</label>
-            </p>
-            <p>
-                <input class="export_option" type="checkbox" id="exvc" checked="checked" tabindex="100"/>
+                <input class="export_option" type="checkbox" id="exvc" <?php echo $checked; ?> tabindex="100"/>
                 <label for="exvc">Exclude version control files &amp; folders (.git*, .svn, .hg).</label>
             </p>
             <br>
@@ -99,12 +111,9 @@
                     </thead>
                     <tbody>
                         <?php
-                            // Pre-populate the table with any existing advanced options if private/devstia_manifest.json exists
-                            $private_folder = "/home/" . $_SESSION['user'] . "/web/" . $domain . "/private";
+                            // Pre-populate the export and advanced options with any existing values if private/devstia_manifest.json exists
                             if ( file_exists( $private_folder . '/devstia_manifest.json' ) ) {
                                 try {
-                                    $content = file_get_contents( $private_folder . '/devstia_manifest.json' );
-                                    $json = json_decode( $content, true );
                                     foreach ( $json['export_adv_options'] as $option ) {
                                         $label = htmlspecialchars( $option['label'], ENT_QUOTES | ENT_HTML5, 'UTF-8' );
                                         $value = htmlspecialchars( $option['value'], ENT_QUOTES | ENT_HTML5, 'UTF-8' );
@@ -254,7 +263,6 @@
                 });
                 $('#export_adv_options').val(JSON.stringify(tableData));
             }
-
             updateOptions();
             updateAdvOptions();
         });

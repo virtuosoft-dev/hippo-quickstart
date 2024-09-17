@@ -163,6 +163,33 @@ if ( ! class_exists( 'Quickstart') ) {
         }
 
         /**
+         * Get list of folders for the given user's domain
+         * @param string $user The username.
+         * @param string $domain The domain.
+         * @return array An array of subfolders for the given domain.
+         */
+        public function get_domain_folders( $user, $domain ) {
+            global $hcpp;
+            return $hcpp->run( "invoke-plugin quickstart_get_domain_folders " . $user . " " . $domain . " json" );
+        }
+
+        /**
+         * Our trusted command to retrieve the list of domain folders.
+         */
+        public function quickstart_get_domain_folders( $args ) {
+            $user = $args[1];
+            $domain = $args[2];
+            $path = "/home/$user/web/$domain/";
+            $subfolders = array_filter(array_merge(glob($path . '*'), glob($path . '.*')), 'is_dir');
+            $subfolders = array_map('basename', $subfolders);
+            $subfolders = array_filter($subfolders, function($folderName) {
+                return $folderName !== '.' && $folderName !== '..';
+            });
+            echo json_encode( $subfolders );
+            return $args;
+        }
+
+        /**
          * Get the given job data with a reference key.
          * @param string $job_id The unique job id.
          * @param string $key The key of the data to get.
@@ -394,6 +421,7 @@ if ( ! class_exists( 'Quickstart') ) {
                 'quickstart_blueprint_file',
                 'quickstart_export_zip',
                 'quickstart_get_manifest',
+                'quickstart_get_domain_folders',
                 'quickstart_get_multi_manifests',
                 'quickstart_import_file',
                 'quickstart_import_now',
@@ -1120,10 +1148,12 @@ if ( ! class_exists( 'Quickstart') ) {
             $user = $manifest['user'];
             $domain = $manifest['domain'];
             $export_options = $manifest['export_options'];
+            $export_options = explode( ",", $export_options );
             $setup_script = $manifest['setup_script'];
             $setup_script = str_replace( "\r\n", "\n", $setup_script );
             unset( $manifest['setup_script'] );
             $export_folder = '/home/' . $user . '/tmp/devstia_export_' . $job_id;
+            $source_folder = '/home/' . $user . '/web/' . $domain . '/';
             if ( !is_dir( $export_folder ) ) mkdir( $export_folder, true );
             file_put_contents( $export_folder . '/devstia_manifest.json', json_encode( $manifest, JSON_PRETTY_PRINT) );
             if ( trim( $setup_script ) != '' ) {
@@ -1138,31 +1168,16 @@ if ( ! class_exists( 'Quickstart') ) {
                  $db = $database['DATABASE'];
                  $hcpp->run( "dump-database $user $db > \"$devstia_databases_folder/$db.sql\"" );
             }
-            $public_html = "/home/$user/web/$domain/public_html";
-            $nodeapp = "/home/$user/web/$domain/nodeapp";
-            $private = "/home/$user/web/$domain/private";
-            $cgi_bin = "/home/$user/web/cgi-bin";
-            $document_errors = "/home/$user/web/$domain/document_errors";
 
-            // Copy website folders to user tmp folder, accounting for export options
+            // Copy included folders to user tmp folder, accounting for export options
             $abcopy = __DIR__ . '/abcopy';
-            $exvc = ';';
-            if ( strpos($export_options, 'exvc') !== false ) $exvc = ' true;';
+            $exvc = in_array('exvc', $export_options) ? 'true;' : ';';
+            $export_options = array_diff($export_options, ['exvc']);
             $command = '';
-            if ( strpos($export_options, 'public_html') !== false && is_dir( $public_html) ) {
-                $command .= "$abcopy $public_html $export_folder/public_html" . $exvc;
-            }
-            if ( strpos($export_options, 'nodeapp') !== false &&  is_dir( $nodeapp ) ) {
-                $command .= "$abcopy $nodeapp $export_folder/nodeapp" . $exvc;
-            } 
-            if ( strpos($export_options, 'private') !== false && is_dir( $private ) ) {
-                $command .= "$abcopy $private $export_folder/private" . $exvc;
-            }
-            if ( strpos($export_options, 'cgi_bin') !== false && is_dir( $cgi_bin ) ) {
-                $command .= "$abcopy $cgi_bin $export_folder/cgi-bin" . $exvc;
-            }
-            if ( strpos($export_options, 'document_errors') !== false && is_dir( $document_errors ) ) {
-                $command .= "$abcopy $document_errors $export_folder/document_errors" . $exvc;
+            foreach ($export_options as $folder) {
+                if (is_dir($source_folder . $folder)) {
+                    $command .= "$abcopy $source_folder/$folder $export_folder/$folder " . $exvc;
+                }
             }
 
             // Reset ownership, zip up contents, move to exports, and clean up
