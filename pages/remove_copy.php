@@ -27,7 +27,17 @@
             <p>Removing website(s) deletes all the files and<br>
                associated databases.</p>
         </div>
-        <div class="remove-copy-list">
+        <div id="action" style="display:inline-block;">
+            <div class="form-check u-mb10">
+                <input id="v_copy_website" class="website_radio" type="radio" title="Select" name="mode[]" value="copy" tabindex="100" checked>
+                <label for="v_copy_website">Copy website</label>
+            </div>
+            <div class="form-check u-mb10">
+                <input id="v_remove_website" class="website_radio" type="radio" title="Select" name="mode[]" tabindex="100" value="remove">
+                <label for="v_remove_website">Remove website(s)</label>
+            </div>
+        </div>
+        <div class="remove-copy-list" style="display:block;max-width:640px;">
             <div class="toolbar">
                 <div class="toolbar-inner">
                     <div class="toolbar-right">
@@ -87,17 +97,6 @@
                         $item++;
                     } // end foreach( $websites as $domain => $details )
                 ?>
-            </div>
-            <br>
-            <div id="action">
-                <div class="form-check u-mb10">
-                    <input id="v_copy_website" class="website_radio" type="radio" title="Select" name="mode[]" value="copy" tabindex="100" checked>
-                    <label for="v_copy_website">Copy website</label>
-                </div>
-                <div class="form-check u-mb10">
-                    <input id="v_remove_website" class="website_radio" type="radio" title="Select" name="mode[]" tabindex="100" value="remove">
-                    <label for="v_remove_website">Remove website(s)</label>
-                </div>
             </div>
         </div>
     </div>

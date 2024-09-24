@@ -16,10 +16,16 @@
     $manifest['user'] = $_SESSION['user'];
     $manifest['job_id'] = $job_id;
     $manifest['zip_file'] = $manifest['domain'] . '_' . date( 'Y-m-d-His' ) . '.zip';
+    $manifest['export_includes'] = $_POST['export_includes'] ?? '';
+    $manifest['export_excludes'] = $_POST['export_excludes'] ?? '';
     $manifest['export_options'] = $_POST['export_options'] ?? '';
     $manifest['export_adv_options'] = json_decode( $_POST['export_adv_options'] ?? '');
     $manifest['setup_script'] = trim( $_POST['setup-input'] ?? '' );
 
+    // Protect against directory traversal
+    $manifest['export_includes'] = str_replace( '..', '', $manifest['export_includes'] );
+    $manifest['export_excludes'] = str_replace( '..', '', $manifest['export_excludes'] );
+        
     // Run the export process
     $hcpp->quickstart->export_zip( $manifest );
 ?>

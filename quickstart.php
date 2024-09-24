@@ -27,6 +27,59 @@ if ( ! class_exists( 'Quickstart') ) {
         }
 
         /**
+         * Combine multiple SQL files into a single file, i.e. test.sql_1, test.sql_2, ... -> test.sql
+         * @param string $folder_path The folder path containing the SQL files
+         * @return void
+         */
+        public function combine_sql_files($folder_path) {
+            if (is_dir($folder_path)) {
+                $dir_files = scandir($folder_path);
+                $sql_files = [];
+
+                // Find all .sql_1 files
+                foreach ($dir_files as $file) {
+                    if (preg_match('/\.sql_1$/', $file)) {
+                        $sql_files[] = $file;
+                    }
+                }
+
+                // Combine the files
+                foreach ($sql_files as $base_file) {
+                    $base_name = preg_replace('/\.sql_1$/', '', $base_file);
+                    $combined_file_path = $folder_path . DIRECTORY_SEPARATOR . $base_name . '.sql_combined';
+                    $combined_file_handle = fopen($combined_file_path, 'w');
+                    $file_number = 1;
+
+                    while (true) {
+                        $current_file_path = $folder_path . DIRECTORY_SEPARATOR . $base_name . '.sql_' . $file_number;
+                        if (!file_exists($current_file_path)) {
+                            break;
+                        }
+
+                        $current_file_handle = fopen($current_file_path, 'r');
+                        while (!feof($current_file_handle)) {
+                            $buffer = fread($current_file_handle, 8192); // Read in chunks of 8KB
+                            fwrite($combined_file_handle, $buffer);
+                        }
+                        fclose($current_file_handle);
+
+                        // Remove the current file
+                        unlink($current_file_path);
+                        $file_number++;
+                    }
+                    fclose($combined_file_handle);
+
+                    // Rename the combined file to remove the _combined suffix
+                    $new_combined_file_path = $folder_path . DIRECTORY_SEPARATOR . $base_name . '.sql';
+                    rename($combined_file_path, $new_combined_file_path);
+
+                    // Set the user and group ownership of the combined file to that of the parent folder
+                    chown($new_combined_file_path, fileowner($folder_path));
+                    chgrp($new_combined_file_path, filegroup($folder_path));
+                }
+            }
+        }
+        /**
          * Constructor, listen for the render events
          */
         public function __construct() {
@@ -58,6 +111,56 @@ if ( ! class_exists( 'Quickstart') ) {
             if ( $plugin !== 'quickstart' ) return $plugin;
             $this->stop_upload_server();
             return $plugin;
+        }
+
+        /**
+         * Split a large SQL file into multiple smaller files, i.e. test.sql -> test.sql_1, test.sql_2, ...
+         * @param string $folder_path The folder path containing the SQL files
+         * @param int $file_size The file size in megabytes
+         * @return void
+         */
+        public function split_sql_files($folder_path, $file_size = 25) {
+            $file_size_bytes = $file_size * 1024 * 1024; // Convert megabytes to bytes
+
+            if (is_dir($folder_path)) {
+                $dir_files = scandir($folder_path);
+
+                foreach ($dir_files as $file) {
+                    $file_path = $folder_path . DIRECTORY_SEPARATOR . $file;
+                    if (is_file($file_path) && pathinfo($file_path, PATHINFO_EXTENSION) === 'sql' && filesize($file_path) >= $file_size_bytes) {
+                        $file_handle = fopen($file_path, 'r');
+                        $file_number = 1;
+                        $new_file_path = $folder_path . DIRECTORY_SEPARATOR . pathinfo($file_path, PATHINFO_FILENAME) . '.sql_' . $file_number;
+                        $new_file_handle = fopen($new_file_path, 'w');
+                        $current_size = 0;
+
+                        while (!feof($file_handle)) {
+                            $buffer = fread($file_handle, 8192); // Read in chunks of 8KB
+                            $buffer_size = strlen($buffer);
+
+                            if ($current_size + $buffer_size > $file_size_bytes) {
+                                $remaining_size = $file_size_bytes - $current_size;
+                                fwrite($new_file_handle, substr($buffer, 0, $remaining_size));
+                                fclose($new_file_handle);
+                                $file_number++;
+                                $new_file_path = $folder_path . DIRECTORY_SEPARATOR . pathinfo($file_path, PATHINFO_FILENAME) . '.sql_' . $file_number;
+                                $new_file_handle = fopen($new_file_path, 'w');
+                                fwrite($new_file_handle, substr($buffer, $remaining_size));
+                                $current_size = $buffer_size - $remaining_size;
+                            } else {
+                                fwrite($new_file_handle, $buffer);
+                                $current_size += $buffer_size;
+                            }
+                        }
+
+                        fclose($new_file_handle);
+                        fclose($file_handle);
+
+                        // Remove the original SQL file
+                        unlink($file_path);
+                    }
+                }
+            }
         }
 
         /**
@@ -1128,12 +1231,6 @@ if ( ! class_exists( 'Quickstart') ) {
 
             // Clean up .DS_Store files and __MACOSX directory
             $this->cleanup_import_folder($blueprint_folder);
-
-            // Report finished
-            // $this->report_status( $job_id, 'Finsihed.', 'finished' );
-            // sleep(3);
-            // $this->pickup_job_data( $job_id, 'pid' );
-            return $args;
         }
 
         /**
@@ -1143,17 +1240,21 @@ if ( ! class_exists( 'Quickstart') ) {
             $job_id = $args[1];
             $manifest = $this->pickup_job_data( $job_id, 'manifest' );
             if ( $manifest == false ) return $args;
-            
+
             global $hcpp;
             $user = $manifest['user'];
             $domain = $manifest['domain'];
+            $export_includes = $manifest['export_includes'];
+            $export_includes = explode( ",", $export_includes );
+            $export_excludes = $manifest['export_excludes'];
+            $export_excludes = explode( ",", $export_excludes );
             $export_options = $manifest['export_options'];
             $export_options = explode( ",", $export_options );
             $setup_script = $manifest['setup_script'];
             $setup_script = str_replace( "\r\n", "\n", $setup_script );
             unset( $manifest['setup_script'] );
             $export_folder = '/home/' . $user . '/tmp/devstia_export_' . $job_id;
-            $source_folder = '/home/' . $user . '/web/' . $domain . '/';
+            $source_folder = '/home/' . $user . '/web/' . $domain;
             if ( !is_dir( $export_folder ) ) mkdir( $export_folder, true );
             file_put_contents( $export_folder . '/devstia_manifest.json', json_encode( $manifest, JSON_PRETTY_PRINT) );
             if ( trim( $setup_script ) != '' ) {
@@ -1169,14 +1270,24 @@ if ( ! class_exists( 'Quickstart') ) {
                  $hcpp->run( "dump-database $user $db > \"$devstia_databases_folder/$db.sql\"" );
             }
 
+            // Split any large devstia_database sql files into 5mb chunks
+            $this->split_sql_files( $devstia_databases_folder, 5 );
+
             // Copy included folders to user tmp folder, accounting for export options
             $abcopy = __DIR__ . '/abcopy';
             $exvc = in_array('exvc', $export_options) ? 'true;' : ';';
             $export_options = array_diff($export_options, ['exvc']);
             $command = '';
-            foreach ($export_options as $folder) {
-                if (is_dir($source_folder . $folder)) {
+            foreach ($export_includes as $folder) {
+                if (is_dir($source_folder . '/' . $folder)) {
                     $command .= "$abcopy $source_folder/$folder $export_folder/$folder " . $exvc;
+                }
+            }
+
+            // Purge excluded folders from user tmp folder
+            foreach ($export_excludes as $folder) {
+                if (file_exists($source_folder . '/' . $folder)) {
+                    $command .= "rm -rf $export_folder/$folder; ";
                 }
             }
 
@@ -1372,6 +1483,9 @@ if ( ! class_exists( 'Quickstart') ) {
 
             $command = $hcpp->do_action( 'quickstart_import_copy_files', $command ); // Allow plugin mods
             shell_exec( $command );
+
+            // Combine any split devstia_database sql files
+            $this->combine_sql_files( $dest_folder . '/devstia_databases/' );
 
             // Update smtp.json file
             $smtp_file = $dest_folder . '/private/smtp.json';
@@ -1930,6 +2044,10 @@ if ( ! class_exists( 'Quickstart') ) {
                         $i++;
                     }
                     $result[] = substr($sql, $start, $i - $start);
+                } elseif (strtoupper($sql[$i]) === 'N' && $i + 3 < $length && strtoupper( $sql[$i + 1] . $sql[$i + 2] . $sql[$i + 3] ) === 'ULL' ) {
+                    // Parse NULL/null
+                    $result[] = $sql[$i] . $sql[$i + 1] . $sql[$i + 2] . $sql[$i + 3];
+                    $i += 4;
                 } else {
                     $i++;
                 }
@@ -2001,6 +2119,7 @@ if ( ! class_exists( 'Quickstart') ) {
                 for ( $i = 0; $i < count( $search ); $i++ ) {
                     $searchString = $search[$i];
                     $replaceString = $replace[$i];
+                    if ( trim( $searchString) == '' ) continue; // Ignore empty strings
                     if ( strpos( $line, $searchString ) !== false && $searchString != $replaceString ) {
 
                         // Sense Quickdump format

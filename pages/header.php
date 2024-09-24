@@ -55,6 +55,7 @@
     .adv-trash {
         cursor: pointer;
     }
+    .qs_export_options,
     #advanced-opt {
         max-width: 640px;
     }
@@ -62,7 +63,7 @@
         text-align: center;
     }
     @media (min-width:1024px) {
-        thead#adv-options-table tr {
+        thead.options-table-head tr {
             display: contents;
         }
         .qs_export_options .units-table-cell {
@@ -70,7 +71,7 @@
         }
     }
     @media (max-width:1024px) {
-        thead#adv-options-table {
+        thead.options-table-head {
             display: contents;
             width: 100%;
         }

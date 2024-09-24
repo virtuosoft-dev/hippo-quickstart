@@ -7,7 +7,7 @@
             </a>
         </div>
         <div class="toolbar-buttons">
-            <a href="?quickstart=export_details" class="button" id="continue-button">
+            <a href="#" class="button" id="continue-button">
                 <i tabindex="200" class="fas fa-arrow-right icon-blue"></i>Continue
             </a>         
         </div>
@@ -81,6 +81,8 @@
 <script>
     (function($) {
         $(function() {
+            let continueURL = '?quickstart=export_details';
+
             // Domain click, select radio
             $('.website_domain').on('click', function() {
                 $(this).parent().parent().find('input').click();
@@ -89,7 +91,14 @@
             // Radio click, select domain and tack on domain to continue button
             $('.website_radio').on('click', function() {
                 let domain = $(this).val();
-                $('#continue-button').attr('href', '?quickstart=export_details&domain=' + domain);
+                continueURL = '?quickstart=export_details&domain=' + domain;
+            });
+
+            $('#continue-button').on('click', function(e) {
+                setTimeout(() => {
+                    $('.spinner-overlay').addClass('active');
+                    window.location = continueURL;
+                }, 300);
             });
 
             // Select the domain or first radio button by default
