@@ -46,8 +46,9 @@
                         } catch( e ) {
                             data = { 'status': 'error', 'message': 'Error parsing JSON: ' + e + "\n" + data };
                         }
-                        let msg = data.message.trim();
-                        if (msg != '') $('#status').html(msg);
+                        if ( data.message != '' ) {
+                            $('#status').html( data.message );
+                        }
                         if ( data.status != 'running' ) {
                             $('#back-button').hide();
                             $('#continue-button').removeClass('disabled');

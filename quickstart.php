@@ -498,6 +498,7 @@ if ( ! class_exists( 'Quickstart') ) {
 
                     // Check for db_sql_file
                     $db_sql_file = $this->peek_job_data( $job_id, 'db_sql_file' );
+                    $db_sql_file = json_encode( $db_sql_file );
                     if ( $db_sql_file !== false ) {
                         
                         // Check for db_sql_file and it's tmp for percentage of completion
@@ -2245,7 +2246,7 @@ if ( ! class_exists( 'Quickstart') ) {
         public function xfer_job_data( $job_id, $key ) {
             if ( !isset( $_SESSION['devstia_jobs'][$job_id] ) ) return false;
             if ( !isset( $_SESSION['devstia_jobs'][$job_id][$key] ) ) return false;
-            $value = json_encode( $_SESSION['devstia_jobs'][$job_id][$key], JSON_PRETTY_PRINT );
+            $value = $_SESSION['devstia_jobs'][$job_id][$key];
             $this->set_xfer_job_data( $job_id, $key, $value );
             return true;
         }
@@ -2255,7 +2256,7 @@ if ( ! class_exists( 'Quickstart') ) {
          */
         public function set_xfer_job_data( $job_id, $key, $value ) {
             $file = "/home/admin/tmp/devstia_" . $job_id . "-" . $key . ".json";
-            file_put_contents( $file, $value );
+            file_put_contents( $file, json_encode($value, JSON_PRETTY_PRINT );
             chown( $file, 'admin' );
             chgrp( $file, 'admin' );
         }
