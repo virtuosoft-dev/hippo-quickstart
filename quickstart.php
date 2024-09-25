@@ -2087,24 +2087,21 @@ if ( ! class_exists( 'Quickstart') ) {
             $hcpp->log( "Replace: " . json_encode( $replace ) );
 
             // Check parameters
-            if ( !file_exists( $file ) ) {
-                throw new Exception( "File '$file' does not exist." );
+            if (!file_exists($file)) {
+                throw new Exception("File '$file' does not exist.");
             }
-            if ( !is_string( $search ) && !is_array( $search ) ) {
-                throw new Exception( "Parameter 'search' must be a string or array." );
+
+            if ((!is_string($search) && !is_array($search)) || (!is_string($replace) && !is_array($replace))) {
+                throw new Exception("Parameters 'search' and 'replace' must be strings or arrays.");
             }
-            if ( !is_string( $replace ) && !is_array( $replace ) ) {
-                throw new Exception( "Parameter 'replace' must be a string or array." );
-            }
-            if ( is_string( $search ) ) {
-                $search = [ $search ];
-            }
-            if ( is_string( $replace ) ) {
-                $replace = [ $replace ];
-            }
-            $searchCount = count( $search );
-            if ( $searchCount != count( $replace ) ) {
-                throw new Exception( "Parameters 'search' and 'replace' must have the same number of elements." );
+
+            // Ensure $search and $replace are arrays
+            $search = (array) $search;
+            $replace = (array) $replace;
+
+            $searchCount = count($search);
+            if ($searchCount !== count($replace)) {
+                throw new Exception("Parameters 'search' and 'replace' must have the same number of elements.");
             }
 
             // Duplicate search and replace strings with escaped versions if necessary
@@ -2125,8 +2122,6 @@ if ( ! class_exists( 'Quickstart') ) {
             $handle = fopen( $file, 'r' );
             $tempFile = $file . '.tmp';
             $writeStream = fopen( $tempFile, 'w' );
-            $regex1 = "/('.*?'|[^',\s]+)(?=\s*,|\s*;|\s*$)/";
-            global $regex2;
             $regex2 = "/s:(\d+):\"(.*?)\";/ms";
             $searchCount = count( $search );
             while ( ( $line = fgets( $handle ) ) !== false ) {
@@ -2137,7 +2132,7 @@ if ( ! class_exists( 'Quickstart') ) {
                     $searchString = $search[$i];
                     $replaceString = $replace[$i];
                     if ( trim( $searchString) == '' ) continue; // Ignore empty strings
-                    if ( strpos( $line, $searchString ) !== false && $searchString != $replaceString ) {
+                    if ( strpos( $line, $searchString ) !== false ) {
 
                         // Sense Quickdump format
                         if (strpos($line, "(") === 0 && (substr($line, -2) === ")," || substr($line, -2) === ");")) {
@@ -2146,8 +2141,8 @@ if ( ! class_exists( 'Quickstart') ) {
                             $line = substr( $line, 1, -2 );
                             $line = str_replace("\\0", "~0Placeholder", $line );
                             $items = $this->parse_sql_sequence( $line );
-                            $line = implode( '', [$startLine, implode( ",", array_map( function ( $item ) use ( $searchString, $replaceString ) {
-                                if (strpos( $item, "'" ) === 0 && strrpos( $item, "'" ) === strlen( $item ) - 1 ) {
+                            $line = implode( '', [$startLine, implode( ",", array_map( function ( $item ) use ( $searchString, $replaceString, $regex2 ) {
+                                if ($item[0] === "'" && $item[strlen($item) - 1] === "'") {
                                     $item = substr( $item, 1, -1 );
                                     $item = str_replace( $searchString, $replaceString, $item );
 
@@ -2158,7 +2153,6 @@ if ( ! class_exists( 'Quickstart') ) {
                                         $item = json_decode(json_encode( $item ) );
                                         $item = str_replace( "\\", "", $item );
                                         $item = str_replace( "~0Placeholder", "\0", $item );
-                                        global $regex2;
                                         $item = preg_replace_callback( $regex2, function ( $matches ) {
                                             return 's:' . strlen( $matches[2] ) . ':"' . $matches[2] . '";';
                                         }, $item);
