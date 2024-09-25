@@ -31,6 +31,7 @@
             <h1>Remove Details</h1>
             <legend id="status">Please wait. Gathering website details.</legend>
             <div id="options"></div>
+            <br>
             <div class="form-check u-mb10" id="confirm-remove-opt" style="display:none;">
                 <input tabindex="100" class="form-check-input" type="checkbox" name="v-confirm-remove" id="v-confirm-remove">
                 <label for="v-confirm-remove">Confirm; all associated resources with the websites<br>
