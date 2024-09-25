@@ -45,7 +45,7 @@
     }
     #dropZone .fa-file-archive {
         font-size: x-large;
-        color: rgb(0,150,0);
+        color: var(--icon-color-blue);
     }
     #dropZone.dragover {
         background-color: #eee;
