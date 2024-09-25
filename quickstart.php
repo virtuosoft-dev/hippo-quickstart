@@ -2256,7 +2256,7 @@ if ( ! class_exists( 'Quickstart') ) {
          */
         public function set_xfer_job_data( $job_id, $key, $value ) {
             $file = "/home/admin/tmp/devstia_" . $job_id . "-" . $key . ".json";
-            file_put_contents( $file, json_encode($value, JSON_PRETTY_PRINT );
+            file_put_contents( $file, json_encode($value, JSON_PRETTY_PRINT ) );
             chown( $file, 'admin' );
             chgrp( $file, 'admin' );
         }
