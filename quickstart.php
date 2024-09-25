@@ -2102,14 +2102,15 @@ if ( ! class_exists( 'Quickstart') ) {
             if ( is_string( $replace ) ) {
                 $replace = [ $replace ];
             }
-            if ( count( $search ) != count( $replace ) ) {
+            $searchCount = count( $search );
+            if ( $searchCount != count( $replace ) ) {
                 throw new Exception( "Parameters 'search' and 'replace' must have the same number of elements." );
             }
 
             // Duplicate search and replace strings with escaped versions if necessary
             $searchEscaped = [];
             $replaceEscaped = [];
-            for ($i = 0; $i < count($search); $i++) {
+            for ($i = 0; $i < $searchCount; $i++) {
                 $searchE = addcslashes($search[$i], "\/\n\r\0");
                 
                 // Check if already in array
@@ -2127,11 +2128,12 @@ if ( ! class_exists( 'Quickstart') ) {
             $regex1 = "/('.*?'|[^',\s]+)(?=\s*,|\s*;|\s*$)/";
             global $regex2;
             $regex2 = "/s:(\d+):\"(.*?)\";/ms";
+            $searchCount = count( $search );
             while ( ( $line = fgets( $handle ) ) !== false ) {
                 $origLine = $line;
                 $line = trim( $line );
                 $bModifed = false;
-                for ( $i = 0; $i < count( $search ); $i++ ) {
+                for ( $i = 0; $i < $searchCount; $i++ ) {
                     $searchString = $search[$i];
                     $replaceString = $replace[$i];
                     if ( trim( $searchString) == '' ) continue; // Ignore empty strings
@@ -2139,13 +2141,10 @@ if ( ! class_exists( 'Quickstart') ) {
 
                         // Sense Quickdump format
                         if (strpos($line, "(") === 0 && (substr($line, -2) === ")," || substr($line, -2) === ");")) {
-                            $startLine = substr( $line, 0, 1 );
+                            $startLine = $line[0];
                             $endLine = substr( $line, -2 );
                             $line = substr( $line, 1, -2 );
                             $line = str_replace("\\0", "~0Placeholder", $line );
-                            // $matches = [];
-                            // preg_match_all( $regex1, $line, $matches );
-                            // $items = $matches[0];
                             $items = $this->parse_sql_sequence( $line );
                             $line = implode( '', [$startLine, implode( ",", array_map( function ( $item ) use ( $searchString, $replaceString ) {
                                 if (strpos( $item, "'" ) === 0 && strrpos( $item, "'" ) === strlen( $item ) - 1 ) {
@@ -2197,7 +2196,8 @@ if ( ! class_exists( 'Quickstart') ) {
 
             // Check for multi-line block in search and replace them in
             // the temp file as a whole because line-by-line won't work.
-            for ( $i = 0; $i < count( $search ); $i++ ) {
+            $searchCount = count( $search );
+            for ( $i = 0; $i < $searchCount; $i++ ) {
                 $searchString = $search[$i];
                 $replaceString = $replace[$i];
                 if ( strpos( $searchString, "\n" ) !== false ) {
