@@ -498,7 +498,6 @@ if ( ! class_exists( 'Quickstart') ) {
 
                     // Check for db_sql_file
                     $db_sql_file = $this->peek_job_data( $job_id, 'db_sql_file' );
-                    $db_sql_file = json_encode( $db_sql_file );
                     if ( $db_sql_file !== false ) {
                         
                         // Check for db_sql_file and it's tmp for percentage of completion
