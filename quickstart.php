@@ -2087,21 +2087,24 @@ if ( ! class_exists( 'Quickstart') ) {
             $hcpp->log( "Replace: " . json_encode( $replace ) );
 
             // Check parameters
-            if (!file_exists($file)) {
-                throw new Exception("File '$file' does not exist.");
+            if ( !file_exists( $file ) ) {
+                throw new Exception( "File '$file' does not exist." );
             }
-
-            if ((!is_string($search) && !is_array($search)) || (!is_string($replace) && !is_array($replace))) {
-                throw new Exception("Parameters 'search' and 'replace' must be strings or arrays.");
+            if ( !is_string( $search ) && !is_array( $search ) ) {
+                throw new Exception( "Parameter 'search' must be a string or array." );
             }
-
-            // Ensure $search and $replace are arrays
-            $search = (array) $search;
-            $replace = (array) $replace;
-
-            $searchCount = count($search);
-            if ($searchCount !== count($replace)) {
-                throw new Exception("Parameters 'search' and 'replace' must have the same number of elements.");
+            if ( !is_string( $replace ) && !is_array( $replace ) ) {
+                throw new Exception( "Parameter 'replace' must be a string or array." );
+            }
+            if ( is_string( $search ) ) {
+                $search = [ $search ];
+            }
+            if ( is_string( $replace ) ) {
+                $replace = [ $replace ];
+            }
+            $searchCount = count( $search );
+            if ( $searchCount != count( $replace ) ) {
+                throw new Exception( "Parameters 'search' and 'replace' must have the same number of elements." );
             }
 
             // Duplicate search and replace strings with escaped versions if necessary
@@ -2122,7 +2125,7 @@ if ( ! class_exists( 'Quickstart') ) {
             $handle = fopen( $file, 'r' );
             $tempFile = $file . '.tmp';
             $writeStream = fopen( $tempFile, 'w' );
-            $regex2 = "/s:(\d+):\"(.*?)\";/ms";
+            $regex = "/s:(\d+):\"(.*?)\";/ms";
             $searchCount = count( $search );
             while ( ( $line = fgets( $handle ) ) !== false ) {
                 $origLine = $line;
@@ -2141,7 +2144,7 @@ if ( ! class_exists( 'Quickstart') ) {
                             $line = substr( $line, 1, -2 );
                             $line = str_replace("\\0", "~0Placeholder", $line );
                             $items = $this->parse_sql_sequence( $line );
-                            $line = implode( '', [$startLine, implode( ",", array_map( function ( $item ) use ( $searchString, $replaceString, $regex2 ) {
+                            $line = implode( '', [$startLine, implode( ",", array_map( function ( $item ) use ( $searchString, $replaceString, $regex ) {
                                 if ($item[0] === "'" && $item[strlen($item) - 1] === "'") {
                                     $item = substr( $item, 1, -1 );
                                     $item = str_replace( $searchString, $replaceString, $item );
@@ -2153,7 +2156,7 @@ if ( ! class_exists( 'Quickstart') ) {
                                         $item = json_decode(json_encode( $item ) );
                                         $item = str_replace( "\\", "", $item );
                                         $item = str_replace( "~0Placeholder", "\0", $item );
-                                        $item = preg_replace_callback( $regex2, function ( $matches ) {
+                                        $item = preg_replace_callback( $regex, function ( $matches ) {
                                             return 's:' . strlen( $matches[2] ) . ':"' . $matches[2] . '";';
                                         }, $item);
                                         $item = addslashes( $item );
