@@ -43,6 +43,10 @@
         border:3px dashed;
         padding:30px;
     }
+    #dropZone .fa-file-archive {
+        font-size: x-large;
+        color: rgb(0,150,0);
+    }
     #dropZone.dragover {
         background-color: #eee;
     }
