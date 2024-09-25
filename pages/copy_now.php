@@ -47,16 +47,19 @@
                         } catch( e ) {
                             data = { 'status': 'error', 'message': 'Error parsing JSON: ' + e + "\n" + data };
                         }
-                        $('#status').html(data.message);
+                        if ( data.status == 'finished' ) {
+                            $('#continue-button').html('<i tabindex="200" class="fas fa-flag-checkered icon-blue"></i>Finished');
+                        }else{
+                            if ( data.message != '' ) {
+                                $('#status').html(data.message);
+                            }
+                        }
                         if ( data.status != 'running' ) {
                             $('#back-button').hide();
                             $('#options').hide();
                             $('#continue-button').removeClass('disabled');
                             $('.spinner-overlay').removeClass('active');
                             clearInterval( copy_int );
-                        }
-                        if ( data.status == 'finished' ) {
-                            $('#continue-button').html('<i tabindex="200" class="fas fa-flag-checkered icon-blue"></i>Finished');
                         }
                     }
                 }); 

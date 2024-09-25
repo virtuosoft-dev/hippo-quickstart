@@ -67,7 +67,6 @@
                             $('#error').html( '<p>Error parsing JSON: ' + e + '</p>');
                             $('#error').show();
                         }
-                        if ( data.status == 'running' ) return;
                         if ( data.status == 'finished' ) {
                             $('#status').html(`<p>Finished! You can download the exported archive at:</p>
                             <div style="padding:10px;">
@@ -85,13 +84,17 @@
                                 }
                             ?>`);                            
                         } else {
-                            $('#status').html( data.message || 'An unknown error occurred. Please try again.');
+                            if ( data.message != '' ) {
+                                $('#status').html( data.message );
+                            }
                         }
-                        $('#back-button').hide();
-                        $('#continue-button').removeClass('disabled');
-                        $('#continue-button').attr('href', '?quickstart=main');
-                        $('.spinner-overlay').removeClass('active');
-                        clearInterval( export_int );
+                        if ( data.status != 'running' ) {
+                            $('#back-button').hide();
+                            $('#continue-button').removeClass('disabled');
+                            $('#continue-button').attr('href', '?quickstart=main');
+                            $('.spinner-overlay').removeClass('active');
+                            clearInterval( export_int );
+                        }
                     }
                 });
             }, 6000);

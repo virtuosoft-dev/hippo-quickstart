@@ -495,6 +495,19 @@ if ( ! class_exists( 'Quickstart') ) {
                     $pid = $this->pickup_job_data( $job_id, 'pid' );
                     return [ 'status' => 'finished', 'message' => '' ];
                 }else{
+
+                    // Check for db_sql_file
+                    $db_sql_file = $this->peek_job_data( $job_id, 'db_sql_file' );
+                    if ( $db_sql_file !== false ) {
+                        
+                        // Check for db_sql_file and it's tmp for percentage of completion
+                        if ( file_exists( $db_sql_file ) && file_exists( $db_sql_file . '.tmp' ) ) {
+                            $total = filesize( $db_sql_file );
+                            $current = filesize( $db_sql_file . '.tmp' );
+                            $percent = round( ( $current / $total ) * 100 );
+                            return [ 'status' => 'running', 'message' => "Updating database... $percent%" ];
+                        }
+                    }
                     return [ 'status' => 'running', 'message' => '' ];
                 }
             }
@@ -937,6 +950,7 @@ if ( ! class_exists( 'Quickstart') ) {
                     $searches = array_merge( $searches, $orig_aliases );
                     $replaces = array_merge( $replaces, $new_aliases );
                     try {
+                        $this->set_xfer_job_data( $job_id, 'db_sql_file', $db_sql_file );
                         $this->search_replace_file( $db_sql_file, $searches, $replaces );
                     }catch( Exception $e ) {
                         $this->report_status( $job_id, $e->getMessage(), 'error' );
@@ -1659,6 +1673,7 @@ if ( ! class_exists( 'Quickstart') ) {
                     $searches = array_merge( $searches, $orig_aliases );
                     $replaces = array_merge( $replaces, $new_aliases );
                     try {
+                        $this->set_xfer_job_data( $job_id, 'db_sql_file', $db_sql_file );
                         $this->search_replace_file( $db_sql_file, $searches, $replaces );
                     }catch( Exception $e ) {
                         $this->report_status( $job_id, $e->getMessage(), 'error' );
@@ -2231,11 +2246,18 @@ if ( ! class_exists( 'Quickstart') ) {
             if ( !isset( $_SESSION['devstia_jobs'][$job_id] ) ) return false;
             if ( !isset( $_SESSION['devstia_jobs'][$job_id][$key] ) ) return false;
             $value = json_encode( $_SESSION['devstia_jobs'][$job_id][$key], JSON_PRETTY_PRINT );
+            $this->set_xfer_job_data( $job_id, $key, $value );
+            return true;
+        }
+
+        /**
+         * Set the given job data to a file.
+         */
+        public function set_xfer_job_data( $job_id, $key, $value ) {
             $file = "/home/admin/tmp/devstia_" . $job_id . "-" . $key . ".json";
             file_put_contents( $file, $value );
             chown( $file, 'admin' );
             chgrp( $file, 'admin' );
-            return true;
         }
     }
     new Quickstart();
