@@ -49,10 +49,9 @@
                         }
                         if ( data.status == 'finished' ) {
                             $('#continue-button').html('<i tabindex="200" class="fas fa-flag-checkered icon-blue"></i>Finished');
-                        }else{
-                            if ( data.message != '' ) {
-                                $('#status').html(data.message);
-                            }
+                        }
+                        if ( data.message != '' ) {
+                            $('#status').html(data.message);
                         }
                         if ( data.status != 'running' ) {
                             $('#back-button').hide();
