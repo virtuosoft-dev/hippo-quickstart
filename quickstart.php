@@ -1265,11 +1265,23 @@ if ( ! class_exists( 'Quickstart') ) {
             $user = $manifest['user'];
             $domain = $manifest['domain'];
             $export_includes = $manifest['export_includes'];
-            $export_includes = explode( ",", $export_includes );
+            if ( $export_includes == '' ) {
+                $export_includes = [];
+            }else{
+                $export_includes = explode( ",", $export_includes );
+            }
             $export_excludes = $manifest['export_excludes'];
-            $export_excludes = explode( ",", $export_excludes );
+            if ( $export_excludes == '' ) {
+                $export_excludes = [];
+            }else{
+                $export_excludes = explode( ",", $export_excludes );
+            }
             $export_options = $manifest['export_options'];
-            $export_options = explode( ",", $export_options );
+            if ( $export_options == '' ) {
+                $export_options = [];
+            }else{
+                $export_options = explode( ",", $export_options );
+            }
             $setup_script = $manifest['setup_script'];
             $setup_script = str_replace( "\r\n", "\n", $setup_script );
             unset( $manifest['setup_script'] );
@@ -1306,7 +1318,7 @@ if ( ! class_exists( 'Quickstart') ) {
 
             // Purge excluded folders from user tmp folder
             foreach ($export_excludes as $folder) {
-                if ($folder != '' && file_exists($source_folder . '/' . $folder)) {
+                if (file_exists($source_folder . '/' . $folder)) {
                     $command .= "rm -rf $export_folder/$folder; ";
                 }
             }

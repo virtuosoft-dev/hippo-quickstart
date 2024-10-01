@@ -306,15 +306,13 @@
                                 $excluded = ['stats', 'logs', 'private', '.vscode'];
                                 foreach ( $subfolders as $subfolder ) {
                                     $folderName = basename( $subfolder );
-                                    if ( in_array( $folderName, $excluded ) ) {
-                                        $script .= 'window.addItemToListbox("' . $folderName . '", "exclude");' . "\n";
-                                    }else{
+                                    if ( !in_array( $folderName, $excluded ) ) {
                                         $script .= 'window.addItemToListbox("' . $folderName . '", "include");' . "\n";
                                     }
                                 }
                             }
                         }catch(Exception $e) {
-                            $script .= 'console.log("' . escapeHtml($e->getMessage()) . '");' . "\n";
+                            $script .= 'console.log("' . htmlspecialchars( $e->getMessage(), ENT_QUOTES, 'UTF-8' ) . '");' . "\n";
                         }
                         echo $script;
                     ?>
