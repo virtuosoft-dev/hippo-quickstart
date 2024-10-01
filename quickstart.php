@@ -1258,11 +1258,11 @@ if ( ! class_exists( 'Quickstart') ) {
             global $hcpp;
             $user = $manifest['user'];
             $domain = $manifest['domain'];
-            $export_includes = $manifest['export_includes'];
+            $export_includes = isset( $manifest['export_includes'] ) ? $manifest['export_includes'] : '';
             $export_includes = explode( ",", $export_includes );
-            $export_excludes = $manifest['export_excludes'];
+            $export_excludes = isset( $manifest['export_excludes'] ) ? $manifest['export_excludes'] : '';
             $export_excludes = explode( ",", $export_excludes );
-            $export_options = $manifest['export_options'];
+            $export_options = isset( $manifest['export_options'] ) ? $manifest['export_options'] : '';
             $export_options = explode( ",", $export_options );
             $setup_script = $manifest['setup_script'];
             $setup_script = str_replace( "\r\n", "\n", $setup_script );
