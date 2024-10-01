@@ -1256,13 +1256,19 @@ if ( ! class_exists( 'Quickstart') ) {
             if ( $manifest == false ) return $args;
 
             global $hcpp;
+            try{
+
+            }catch( Exception $e ) {
+                $this->report_status( $job_id, $e->getMessage(), 'error' );
+                return $args;
+            }
             $user = $manifest['user'];
             $domain = $manifest['domain'];
-            $export_includes = isset( $manifest['export_includes'] ) ? $manifest['export_includes'] : '';
+            $export_includes = $manifest['export_includes'];
             $export_includes = explode( ",", $export_includes );
-            $export_excludes = isset( $manifest['export_excludes'] ) ? $manifest['export_excludes'] : '';
+            $export_excludes = $manifest['export_excludes'];
             $export_excludes = explode( ",", $export_excludes );
-            $export_options = isset( $manifest['export_options'] ) ? $manifest['export_options'] : '';
+            $export_options = $manifest['export_options'];
             $export_options = explode( ",", $export_options );
             $setup_script = $manifest['setup_script'];
             $setup_script = str_replace( "\r\n", "\n", $setup_script );
@@ -1300,7 +1306,7 @@ if ( ! class_exists( 'Quickstart') ) {
 
             // Purge excluded folders from user tmp folder
             foreach ($export_excludes as $folder) {
-                if (file_exists($source_folder . '/' . $folder)) {
+                if ($folder != '' && file_exists($source_folder . '/' . $folder)) {
                     $command .= "rm -rf $export_folder/$folder; ";
                 }
             }
