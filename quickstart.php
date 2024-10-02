@@ -174,7 +174,7 @@ if ( ! class_exists( 'Quickstart') ) {
                         $content = file_get_contents( $split_file );
                         global $hcpp;
                         $last_line = $hcpp->getRightMost( $content, "\n" );
-                        $content = $hcpp->delRightMost( $content, "\n" );
+                        $content = $hcpp->delRightMost( $content, "\n" ) . "\n";
                         file_put_contents( $split_file, $content );
 
                         // Prepend it to the top of the next file
