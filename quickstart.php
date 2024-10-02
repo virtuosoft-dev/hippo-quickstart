@@ -142,6 +142,7 @@ if ( ! class_exists( 'Quickstart') ) {
                                 $remaining_size = $file_size_bytes - $current_size;
                                 fwrite($new_file_handle, substr($buffer, 0, $remaining_size));
                                 fclose($new_file_handle);
+                                $split_files[] = $new_file_path; // Add the last split file path to the array
                                 $file_number++;
                                 $new_file_path = $folder_path . DIRECTORY_SEPARATOR . pathinfo($file_path, PATHINFO_FILENAME) . '.sql_' . $file_number;
                                 $new_file_handle = fopen($new_file_path, 'w');
@@ -154,11 +155,33 @@ if ( ! class_exists( 'Quickstart') ) {
                         }
 
                         fclose($new_file_handle);
+                        $split_files[] = $new_file_path; // Add the last split file path to the array
                         fclose($file_handle);
 
                         // Remove the original SQL file
                         unlink($file_path);
                     }
+
+                    // Post process split file set
+                    foreach( $split_files as $split_file ) {
+
+                        // If we're on the last file, stop
+                        if ( $split_file === end( $split_files ) ) {
+                            break;
+                        }
+
+                        // Get the last line of the split file
+                        $content = file_get_contents( $split_file );
+                        global $hcpp;
+                        $last_line = $hcpp->getRightMost( $content, "\n" );
+
+                        // Prepend it to the top of the next file
+                        $next_file = $split_files[array_search( $split_file, $split_files ) + 1];
+                        $content = file_get_contents( $next_file );
+                        $content = $last_line . $content;
+                        file_put_contents( $next_file, $content );
+                    }
+                    $split_files = [];
                 }
             }
         }
