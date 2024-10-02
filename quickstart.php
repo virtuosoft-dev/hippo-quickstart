@@ -957,11 +957,13 @@ if ( ! class_exists( 'Quickstart') ) {
                     foreach( $ref_files as $file ) {
                         $file = $dest_folder . '/' . $hcpp->delLeftMost( $file, '/' );
                         try {
-                            $this->search_replace_file( 
-                                $file, 
-                                [$orig_db, $orig_password], 
-                                [$db_name, $db_password] 
-                            );
+                            if ( file_exists( $file ) ) {
+                                $this->search_replace_file( 
+                                    $file, 
+                                    [$orig_db, $orig_password], 
+                                    [$db_name, $db_password] 
+                                );
+                            }
                         }catch( Exception $e ) {
                             $this->report_status( $job_id, $e->getMessage(), 'error' );
                             return $args;
@@ -1037,11 +1039,13 @@ if ( ! class_exists( 'Quickstart') ) {
                     $replaces = [$new_domain, "/home/$new_user"];
                     $searches = array_merge( $searches, $orig_aliases );
                     $replaces = array_merge( $replaces, $new_aliases );
-                    $this->search_replace_file( 
-                        $file, 
-                        $searches,
-                        $replaces
-                    );
+                    if ( file_exists( $file ) ) {
+                        $this->search_replace_file( 
+                            $file, 
+                            $searches, 
+                            $replaces 
+                        );
+                    }
                 }catch( Exception $e ) {
                     $this->report_status( $job_id, $e->getMessage(), 'error' );
                     return $args;
@@ -1078,11 +1082,13 @@ if ( ! class_exists( 'Quickstart') ) {
                     if ( !file_exists( $file ) ) continue;
                     if ( $value == $new_value ) continue;
                     try {
-                        $this->search_replace_file( 
-                            $file, 
-                            [$value], 
-                            [$new_value] 
-                        );
+                        if ( file_exists( $file ) ) {
+                            $this->search_replace_file( 
+                                $file, 
+                                [$value], 
+                                [$new_value] 
+                            );
+                        }
                     }catch( Exception $e ) {
                         $this->report_status( $job_id, $e->getMessage(), 'error' );
                         return $args;
@@ -1119,11 +1125,13 @@ if ( ! class_exists( 'Quickstart') ) {
                     if ( !file_exists( $file ) ) continue;
                     if ( $value == $new_value ) continue;
                     try {
-                        $this->search_replace_file( 
-                            $file, 
-                            [$value], 
-                            [$new_value] 
-                        );
+                        if ( file_exists( $file ) ) {
+                            $this->search_replace_file( 
+                                $file, 
+                                [$value], 
+                                [$new_value] 
+                            );
+                        }
                     }catch( Exception $e ) {
                         $this->report_status( $job_id, $e->getMessage(), 'error' );
                         return $args;
@@ -1580,11 +1588,13 @@ if ( ! class_exists( 'Quickstart') ) {
                     $replaces = [$new_domain, "/home/$new_user"];
                     $searches = array_merge( $searches, $orig_aliases );
                     $replaces = array_merge( $replaces, $new_aliases );
-                    $this->search_replace_file( 
-                        $file, 
-                        $searches,
-                        $replaces
-                    );
+                    if ( file_exists( $file ) ) {
+                        $this->search_replace_file( 
+                            $file, 
+                            $searches, 
+                            $replaces 
+                        );
+                    }
                 }catch( Exception $e ) {
                     $this->report_status( $job_id, $e->getMessage(), 'error' );
                     return $args;
@@ -1621,11 +1631,13 @@ if ( ! class_exists( 'Quickstart') ) {
                     if ( !file_exists( $file ) ) continue;
                     if ( $value == $new_value ) continue;
                     try {
-                        $this->search_replace_file( 
-                            $file, 
-                            [$value], 
-                            [$new_value] 
-                        );
+                        if ( file_exists( $file ) ) {
+                            $this->search_replace_file( 
+                                $file, 
+                                [$value], 
+                                [$new_value] 
+                            );
+                        }
                     }catch( Exception $e ) {
                         $this->report_status( $job_id, $e->getMessage(), 'error' );
                         return $args;
@@ -1662,11 +1674,13 @@ if ( ! class_exists( 'Quickstart') ) {
                     if ( !file_exists( $file ) ) continue;
                     if ( $value == $new_value ) continue;
                     try {
-                        $this->search_replace_file( 
-                            $file, 
-                            [$value], 
-                            [$new_value] 
-                        );
+                        if ( file_exists( $file ) ) {
+                            $this->search_replace_file( 
+                                $file, 
+                                [$value], 
+                                [$new_value] 
+                            );
+                        }
                     }catch( Exception $e ) {
                         $this->report_status( $job_id, $e->getMessage(), 'error' );
                         return $args;
@@ -1698,11 +1712,13 @@ if ( ! class_exists( 'Quickstart') ) {
                     foreach( $ref_files as $file ) {
                         $file = $dest_folder . '/' . $hcpp->delLeftMost( $file, '/' );
                         try {
-                            $this->search_replace_file( 
-                                $file, 
-                                [$orig_db, $orig_password], 
-                                [$db_name, $db_password] 
-                            );
+                            if ( file_exists( $file ) ) {
+                                $this->search_replace_file( 
+                                    $file, 
+                                    [$orig_db, $orig_password], 
+                                    [$db_name, $db_password] 
+                                );
+                            }
                         }catch( Exception $e ) {
                             $this->report_status( $job_id, $e->getMessage(), 'error' );
                             return $args;
