@@ -287,9 +287,12 @@
                             if ( file_exists( $private_folder . '/devstia_manifest.json' ) ) {
                                 $content = file_get_contents( $private_folder . '/devstia_manifest.json' );
                                 $json = json_decode( $content, true );
-                                $export_options = $json['export_options'] ?? [];
-                                $export_includes = $json['export_includes'] ?? [];
-                                $export_excludes = $json['export_excludes'] ?? [];
+                                $export_options = $json['export_options'];
+                                $export_options = explode( ',', $export_options );
+                                $export_includes = $json['export_includes'];
+                                $export_includes = explode( ',', $export_includes );
+                                $export_excludes = $json['export_excludes'];
+                                $export_excludes = explode( ',', $export_excludes );
                                 foreach ($export_includes as $include) {
                                     $script .= 'window.addItemToListbox("' . $include . '", "include");' . "\n";
                                 }
