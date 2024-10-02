@@ -170,10 +170,12 @@ if ( ! class_exists( 'Quickstart') ) {
                             break;
                         }
 
-                        // Get the last line of the split file
+                        // Grab and remove the last line of the split file
                         $content = file_get_contents( $split_file );
                         global $hcpp;
                         $last_line = $hcpp->getRightMost( $content, "\n" );
+                        $content = $hcpp->delRightMost( $content, "\n" );
+                        file_put_contents( $split_file, $content );
 
                         // Prepend it to the top of the next file
                         $next_file = $split_files[array_search( $split_file, $split_files ) + 1];
