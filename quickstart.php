@@ -1832,10 +1832,10 @@ if ( ! class_exists( 'Quickstart') ) {
 
             // Omit folders, and file extensions for scan
             $omit_folders = array( 'src', 'core', 'includes', 'public', 'current', 'content', 'core', 'uploads', 
-                'logs', '.git', '.svn', '.hg', 'versions', 'node_modules', 'wp-content', 'wp-includes',
+                'logs', '.git', '.svn', '.hg', 'versions', 'node_modules', 'wp-includes',
                 'wp-admin', 'vendor', 'mw-config', 'extensions', 'maintenance', 'i18n', 'skins' );
             $match_extensions = array( 'php', 'ts', 'js', 'json', 'conf', 'config', 'jsx', 'ini', 'sh', 'xml', 'inc',
-                'cfg', 'yml', 'yaml', 'py', 'rb', 'env' );
+                'cfg', 'yml', 'yaml', 'py', 'rb', 'env', 'css', 'scss', 'md', 'txt' );
 
             // Get list of files to check from public_html folder
             $files = [];
