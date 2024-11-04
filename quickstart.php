@@ -1834,8 +1834,8 @@ if ( ! class_exists( 'Quickstart') ) {
             $omit_folders = array( 'src', 'core', 'includes', 'public', 'current', 'content', 'core', 'uploads', 
                 'logs', '.git', '.svn', '.hg', 'versions', 'node_modules', 'wp-includes',
                 'wp-admin', 'vendor', 'mw-config', 'extensions', 'maintenance', 'i18n', 'skins' );
-            $match_extensions = array( 'php', 'ts', 'js', 'json', 'conf', 'config', 'jsx', 'ini', 'sh', 'xml', 'inc',
-                'cfg', 'yml', 'yaml', 'py', 'rb', 'env', 'css', 'scss', 'md', 'txt' );
+            $match_extensions = array( 'php', 'ts', 'js', 'json', 'jsx', 'conf', 'config', 'ini', 'sh', 'xml', 'inc',
+                'cfg', 'yml', 'yaml', 'py', 'rb', 'env', 'css', 'scss', 'md', 'txt', 'htm', 'html' );
 
             // Get list of files to check from public_html folder
             $files = [];
