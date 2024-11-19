@@ -2242,24 +2242,27 @@ if ( ! class_exists( 'Quickstart') ) {
                             $items = $this->parse_sql_sequence( $line );
                             $line = implode( '', [$startLine, implode( ",", array_map( function ( $item ) use ( $searchString, $replaceString, $regex ) {
                                 if ($item[0] === "'" && $item[strlen($item) - 1] === "'") {
-                                    $item = substr( $item, 1, -1 );
-                                    $item = str_replace( $searchString, $replaceString, $item );
+                                    if ( strpos( $item, $searchString ) !== false ) {
+                                        $item = substr( $item, 1, -1 );
+                                        $item = str_replace( $searchString, $replaceString, $item );
 
-                                    // Sense serialized strings
-                                    if ( $this->is_serialized( $item ) ) {
+                                        // Sense serialized strings
+                                        if ( $this->is_serialized( $item ) ) {
 
-                                        // Recalculate the length of the serialized strings
-                                        $item = json_decode(json_encode( $item ) );
-                                        $item = str_replace( "\\", "", $item );
-                                        $item = str_replace( "~0Placeholder", "\0", $item );
-                                        $item = preg_replace_callback( $regex, function ( $matches ) {
-                                            return 's:' . strlen( $matches[2] ) . ':"' . $matches[2] . '";';
-                                        }, $item);
-                                        $item = addslashes( $item );
-                                    }else{
-                                        $item = str_replace( "\0", "~0Placeholder", $item );
+                                            // Recalculate the length of the serialized strings
+                                            $item = json_decode(json_encode( $item ) );
+                                            $item = str_replace( "\\", "", $item );
+                                            $item = str_replace( "~0Placeholder", "\0", $item );
+                                            $item = preg_replace_callback( $regex, function ( $matches ) {
+                                                return 's:' . strlen( $matches[2] ) . ':"' . $matches[2] . '";';
+                                            }, $item);
+                                            $item = addslashes( $item );
+                                        }else{
+                                            $item = str_replace( "\0", "~0Placeholder", $item );
+                                        }
+                                        return implode( '', ["'" , $item , "'"] );
                                     }
-                                    return implode( '', ["'" , $item , "'"] );
+                                    return $item;
                                 } else if ( $item === 'null' ) {
                                     return null;
                                 } else if ( is_numeric( $item ) ) {
