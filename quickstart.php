@@ -1815,6 +1815,7 @@ if ( ! class_exists( 'Quickstart') ) {
                 $message .= "<a href=\"https://vscode-$new_user.$hostname/?tkn=$token&folder=/home/$new_user/web/$new_domain\"";
                 $message .= " target=\"_blank\"><i tabindex=\"100\" style=\"font-size:smaller;\"";
                 $message .= " class=\"fas fa-file-code status-icon blue\"></i> Open VSCode Editor</a>.";
+                $message .= "<br>You can always find these links under the Web menu.";
             }
 
             // Display quick edit links
