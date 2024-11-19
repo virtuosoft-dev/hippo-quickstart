@@ -1,13 +1,12 @@
 <?php require( 'header.php' ); ?>
 <?php
-    // Create a new job id
     $job_id = $hcpp->quickstart->create_job();
 ?>
 <style>
     #bpcreate {
         border: none;
         min-height: 1280px;
-        width: 900px;
+        width: 1000px;
     }
     @media (min-width: 680px) and (max-width: 1023px) {
         #bpcreate {
@@ -19,115 +18,121 @@
             width: 480px;
         }
     }
+    .qs_create {
+        padding: 0;
+        margin: 0;
+    }
 </style>
 <div class="toolbar" style="z-index:100;position:relative;">
     <div class="toolbar-inner">
         <div class="toolbar-buttons">
-            <a href="javascript:window.navHistory.pop();navigateToURL(window.navHistory.pop());" class="button button-secondary button-back js-button-back" id="back-button">
+            <a href="#" class="button button-secondary button-back js-button-back" id="back-button">
                 <i tabindex="300" class="fas fa-arrow-left icon-blue"></i>Back			
             </a>
+        </div>
+        <div class="toolbar-buttons">
+            <a href="#" class="button" id="create-button" style="display: none;">
+                <i tabindex="200" class="fas fa-arrow-right icon-blue"></i>Create
+            </a>         
         </div>
     </div>
 </div>
 <div class="body-reset container">
     <div class="quickstart qs_create">
-        <h1>Create a New Website</h1>
-        <div id="bpwait">Please wait. Loading latest blueprints.</div>
-        <iframe id="bpcreate" style="display:none;"></iframe>
+        
+        <h1 style="padding: 50px 50px 0;">Create a New Website</h1>
+        <div id="bpwait" style="padding: 0 50px;">Please wait. Loading latest blueprints.</div>
+        <iframe id="bpcreate" src="https://local.dev.pw:8083/pluginable.php?q=https://devstia.com/wp-login.php?redirect_to=https://devstia.com/blueprints" style="display:none;"></iframe>
     </div>
 </div>
 <script>
     (function($) {
         $(function() {
 
-            // Init navCache and navCache for back button/caching
-            window.navHistory = [];
-            window.navCache = [];
-            window.navHistory.push('?quickstart=main');
-            
-            /**
-             * Navigate to the specified URL in the bpcreate iframe, passing the application password
-             * password
-             * @param {string} url The devstia.com URL to navigate to.
-             */
-            window.navigateToURL = function(url) {
+            // Set the job ID and HTTP host for app connect
+            window.jobID = '<?php echo $job_id; ?>';
+            window.httpHost = '<?php echo $_SERVER['HTTP_HOST']; ?>';
+            window.bpHistory = [];
 
-                // Detect back to main menu
-                if (url === '?quickstart=main') {
-                    window.location = url;
-                    return;
-                }
-                
-                // Reject non-Devstia.com URLs (this is done on the server too)
-                if (url.indexOf('https://devstia.com/') !== 0) return;
-                
-                // Resume navigating and record the URL in navHistory
-                $('.spinner-overlay').addClass('active');
-                $('#bpcreate').hide();
-                window.navHistory.push(url);
+            // Listen for messages from the iframe
+            window.addEventListener('message', function(event) {
+                if (event.origin !== 'https://local.dev.pw:8083') return;
 
-                // Serve up from cache
-                if (typeof navCache[url] !== 'undefined' && navCache[url] !== null && navCache[url] !== '') {
-                    $('#bpcreate').attr('srcdoc', navCache[url]);
+                // Signal the iframe is ready to be displayed
+                if (event.data.action == 'loaded') {
+                    $('div.qs_create h1').hide();
+                    $('#bpwait').hide();
+                    $('#bpcreate').show();
                     $('.spinner-overlay').removeClass('active');
-                    return;
                 }
 
-                // Set quickstart bit
-                let origURL = url;
-                let darkMode = $('link[href*="dark.min.css"]').length > 0;
-                url += (url.indexOf('?') === -1 ? '?' : '&') + 'quickstart=1&dark_mode=' + darkMode;
-                
-                // Use REST API protected content endpoint to retrieve the content
-                url = 'https://devstia.com/wp-json/devstia-com/v1/protected-content?page_url=' + encodeURIComponent(url);
-                $.ajax({
-                    url: url,
-                    type: 'GET',
-                    beforeSend: function ( xhr ) {
-                        <?php
+                // Display the spinner overlay on unloaded
+                if (event.data.action == 'unloading') {
+                    $('#bpcreate').hide();
+                    $('.spinner-overlay').addClass('active');
+                    $('#create-button').hide();
+                }
 
+                // Supply connected credentials to the iframe
+                if (event.data.action == 'requestAppCredentials') {
+                    let data = {
+                        action: 'replyAppCredentials',
+                        app_cred: '<?php 
                             global $hcpp;
                             $user = $_SESSION['user'];
                             $app_cred = trim( $hcpp->run( "invoke-plugin quickstart_connect_now $user" ) );
-                            echo "xhr.setRequestHeader( 'Authorization', 'Basic ' + btoa('" . $app_cred . "') );";
-                        ?>
-                    },
-                    success: function(src) {
-                        $('#bpwait').hide();
-                        $('div.qs_create h1').hide();
+                            echo $app_cred; 
+                        ?>'
+                    };
 
-                        src = src.replace('</' + 'head>', '<' + 'script>var jobID="<?php echo $job_id; ?>";var httpHost="<?php echo $_SERVER['HTTP_HOST']; ?>";</' + 'script></' + 'head>');
-                        $('#bpcreate').attr('srcdoc', src);
-
-                        // Cache the content by url in navCache
-                        navCache[origURL] = src;
-
-                        $('.spinner-overlay').removeClass('active');
-                    },
-                    error: function(jqXHR, textStatus, errorThrown) {
-                        console.log(textStatus, errorThrown);
-                    }
-                })
-
-            }
-            navigateToURL('https://devstia.com/blueprints/');
-
-            // Process create website for download/create
-            window.addEventListener('message', function(event) {
-                if (event.origin !== 'https://local.dev.pw:8083') return;
-                if (event.data.type == 'download') {
-                    if (event.data.url.indexOf('https://devstia.com/') !== 0) return;
-                    $('.spinner-overlay').addClass('active');
-                    setTimeout(function() {
-                        window.location = '?quickstart=create_options&job_id=<?php echo $job_id; ?>&url=' + event.data.url;
-                    }, 250);
+                    // Post back the application credentials
+                    event.source.postMessage(data, event.origin);
                 }
-                if (event.data.type == 'ready') {
-                    if (event.data.primaryHeight) {
-                        $('#bpcreate').css('height', event.data.primaryHeight + 200 + 'px');
-                    }
+
+                // Record iframe url history on loaded event
+                if (event.data.action == 'loaded') {
+                    window.bpHistory.push($('#bpcreate')[0].contentWindow.location.href);
+                }
+
+                // Setup the create button
+                if (event.data.action == 'bpcreate') {
+                    $('#create-button').attr('url', event.data.zip);
+                    $('#create-button').show();
+                }
+                if (event.data.action == 'createnow') {
+                    $('#create-button').click();
                 }
             });
-        });  
+            $('.spinner-overlay').addClass('active');
+
+            // Handle create button
+            $('#create-button').on('click', function(e) {
+                e.preventDefault();
+                let url = $(this).attr('url');
+                if (url.indexOf('https://devstia.com/') !== 0) return;
+                $('.spinner-overlay').addClass('active');
+                setTimeout(function() {
+                    window.location = '?quickstart=create_options&job_id=<?php echo $job_id; ?>&url=' + url;
+                }, 250);
+            });
+
+            // Handle back button on iframe
+            $('#back-button').on('click', function(e) {
+                e.preventDefault();
+                window.bpHistory.pop();
+                let prevURL = window.bpHistory.pop();
+                if (prevURL) {
+                    $('#bpcreate')[0].contentWindow.location = prevURL;
+                }else{
+                    window.location = '?quickstart=main';
+                }
+            });
+
+            // Handle resizing the view port
+            window.resizeBPCreate = function( height ) {
+                if (height < 1280) height = 1280;
+                $('#bpcreate').css('height', height + 'px');
+            }
+        });
     })(jQuery);
 </script>

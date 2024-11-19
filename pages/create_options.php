@@ -20,7 +20,7 @@
     $url = filter_var( $url, FILTER_SANITIZE_URL );
     $url = str_replace( '..', '', $url );
 
-    // Validate the URL as starting with https://devstia.com and zip
+    // Validate the URL as starting with https://devstia.com and ending in zip
     if ( strpos( $url, 'https://devstia.com/' ) !== 0 || strpos( $url, '.zip' ) === false ) {
         header( 'Location: ?quickstart=main' );
         exit;

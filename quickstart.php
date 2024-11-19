@@ -83,6 +83,25 @@ if ( ! class_exists( 'Quickstart') ) {
          * Constructor, listen for the render events
          */
         public function __construct() {
+
+            // Use our built in proxy only for https://devstia.com/
+            if ( isset( $_GET['q'] ) ) {
+                if ( strpos( $_GET['q'], 'https://devstia.com/' ) === 0 ) {
+                    if (session_status() == PHP_SESSION_NONE) {
+                        session_start();
+                    }
+    
+                    // Only if user is logged in
+                    if ( isset( $_SESSION['user'] ) ) {
+                        require_once( __DIR__ . '/proxy/index.php' );
+                        exit();
+                    }
+                }
+                echo 'Access denied';
+                exit();
+            }
+
+            // Carry on with the plugin
             global $hcpp;
             $hcpp->quickstart = $this;
             $hcpp->add_action( 'hcpp_head', [ $this, 'hcpp_head' ] );
@@ -1782,6 +1801,24 @@ if ( ! class_exists( 'Quickstart') ) {
             }
             $message .= "<a href=\"https://$new_domain\" target=\"_blank\"><i tabindex=\"100\" ";
             $message .= "style=\"font-size:smaller;\" class=\"fas fa-external-link\"></i> $new_domain</a>.";
+
+            // Display VSCode online editor link
+            if ( isset( $hcpp->vscode ) ) {
+
+                // Start up editor for user
+                $hcpp->run( "invoke-plugin vscode_startup $new_user" );
+                $hostname = trim( $hcpp->delLeftMost( shell_exec( 'hostname -f' ), '.' ) );
+                $token = trim( $hcpp->run( "invoke-plugin vscode_get_token $new_user" ) );
+
+                // Create blue code icon button
+                $message .= "<br><br>Or edit it's files online using ";
+                $message .= "<a href=\"https://vscode-$new_user.$hostname/?tkn=$token&folder=/home/$new_user/web/$new_domain\"";
+                $message .= " target=\"_blank\"><i tabindex=\"100\" style=\"font-size:smaller;\"";
+                $message .= " class=\"fas fa-file-code status-icon blue\"></i> Open VSCode Editor</a>.";
+            }
+
+            // Display quick edit links
+            if ( isset( $hcpp->vscode ) )
             $this->cleanup_job_data( $job_id );
             $this->report_status( $job_id, $message, 'finished' );
             return $args;
@@ -1832,10 +1869,10 @@ if ( ! class_exists( 'Quickstart') ) {
 
             // Omit folders, and file extensions for scan
             $omit_folders = array( 'src', 'core', 'includes', 'public', 'current', 'content', 'core', 'uploads', 
-                'logs', '.git', '.svn', '.hg', 'versions', 'node_modules', 'wp-includes',
+                'logs', '.git', '.svn', '.hg', 'versions', 'node_modules', 'wp-content', 'wp-includes',
                 'wp-admin', 'vendor', 'mw-config', 'extensions', 'maintenance', 'i18n', 'skins' );
-            $match_extensions = array( 'php', 'ts', 'js', 'json', 'jsx', 'conf', 'config', 'ini', 'sh', 'xml', 'inc',
-                'cfg', 'yml', 'yaml', 'py', 'rb', 'env', 'css', 'scss', 'md', 'txt', 'htm', 'html' );
+            $match_extensions = array( 'php', 'ts', 'js', 'json', 'conf', 'config', 'jsx', 'ini', 'sh', 'xml', 'inc',
+                'cfg', 'yml', 'yaml', 'py', 'rb', 'env' );
 
             // Get list of files to check from public_html folder
             $files = [];

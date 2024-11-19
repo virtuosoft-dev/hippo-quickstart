@@ -86,7 +86,6 @@ if ( $_GET['action'] == 'cancel_job' ) {
     $hcpp->quickstart->cancel_job( $job_id );
 }
 
-
 // Check status and result actions
 if ( in_array( $_GET['action'], ['blueprint_status', 'export_status', 'detail_status', 'import_status',
     'import_result', 'copy_result', 'create_result', 'remove_result'] ) ) {
