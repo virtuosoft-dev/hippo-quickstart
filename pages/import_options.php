@@ -66,8 +66,43 @@
                         if ( data.status == 'running' ) return;
                         if ( data.status == 'finished' ) {
                             const manifest = data.manifest;
-                            const domain = manifest.domain;
-                            const aliases = manifest.aliases.join("\n");
+                            let domain = manifest.domain;
+                            let aliases = manifest.aliases;
+
+                            // Suggest .dev.pw or .dev.cc accordingly for popular TLDs
+                            let pop_country_tlds = ['.au', '.ca', '.cn', '.de', '.fr', '.in', '.it', '.jp', '.nz', '.uk', '.us', '.za'];
+                            let pop_top_tlds = ['.com', '.net', '.org', '.gov', '.edu', '.govt', '.co'];
+                            let popular_tlds = ['.gc.ca'];
+                            pop_country_tlds.forEach( (country) => {
+                                pop_top_tlds.forEach( (top) => {
+                                    popular_tlds.push( top + country );
+                                });
+                            });
+                            popular_tlds.push( '.com', '.net', '.org', '.info', '.biz', '.app', '.tech', '.online', '.store', '.dev', '.me', '.co', '.io' );
+                            pop_country_tlds.forEach( (country) => {
+                                popular_tlds.push( country );
+                            });
+
+                            <?php if ( isset( $hcpp->dev_pw ) ) { ?>
+                            let suggest_tld = '.dev.pw';
+                            <?php }elseif ( isset( $hcpp->dev_cc ) ) { ?>
+                            let suggest_tld = '.dev.cc';
+                            <?php } ?>
+                            for (const tld of popular_tlds) {
+                                if ( domain.endsWith( tld ) ) {
+                                    domain = domain.replace( tld, suggest_tld );
+                                    break;
+                                }
+                            }
+                            aliases.forEach( (alias, i) => {
+                                for (const tld of popular_tlds) {
+                                    if ( alias.endsWith( tld ) ) {
+                                        aliases[i] = alias.replace( tld, suggest_tld );
+                                        break;
+                                    }
+                                }
+                            });
+                            aliases = manifest.aliases.join("\n");
                             $('#status').html(data.message);
 
                             // Create form to customize domain/aliases 
