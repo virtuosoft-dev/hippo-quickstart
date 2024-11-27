@@ -115,8 +115,11 @@ if ( in_array( $_GET['action'], ['blueprint_status', 'export_status', 'detail_st
                 $hcpp->quickstart->cleanup_job_data( $job_id );
             }
             $message = 'Fill in options.';
-            if ( is_dir('/home/devstia') ) {
+            global $hcpp;
+            if ( isset( $hcpp->dev_pw) ) {
                 $message .= ' <i>Devstia Personal Web should use a <b>.dev.pw</b> TLD.</i>';
+            }elseif ( isset( $hcpp->dev_cc) ) {
+                $message .= ' <i>Devstia Cloud Connect should use a <b>.dev.cc</b> TLD.</i>';
             }
             $status['message'] = $message;
             $status['manifest'] = $manifest;

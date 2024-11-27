@@ -1800,7 +1800,7 @@ if ( ! class_exists( 'Quickstart') ) {
                 $message = "Website created successfully. You can now visit <br>your website at: ";
             }
             $message .= "<a href=\"https://$new_domain\" target=\"_blank\"><i tabindex=\"100\" ";
-            $message .= "style=\"font-size:smaller;\" class=\"fas fa-external-link\"></i> $new_domain</a>.";
+            $message .= "style=\"font-size:smaller;\" class=\"fas fa-square-up-right icon-lightblue\"></i> $new_domain</a>.";
 
             // Display VSCode online editor link
             if ( isset( $hcpp->vscode ) ) {
