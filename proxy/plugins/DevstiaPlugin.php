@@ -12,11 +12,11 @@ use Proxy\Html;
 
 class DevstiaPlugin extends AbstractPlugin {
 	private $orig_url = 'https://devstia.com/';
-	private $proxy_url = 'https://local.dev.pw:8083/pluginable.php';
-
+	public $proxy_url = '';
 	private $base_url = '';
 
 	public function __construct(){
+		$this->proxy_url = 'https://' . trim( shell_exec( 'hostname -f' ) ). ':8083/pluginable.php';
 		if ( strpos( $this->proxy_url, '?' ) !== false ) {
 			$this->proxy_url .= '&q=';
 		}else{

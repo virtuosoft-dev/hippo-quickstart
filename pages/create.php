@@ -1,6 +1,7 @@
 <?php require( 'header.php' ); ?>
 <?php
     $job_id = $hcpp->quickstart->create_job();
+    $cpdomain = trim( shell_exec( 'hostname -f' ) );
 ?>
 <style>
     #bpcreate {
@@ -42,7 +43,7 @@
         
         <h1 style="padding: 50px 50px 0;">Create a New Website</h1>
         <div id="bpwait" style="padding: 0 50px;">Please wait. Loading latest blueprints.</div>
-        <iframe id="bpcreate" src="https://local.dev.pw:8083/pluginable.php?q=https://devstia.com/wp-login.php?redirect_to=https://devstia.com/blueprints" style="display:none;"></iframe>
+        <iframe id="bpcreate" src="https://<?php echo $cpdomain; ?>:8083/pluginable.php?q=https://devstia.com/wp-login.php?redirect_to=https://devstia.com/blueprints" style="display:none;"></iframe>
     </div>
 </div>
 <script>
@@ -56,7 +57,7 @@
 
             // Listen for messages from the iframe
             window.addEventListener('message', function(event) {
-                if (event.origin !== 'https://local.dev.pw:8083') return;
+                if (event.origin !== 'https://<?php echo $cpdomain; ?>:8083') return;
 
                 // Signal the iframe is ready to be displayed
                 if (event.data.action == 'loaded') {
