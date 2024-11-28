@@ -11,20 +11,6 @@ if (false == isset($_GET['action'])) return;
 
 global $hcpp;
 
-// Serve up remote.js script
-if ( $_GET['action'] == 'remote_js' ) {
-    header('Content-Type: application/javascript');
-    echo file_get_contents( __DIR__ . '/remote.js' );
-    exit;
-}
-
-// Serve up remote.css script
-if ( $_GET['action'] == 'remote_css' ) {
-    header('Content-Type: text/css');
-    echo file_get_contents( __DIR__ . '/remote.css' );
-    exit;
-}
-
 // Process file download
 if ( $_GET['action'] == 'download' )  {
     if ( !isset( $_GET['file'] ) ) return;
