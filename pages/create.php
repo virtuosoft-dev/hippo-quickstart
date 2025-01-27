@@ -110,7 +110,9 @@
             $('#create-button').on('click', function(e) {
                 e.preventDefault();
                 let url = $(this).attr('url');
-                if (url.indexOf('https://devstia.com/') !== 0) return;
+                if (url.indexOf('https://devstia.com/') !== 0 &&
+                    url.indexOf('https://github.com/') !== 0 && 
+                    url.indexOf('https://codeload.github.com/') !==0 ) return;
                 $('.spinner-overlay').addClass('active');
                 setTimeout(function() {
                     window.location = '?quickstart=create_options&job_id=<?php echo $job_id; ?>&url=' + url;
