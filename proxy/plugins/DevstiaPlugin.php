@@ -105,7 +105,12 @@ class DevstiaPlugin extends AbstractPlugin {
 			
 			$request->prepare();
 		}
-		$request->headers->set('X-Devstia-Proxy', 'true');
+		$parse = parse_url( $this->proxy_url );
+		$url = $parse['scheme'] . '://' . $parse['host'];
+		if ( isset( $parse['port'] ) ) {
+			$url .= ':' . $parse['port'];
+		}
+		$request->headers->set('X-Devstia-Proxy', $url);
 	}
 	
 	private function meta_refresh($matches){
@@ -218,7 +223,7 @@ class DevstiaPlugin extends AbstractPlugin {
 			// Force script src to use proxy if it contains one of the following
 			$force_js_proxy = [
 				'wp-includes/js/dist/script-modules/block-library/navigation/view.min.js',
-				'wp-includes/js/dist/script-modules/interactivity/index.min.js',
+			//	'wp-includes/js/dist/script-modules/interactivity/index.min.js', // Replaced with brute force method below
 				'wp-includes/blocks/navigation/view.min.js',
 				'wp-includes/js/jquery/jquery.min.js'
 			];
@@ -293,8 +298,17 @@ class DevstiaPlugin extends AbstractPlugin {
 		
 		// Tell client we're using the devstia proxy
 		$str = str_replace( '<head>', '<head><meta name="devstia-proxy" content="true">', $str );
+
+		// Brute force wp-includes/js/dist/script-modules/interactivity/index.min.js
+		$str = str_replace( 'https://devstia.com/wp-includes/js/dist/script-modules/interactivity/index.min.js',
+			$this->proxy_url . 'https://devstia.com/wp-includes/js/dist/script-modules/interactivity/index.min.js', 
+			$str
+		);
+		$str = str_replace( 'https:\/\/devstia.com\/wp-includes\/js\/dist\/script-modules\/interactivity\/index.min.js',
+			$this->proxy_url . 'https://devstia.com/wp-includes/js/dist/script-modules/interactivity/index.min.js', 
+			$str
+		);
+		
 		$response->setContent($str);
 	}
 }
-
-?>
